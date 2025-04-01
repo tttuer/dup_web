@@ -30,6 +30,7 @@ async function login() {
   if (response.ok) {
     localStorage.setItem("access_token", data.access_token);
     router.push("/");
+    return;
   }
 
   alert("아이디와 비밀번호를 확인해주세요.");

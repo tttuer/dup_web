@@ -8,7 +8,6 @@ let fpInstance = null;
 
 onMounted(() => {
   fpInstance = flatpickr(datepickerInput.value, {
-    locale: flatpickr.l10ns.ko,
     onChange: (selectedDates, dateStr) => {
       console.log("선택된 날짜:", dateStr);
       // emit or call parent filter logic here
