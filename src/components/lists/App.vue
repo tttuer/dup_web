@@ -6,7 +6,7 @@ import Header from "../Header.vue";
 
 <template>
   <Header/>
-  <hr class="my-3 text-gray-300">
+  <hr class="my-1 text-gray-300">
   <Main/>
 </template>
 

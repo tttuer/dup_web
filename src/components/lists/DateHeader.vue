@@ -26,7 +26,7 @@ const openDatePicker = () => {
 
 <template>
   <th
-      class="w-30 text-left px-4 py-2 cursor-pointer select-none group hover:bg-blue-50 transition"
+      class="w-45 text-left px-4 py-2 cursor-pointer select-none group hover:bg-blue-50 transition"
       @click="openDatePicker"
   >
     날짜

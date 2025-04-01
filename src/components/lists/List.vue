@@ -80,8 +80,8 @@ watch(selectedCompany, fetchFiles)
 <!--            <input v-show="isOpen" type="date" id="date-input">-->
 <!--          </th>-->
           <th class="w-auto text-left px-4 py-2">설명</th>
-          <th class="w-40 text-left px-4 py-2">금액</th>
-          <th class="w-50 text-left px-4 py-2">첨부파일</th>
+          <th class="w-45 text-left px-4 py-2">금액</th>
+          <th class="w-85 text-left px-4 py-2">첨부파일</th>
         </tr>
         </thead>
       </table>
@@ -95,10 +95,10 @@ watch(selectedCompany, fetchFiles)
         <tr v-for="file in fileLists" :key="file.id"
             class="border-b border-gray-200 dark:border-gray-700">
           <td class="w-5 px-4 py-2"><input type="checkbox" class="row-check"/></td>
-          <td class="w-30 px-4 py-2">{{ formatDate(file.withdrawn_at) }}</td>
+          <td class="w-45 px-4 py-2">{{ formatDate(file.withdrawn_at) }}</td>
           <td class="w-auto px-4 py-2">{{ file.name }}</td>
-          <td class="w-40 px-4 py-2">{{ formatPrice(file.price) }}</td>
-          <td class="w-50 px-4 py-2">{{ file.file_name }}</td>
+          <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
+          <td class="w-85 px-4 py-2">{{ file.file_name }}</td>
         </tr>
         <!--        <tr class="border-b border-gray-200 dark:border-gray-700">-->
         <!--          <td class="w-5 px-4 py-2"><input type="checkbox" class="row-check"/></td>-->
