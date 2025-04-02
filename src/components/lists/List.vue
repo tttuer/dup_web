@@ -32,6 +32,9 @@ const fileLists = ref([]);
 const totalPage = ref(0);
 
 async function fetchFiles() {
+  fileLists.value = [];
+  totalPage.value = 0;
+
   const params = new URLSearchParams();
   params.append("company", selectedCompany.value);
   params.append("start_at", selectedDate.value);
@@ -40,7 +43,7 @@ async function fetchFiles() {
   try {
     const response = await authFetch(
       "http://localhost:8080/api/files?" + params.toString(),
-    )
+    );
     const [page, lists] = await response.json();
 
     totalPage.value = page;
@@ -135,16 +138,24 @@ watch([selectedCompany, selectedDate], fetchFiles);
             <td class="w-45 px-4 py-2">{{ formatDate(file.withdrawn_at) }}</td>
             <td class="w-auto px-4 py-2">{{ file.name }}</td>
             <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
-            <td class="w-85 px-4 py-2">{{ file.file_name }}</td>
+            <td class="group relative w-85 px-4 py-2">
+              <a
+                :href="`data:application/pdf;base64,${file.file_data}`"
+                :download="file.file_name"
+                class="text-blue-500 hover:text-blue-600"
+                >{{ file.file_name }}</a
+              >
+              <div
+                class="absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
+              >
+                <embed
+                  :src="`data:application/pdf;base64,${file.file_data}`"
+                  type="application/pdf"
+                  class="h-full w-full"
+                />
+              </div>
+            </td>
           </tr>
-          <!--        <tr class="border-b border-gray-200 dark:border-gray-700">-->
-          <!--          <td class="w-5 px-4 py-2"><input type="checkbox" class="row-check"/></td>-->
-          <!--          <td class="w-30 px-4 py-2">2025/03/27</td>-->
-          <!--          <td class="w-auto px-4 py-2">회의비</td>-->
-          <!--          <td class="w-40 px-4 py-2">₩25,000</td>-->
-          <!--          <td class="w-50 px-4 py-2">receipt.pdf</td>-->
-          <!--        </tr>-->
-          <!-- 더 많은 행들 -->
         </tbody>
       </table>
     </div>
