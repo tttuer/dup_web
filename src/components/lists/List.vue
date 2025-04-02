@@ -139,20 +139,22 @@ watch([selectedCompany, selectedDate], fetchFiles);
             <td class="w-auto px-4 py-2">{{ file.name }}</td>
             <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
             <td class="group relative w-85 px-4 py-2">
-              <a
-                :href="`data:application/pdf;base64,${file.file_data}`"
-                :download="file.file_name"
-                class="text-blue-500 hover:text-blue-600"
-                >{{ file.file_name }}</a
-              >
-              <div
-                class="absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
-              >
-                <embed
-                  :src="`data:application/pdf;base64,${file.file_data}`"
-                  type="application/pdf"
-                  class="h-full w-full"
-                />
+              <div class="group relative inline-block">
+                <a
+                  :href="`data:application/pdf;base64,${file.file_data}`"
+                  :download="file.file_name"
+                  class="text-blue-500 hover:text-blue-600"
+                  >{{ file.file_name }}</a
+                >
+                <div
+                  class="absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
+                >
+                  <embed
+                    :src="`data:application/pdf;base64,${file.file_data}`"
+                    type="application/pdf"
+                    class="h-full w-full"
+                  />
+                </div>
               </div>
             </td>
           </tr>
