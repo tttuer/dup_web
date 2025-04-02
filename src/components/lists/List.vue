@@ -30,14 +30,27 @@ const selectedCompany = ref("");
 const selectedDate = ref("");
 const fileLists = ref([]);
 const totalPage = ref(0);
+const currentPage = ref(1);
+const scrollContainer = ref(null);
 
-async function fetchFiles() {
-  fileLists.value = [];
-  totalPage.value = 0;
+onMounted(() => {
+  if (scrollContainer.value) {
+    scrollContainer.value.addEventListener("scroll", handleScroll);  // 추가됨: 스크롤 이벤트 리스너 등록
+  }
+});
+
+
+async function fetchFiles(isReset = false) {
+  if (isReset) {
+    fileLists.value = [];
+    totalPage.value = 0;
+    currentPage.value = 1;
+  }
 
   const params = new URLSearchParams();
   params.append("company", selectedCompany.value);
   params.append("start_at", selectedDate.value);
+  params.append("page", currentPage.value);
 
   isLoading.value = true;
   try {
@@ -47,9 +60,23 @@ async function fetchFiles() {
     const [page, lists] = await response.json();
 
     totalPage.value = page;
-    fileLists.value = lists.map(File);
+    fileLists.value = [...fileLists.value, ...lists.map(File)];
   } finally {
     isLoading.value = false;
+  }
+}
+
+function handleScroll() {
+  if (!scrollContainer.value) return;
+  const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value;
+  const threshold = 50;                                // 임계값 설정
+  if (
+    scrollTop + clientHeight >= scrollHeight - threshold &&
+    !isLoading.value &&
+    currentPage.value < totalPage.value
+  ) {
+    currentPage.value++;                               // 다음 페이지로 증가
+    fetchFiles();                                      // 추가 데이터를 불러옴
   }
 }
 
@@ -69,7 +96,9 @@ function formatPrice(price) {
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-watch([selectedCompany, selectedDate], fetchFiles);
+watch([selectedCompany, selectedDate], () => {
+  fetchFiles(true);
+});
 </script>
 
 <template>
@@ -96,7 +125,7 @@ watch([selectedCompany, selectedDate], fetchFiles);
     </div>
 
     <!-- 스크롤 가능한 바디 테이블 -->
-    <div class="flex-1 overflow-y-auto">
+    <div ref="scrollContainer" class="flex-1 overflow-y-auto">
       <table class="w-full table-fixed">
         <tbody>
           <tr v-if="isLoading">
