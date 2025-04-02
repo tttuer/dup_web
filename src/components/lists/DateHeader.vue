@@ -20,7 +20,6 @@ function formatDate(dateStr) {
 onMounted(() => {
   fpInstance = flatpickr(datepickerInput.value, {
     onChange: (selectedDates, dateStr) => {
-      console.log("선택된 날짜:", formatDate(dateStr));
       // emit or call parent filter logic here
       emit('select', formatDate(dateStr));
     },
