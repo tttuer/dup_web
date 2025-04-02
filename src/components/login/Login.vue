@@ -38,7 +38,7 @@ async function login() {
 </script>
 
 <template>
-  <main class="flex min-h-screen w-full items-center justify-center p-8">
+  <main class="flex h-full w-full items-center justify-center p-8">
     <div class="box-border h-80 w-96 rounded-lg border-2 border-gray-300 p-4">
       <h2 class="text-center font-sans text-2xl">아카이브 로그인</h2>
       <div class="mt-8 mr-2 h-12 w-full rounded-lg border-1 border-gray-300">
