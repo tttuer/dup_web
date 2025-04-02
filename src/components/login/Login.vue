@@ -74,5 +74,3 @@ async function login() {
     </div>
   </main>
 </template>
-
-<style scoped></style>

@@ -2,15 +2,27 @@
 import flatpickr from "flatpickr";
 import {ref, onMounted} from "vue";
 
+const emit = defineEmits(['select'])
 
 const datepickerInput = ref(null);
 let fpInstance = null;
 
+function formatDate(dateStr) {
+  // 입력값이 "2025-03-20" 형식일 경우 처리
+  const year = dateStr.substring(0, 4); // "2025"
+  const month = dateStr.substring(5, 7); // "03"
+  const day = dateStr.substring(8, 10); // "20"
+
+  // YYYYMMDD 형식으로 반환
+  return `${year}${month}${day}`;
+}
+
 onMounted(() => {
   fpInstance = flatpickr(datepickerInput.value, {
     onChange: (selectedDates, dateStr) => {
-      console.log("선택된 날짜:", dateStr);
+      console.log("선택된 날짜:", formatDate(dateStr));
       // emit or call parent filter logic here
+      emit('select', formatDate(dateStr));
     },
   });
 });

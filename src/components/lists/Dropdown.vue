@@ -5,13 +5,18 @@ const selected = ref('회사선택')
 const isOpen = ref(false)
 
 const options = ['백성운수', '평택여객', '파란전기']
+const nameToEnum = {
+  '백성운수': 'BAEKSUNG',
+  '평택여객': 'PYEONGTAEK',
+  '파란전기': 'PARAN',
+}
 
 const emit = defineEmits(['select'])
 
 const selectOption = (option) => {
   selected.value = option
   isOpen.value = false
-  emit('select', option)
+  emit('select', nameToEnum[option])
 }
 
 
@@ -57,18 +62,6 @@ const selectOption = (option) => {
              tabindex="-1" role="menuitem"
              @click="selectOption(option)">{{ option }}</a>
 
-          <!-- Active: "bg-gray-100 text-gray-900 outline-hidden", Not Active: "text-gray-700" -->
-          <!--          <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1"-->
-          <!--             id="menu-item-0">백성운수</a>-->
-          <!--          <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1"-->
-          <!--             id="menu-item-1">평택여객</a>-->
-          <!--          <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1"-->
-          <!--             id="menu-item-2">파란전기</a>-->
-          <!--          <form method="POST" action="#" role="none">-->
-          <!--            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700"-->
-          <!--                    role="menuitem" tabindex="-1" id="menu-item-3">Sign out-->
-          <!--            </button>-->
-          <!--          </form>-->
         </div>
       </div>
     </div>

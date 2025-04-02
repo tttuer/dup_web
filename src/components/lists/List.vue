@@ -9,6 +9,7 @@ const File = ({
   id = "",
   name = "",
   price = 0,
+  company = "",
   updated_at = "",
   withdrawn_at = "",
   file_data = "",
@@ -18,21 +19,35 @@ const File = ({
   id,
   name,
   price,
+  company,
   updated_at,
   withdrawn_at,
   file_data,
 });
 
+const isLoading = ref(false);
 const selectedCompany = ref("");
+const selectedDate = ref("");
 const fileLists = ref([]);
 const totalPage = ref(0);
 
 async function fetchFiles() {
-  const response = await authFetch("http://localhost:8080/api/files");
-  const [page, lists] = await response.json();
+  const params = new URLSearchParams();
+  params.append("company", selectedCompany.value);
+  params.append("start_at", selectedDate.value);
 
-  totalPage.value = page;
-  fileLists.value = lists.map(File);
+  isLoading.value = true;
+  try {
+    const response = await authFetch(
+      "http://localhost:8080/api/files?" + params.toString(),
+    )
+    const [page, lists] = await response.json();
+
+    totalPage.value = page;
+    fileLists.value = lists.map(File);
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 // 날짜 포맷 함수
@@ -51,7 +66,7 @@ function formatPrice(price) {
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-watch(selectedCompany, fetchFiles);
+watch([selectedCompany, selectedDate], fetchFiles);
 </script>
 
 <template>
@@ -68,7 +83,7 @@ watch(selectedCompany, fetchFiles);
             <th class="w-5 px-4 py-2 text-left">
               <input type="checkbox" id="check-all" />
             </th>
-            <DateHeader />
+            <DateHeader @select="(select) => (selectedDate = select)" />
             <th class="w-auto px-4 py-2 text-left">설명</th>
             <th class="w-45 px-4 py-2 text-left">금액</th>
             <th class="w-85 px-4 py-2 text-left">첨부파일</th>
@@ -81,6 +96,33 @@ watch(selectedCompany, fetchFiles);
     <div class="flex-1 overflow-y-auto">
       <table class="w-full table-fixed">
         <tbody>
+          <tr v-if="isLoading">
+            <td colspan="5" class="px-4 py-4 text-center">
+              <svg
+                class="mx-auto size-6 animate-spin text-gray-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                ></path>
+              </svg>
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-300">
+                불러오는 중...
+              </p>
+            </td>
+          </tr>
           <!-- 반복 행 예시 -->
           <tr
             v-for="file in fileLists"
