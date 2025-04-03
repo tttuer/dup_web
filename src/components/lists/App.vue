@@ -7,13 +7,16 @@ import Footer from "../Footer.vue";
 <template>
   <div class="flex h-screen flex-col">
     <Header />
-    <hr class="my-1 text-gray-300" />
-
-    <div class="flex-1 overflow-hidden">
-      <Main />
+    <div>
+      <hr class="my-1 text-gray-300" />
     </div>
 
-    <hr class="my-1 text-gray-300" />
+    <div class="flex-1 h-full">
+      <Main />
+    </div>
+    <div>
+      <hr class="my-1 text-gray-300" />
+    </div>
     <Footer />
   </div>
 </template>

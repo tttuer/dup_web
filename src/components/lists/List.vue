@@ -111,14 +111,14 @@ watch([selectedCompany, selectedDate], () => {
 </script>
 
 <template>
-  <div class="mx-auto flex h-full w-full flex-col bg-green-100">
+  <div class="flex h-full w-full flex-col">
     <Dropdown @select="(select) => (selectedCompany = select)" />
     <div
-      class="mx-auto flex h-full w-full flex-col rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+      class="flex h-full w-full flex-1 flex-col rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
 
-      <div>
+      <div class="block max-h-full">
         <table class="w-full table-fixed">
           <thead class="bg-gray-100 dark:bg-gray-700">
             <tr>
@@ -134,7 +134,7 @@ watch([selectedCompany, selectedDate], () => {
         </table>
       </div>
 
-      <div class="flex-1 overflow-y-auto pb-12">
+      <div class="h-full overflow-y-auto bg-blue-100">
         <table class="w-full table-fixed">
           <tbody>
             <!-- 반복 행 예시 -->
@@ -172,10 +172,14 @@ watch([selectedCompany, selectedDate], () => {
               </td>
             </tr>
             <tr ref="sentinel">
-              <td colspan="5" class="px-4 py-4 text-center">
+              <td
+                colspan="5"
+                class="px-4 py-4 text-center"
+                v-if="currentPage < totalPage"
+              >
                 <div v-if="currentPage < totalPage">
                   <svg
-                    class="mx-auto size-6 animate-spin text-gray-500"
+                    class="size-6 animate-spin text-gray-500"
                     viewBox="0 0 24 24"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"

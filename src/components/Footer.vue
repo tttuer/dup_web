@@ -1,7 +1,11 @@
 <script setup></script>
 
 <template>
-  <footer class="h-10"></footer>
+    <footer>
+      <div  class="h-10">
+
+      </div>
+    </footer>
 </template>
 
 <style scoped></style>
