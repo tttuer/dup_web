@@ -111,7 +111,7 @@ watch([selectedCompany, selectedDate], () => {
 </script>
 
 <template>
-  <div class="flex h-full w-full flex-col">
+  <div class="flex h-full w-full flex-col p-8">
     <Dropdown @select="(select) => (selectedCompany = select)" />
     <div
       class="flex h-full w-full flex-1 flex-col rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"

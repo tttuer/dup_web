@@ -1,11 +1,9 @@
 <script setup></script>
 
 <template>
-    <footer>
-      <div  class="h-10">
-
-      </div>
-    </footer>
+  <footer class="h-10 w-full border-t border-gray-300 p-10" >
+    <div ></div>
+  </footer>
 </template>
 
 <style scoped></style>

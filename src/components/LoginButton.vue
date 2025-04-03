@@ -23,7 +23,7 @@ function logout() {
 </script>
 
 <template>
-  <div class="col-span-1 flex items-center justify-end pr-6 text-center">
+  <div class="col-span-1 flex items-center justify-end pr-8 text-center">
     <router-link
       @click="logout"
       to="/login"

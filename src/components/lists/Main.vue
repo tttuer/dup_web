@@ -1,16 +1,11 @@
 <script setup>
-import List from './List.vue'
+import List from "./List.vue";
 </script>
 
 <template>
-<main>
-  <div class="w-full h-full p-8">
-    <List/>
-
-  </div>
-</main>
+  <main class="flex-1">
+    <List />
+  </main>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
