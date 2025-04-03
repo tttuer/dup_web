@@ -23,7 +23,7 @@ const selectOption = (option) => {
 </script>
 
 <template>
-  <div>
+  <div class="flex-none">
     <div class="relative inline-block text-left mb-2 z-50">
       <div>
         <button type="button"
