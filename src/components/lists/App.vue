@@ -7,7 +7,6 @@ import Footer from "../Footer.vue";
 <template>
   <div class="flex h-screen flex-col">
     <Header />
-
     <Main />
     <Footer />
   </div>
