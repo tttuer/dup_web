@@ -3,7 +3,7 @@ import List from "./List.vue";
 </script>
 
 <template>
-  <main class="flex-1">
+  <main class="grow">
     <List />
   </main>
 </template>

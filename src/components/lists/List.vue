@@ -111,14 +111,14 @@ watch([selectedCompany, selectedDate], () => {
 </script>
 
 <template>
-  <div class="flex h-full w-full flex-col p-8">
+  <div class="flex flex-col h-full w-full p-8">
     <Dropdown @select="(select) => (selectedCompany = select)" />
     <div
-      class="flex h-full w-full flex-1 flex-col rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+      class="h-full w-full rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
 
-      <div class="block max-h-full">
+      <div class="block ">
         <table class="w-full table-fixed">
           <thead class="bg-gray-100 dark:bg-gray-700">
             <tr>
@@ -134,7 +134,7 @@ watch([selectedCompany, selectedDate], () => {
         </table>
       </div>
 
-      <div class="h-full overflow-y-auto bg-blue-100">
+      <div class="overflow-scroll h-full">
         <table class="w-full table-fixed">
           <tbody>
             <!-- 반복 행 예시 -->
@@ -150,8 +150,8 @@ watch([selectedCompany, selectedDate], () => {
                 {{ formatDate(file.withdrawn_at) }}
               </td>
               <td class="w-auto px-4 py-2">{{ file.name }}</td>
-              <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
-              <td class="group relative w-85 px-4 py-2">
+              <td class="w-46 px-4 py-2">{{ formatPrice(file.price) }}</td>
+              <td class="group relative w-80 px-4 py-2">
                 <div class="group relative inline-block">
                   <a
                     :href="`data:application/pdf;base64,${file.file_data}`"

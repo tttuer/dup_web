@@ -7,11 +7,7 @@ import Footer from "../Footer.vue";
 <template>
   <div class="flex h-screen flex-col">
     <Header />
-    <hr class="my-1 text-gray-300" />
-    <div class="flex-1 overflow-hidden">
-      <Login />
-    </div>
-    <hr class="my-1 text-gray-300" />
+    <Login />
     <Footer />
   </div>
 </template>

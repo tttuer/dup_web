@@ -1,7 +1,7 @@
 <script setup></script>
 
 <template>
-  <footer class="h-10 w-full border-t border-gray-300 p-10" >
+  <footer class="h-10 w-full border-t border-gray-300 p-10 flex-none" >
     <div ></div>
   </footer>
 </template>
