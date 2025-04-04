@@ -114,7 +114,7 @@ watch([selectedCompany, selectedDate], () => {
   <div class="flex flex-col h-full w-full p-8">
     <Dropdown @select="(select) => (selectedCompany = select)" />
     <div
-      class="h-full w-full rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+      class="flex-1 flex flex-col h-full w-full rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
 
