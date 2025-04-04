@@ -39,10 +39,15 @@ import { onUpdated } from "vue";
 onUpdated(async () => {
   if (sentinel.value && !observer) {
     await nextTick();
+    console.log(sentinel.value);
 
     observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          console.log(entry.isIntersecting);
+          console.log(isLoading.value);
+          console.log(currentPage.value);
+          console.log(totalPage.value);
           if (
             entry.isIntersecting &&
             !isLoading.value &&
@@ -55,7 +60,7 @@ onUpdated(async () => {
       },
       {
         root: null,
-        threshold: 1.0,
+        threshold: 0.1,
       },
     );
 
@@ -105,28 +110,38 @@ function formatPrice(price) {
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+const showAbove = ref(false);
+
+const handleMouseEnter = (e) => {
+  const rect = e.target.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+
+  // 300px 아래로 뜨면 뚝 잘리니까 → 위로 띄우기
+  showAbove.value = rect.bottom + 1000 > viewportHeight;
+};
+
 watch([selectedCompany, selectedDate], () => {
   fetchFiles(true);
 });
 </script>
 
 <template>
-  <div class="flex flex-col h-full w-full p-8">
+  <div class="flex h-full w-full flex-col p-8">
     <Dropdown @select="(select) => (selectedCompany = select)" />
     <div
-      class="flex-1 flex flex-col h-full w-full rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+      class="flex h-full w-full flex-1 flex-col overflow-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
 
-      <div class="block ">
-        <table class="w-full table-fixed">
+      <div class="block">
+        <table class="w-full min-w-[1000px] table-fixed">
           <thead class="bg-gray-100 dark:bg-gray-700">
             <tr>
               <th class="w-5 px-4 py-2 text-left">
                 <input type="checkbox" id="check-all" />
               </th>
               <DateHeader @select="(select) => (selectedDate = select)" />
-              <th class="w-auto px-4 py-2 text-left">설명</th>
+              <th class="min-w-48 truncate px-4 py-2 text-left">설명</th>
               <th class="w-45 px-4 py-2 text-left">금액</th>
               <th class="w-85 px-4 py-2 text-left">첨부파일</th>
             </tr>
@@ -134,8 +149,8 @@ watch([selectedCompany, selectedDate], () => {
         </table>
       </div>
 
-      <div class="overflow-scroll h-full">
-        <table class="w-full table-fixed">
+      <div class="h-full overflow-y-scroll">
+        <table class="w-full min-w-[900px] table-fixed">
           <tbody>
             <!-- 반복 행 예시 -->
             <tr
@@ -149,19 +164,22 @@ watch([selectedCompany, selectedDate], () => {
               <td class="w-45 px-4 py-2">
                 {{ formatDate(file.withdrawn_at) }}
               </td>
-              <td class="w-auto px-4 py-2">{{ file.name }}</td>
-              <td class="w-46 px-4 py-2">{{ formatPrice(file.price) }}</td>
-              <td class="group relative w-80 px-4 py-2">
-                <div class="group relative inline-block">
+              <td class="min-w-48 truncate px-4 py-2">
+                {{ file.name }}
+              </td>
+              <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
+              <td class="group relative w-81 px-4 py-2">
+                <div @mouseenter="handleMouseEnter" class="group relative inline-block">
                   <a
                     :href="`data:application/pdf;base64,${file.file_data}`"
                     :download="file.file_name"
-                    class="text-blue-500 hover:text-blue-600"
+                    class="truncate overflow-hidden whitespace-nowrap text-blue-500 hover:text-blue-600"
                     >{{ file.file_name }}</a
                   >
                   <div
                     class="absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
-                  >
+                    :class="showAbove ? 'bottom-full mb-2' : 'top-full mt-2'"
+                    >
                     <embed
                       :src="`data:application/pdf;base64,${file.file_data}`"
                       type="application/pdf"
