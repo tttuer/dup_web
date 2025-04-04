@@ -39,15 +39,10 @@ import { onUpdated } from "vue";
 onUpdated(async () => {
   if (sentinel.value && !observer) {
     await nextTick();
-    console.log(sentinel.value);
 
     observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          console.log(entry.isIntersecting);
-          console.log(isLoading.value);
-          console.log(currentPage.value);
-          console.log(totalPage.value);
           if (
             entry.isIntersecting &&
             !isLoading.value &&
@@ -66,6 +61,18 @@ onUpdated(async () => {
 
     observer.observe(sentinel.value);
   }
+});
+
+// 컴포넌트 unmount 시 observer 정리 (메모리 누수 방지)
+import { onBeforeUnmount } from "vue";
+onBeforeUnmount(() => {
+  if (observer && sentinel.value) {
+    observer.unobserve(sentinel.value);
+  }
+  if (observer) {
+    observer.disconnect();
+  }
+  observer = null;
 });
 
 async function fetchFiles(isReset = false) {
@@ -110,15 +117,40 @@ function formatPrice(price) {
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-const showAbove = ref(false);
+// *** 미리보기 위치 계산 및 조정 함수 ***
+function handlePreviewPosition(event) {
+  const container = event.currentTarget; // 이벤트가 부착된 요소 (div.group.relative.inline-block)
+  const preview = container.querySelector(".pdf-preview"); // 미리보기 div (클래스 추가 필요)
+  if (!preview) return;
 
-const handleMouseEnter = (e) => {
-  const rect = e.target.getBoundingClientRect();
-  const viewportHeight = window.innerHeight;
+  const containerRect = container.getBoundingClientRect(); // 컨테이너의 뷰포트 내 위치/크기
+  const previewHeight = preview.offsetHeight || 600; // 미리보기 높이 (h-80 = 20rem = 320px), 실제 측정값 사용 권장
+  const viewportHeight = window.innerHeight; // 뷰포트 높이
+  const spaceBelow = viewportHeight - containerRect.bottom; // 요소 아래 남은 공간
+  const spaceAbove = containerRect.top; // 요소 위 남은 공간 (뷰포트 상단 기준)
 
-  // 300px 아래로 뜨면 뚝 잘리니까 → 위로 띄우기
-  showAbove.value = rect.bottom + 1000 > viewportHeight;
-};
+  // 기본값: 아래로 표시
+  preview.classList.remove("bottom-full", "mb-2"); // '위로' 스타일 제거
+  preview.classList.add("top-full", "mt-2"); // '아래로' 스타일 추가 (기본)
+
+  // 아래 공간이 부족하고 위 공간이 충분하면 위로 표시
+  if (spaceBelow < previewHeight && spaceAbove > previewHeight) {
+    preview.classList.remove("top-full", "mt-2"); // '아래로' 스타일 제거
+    preview.classList.add("bottom-full", "mb-2"); // '위로' 스타일 추가 (mb-2는 위쪽 여백)
+  }
+  // 다른 경우는 기본값(아래로 표시) 유지
+}
+
+// *** 마우스 벗어날 때 스타일 초기화 함수 (선택적이지만 권장) ***
+function resetPreviewPosition(event) {
+  const container = event.currentTarget;
+  const preview = container.querySelector(".pdf-preview");
+  if (!preview) return;
+
+  // 기본 '아래로' 스타일로 복원
+  preview.classList.remove("bottom-full", "mb-2");
+  preview.classList.add("top-full", "mt-2");
+}
 
 watch([selectedCompany, selectedDate], () => {
   fetchFiles(true);
@@ -168,8 +200,12 @@ watch([selectedCompany, selectedDate], () => {
                 {{ file.name }}
               </td>
               <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
-              <td class="group relative w-81 px-4 py-2">
-                <div @mouseenter="handleMouseEnter" class="group relative inline-block">
+              <td
+                class="group relative w-81 px-4 py-2"
+                @mouseenter="handlePreviewPosition"
+                @mouseleave="resetPreviewPosition"
+              >
+                <div class="group relative inline-block">
                   <a
                     :href="`data:application/pdf;base64,${file.file_data}`"
                     :download="file.file_name"
@@ -177,9 +213,8 @@ watch([selectedCompany, selectedDate], () => {
                     >{{ file.file_name }}</a
                   >
                   <div
-                    class="absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
-                    :class="showAbove ? 'bottom-full mb-2' : 'top-full mt-2'"
-                    >
+                    class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
+                  >
                     <embed
                       :src="`data:application/pdf;base64,${file.file_data}`"
                       type="application/pdf"
