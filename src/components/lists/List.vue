@@ -1,7 +1,6 @@
 <script setup>
 import { ref, watch, onMounted, nextTick } from "vue";
 import Dropdown from "./Dropdown.vue";
-import DateHeader from "./DateHeader.vue";
 import { authFetch } from "../../utils/authFetch";
 const File = ({
   created_at = "",
@@ -65,6 +64,7 @@ onUpdated(async () => {
 
 // 컴포넌트 unmount 시 observer 정리 (메모리 누수 방지)
 import { onBeforeUnmount } from "vue";
+import UserInput from "./UserInput.vue";
 onBeforeUnmount(() => {
   if (observer && sentinel.value) {
     observer.unobserve(sentinel.value);
@@ -172,7 +172,7 @@ watch([selectedCompany, selectedDate], () => {
               <th class="w-5 px-4 py-2 text-left">
                 <input type="checkbox" id="check-all" />
               </th>
-              <DateHeader @select="(select) => (selectedDate = select)" />
+              <th class="w-45 px-4 py-2 text-left">날짜</th>
               <th class="min-w-48 truncate px-4 py-2 text-left">설명</th>
               <th class="w-45 px-4 py-2 text-left">금액</th>
               <th class="w-85 px-4 py-2 text-left">첨부파일</th>
@@ -181,40 +181,7 @@ watch([selectedCompany, selectedDate], () => {
         </table>
       </div>
 
-      <div v-if="selectedCompany" class="block border-b border-gray-200">
-        <table class="w-full min-w-[900px] table-fixed">
-          <thead class="">
-            <tr>
-              <td class="w-5 px-4 py-2 text-left"></td>
-              <td class="w-45 px-4 py-2">
-                <input class="rounded-sm border border-gray-300" type="date" />
-              </td>
-              <td class="min-w-48 truncate px-4 py-2 text-left">
-                <input
-                  class="w-full rounded-sm border border-gray-300"
-                  type="text"
-                />
-              </td>
-              <td class="w-45 px-4 py-2 text-left">
-                <input
-                  class="w-full rounded-sm border border-gray-300"
-                  type="text"
-                />
-              </td>
-              <td class="w-85 px-4 py-2 text-left">
-                <div class="grid-cols-4 grid gap-4">
-                  <input
-                    class="col-span-3 flex w-full rounded-sm border border-gray-300"
-                    type="file"
-                    multiple
-                  />
-                  <button class="col-span-1 border border-gray-300 rounded-md p-0 px-1 py-0.5 text-sm">입력</button>
-                </div>
-              </td>
-            </tr>
-          </thead>
-        </table>
-      </div>
+      <UserInput :selectedCompany="selectedCompany" />
 
       <div class="no-scrollbar h-full overflow-y-scroll">
         <table class="w-full min-w-[900px] table-fixed">

@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import 'modern-normalize/modern-normalize.css';
 @import 'flatpickr/dist/flatpickr.min.css';
+@import 'flatpickr/dist/flatpickr.css';
+
 @layer utilities {
     .no-scrollbar::-webkit-scrollbar {
       display: none;
