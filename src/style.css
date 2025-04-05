@@ -1,8 +1,15 @@
 @import "tailwindcss";
 @import 'modern-normalize/modern-normalize.css';
 @import 'flatpickr/dist/flatpickr.min.css';
-@plugin 'tailwind-scrollbar';
-
+@layer utilities {
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  }
 
 /*:root {*/
 /*  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;*/

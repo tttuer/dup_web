@@ -181,7 +181,7 @@ watch([selectedCompany, selectedDate], () => {
         </table>
       </div>
 
-      <div class="h-full overflow-y-scroll scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-200">
+      <div class="h-full overflow-y-scroll no-scrollbar">
         <table class="w-full min-w-[900px] table-fixed">
           <tbody>
             <!-- 반복 행 예시 -->
