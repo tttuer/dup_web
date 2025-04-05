@@ -158,7 +158,7 @@ watch([selectedCompany, selectedDate], () => {
 </script>
 
 <template>
-  <div class="flex h-full w-full flex-col p-8">
+  <div class="flex h-full w-full flex-col p-8 bg-testPink">
     <Dropdown @select="(select) => (selectedCompany = select)" />
     <div
       class="flex h-full w-full flex-1 flex-col overflow-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
@@ -181,7 +181,7 @@ watch([selectedCompany, selectedDate], () => {
         </table>
       </div>
 
-      <div class="h-full overflow-y-scroll">
+      <div class="h-full overflow-y-scroll scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-200">
         <table class="w-full min-w-[900px] table-fixed">
           <tbody>
             <!-- 반복 행 예시 -->
@@ -196,12 +196,12 @@ watch([selectedCompany, selectedDate], () => {
               <td class="w-45 px-4 py-2">
                 {{ formatDate(file.withdrawn_at) }}
               </td>
-              <td class="min-w-48 truncate px-4 py-2">
+              <td class="truncate px-4 py-2">
                 {{ file.name }}
               </td>
               <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
               <td
-                class="group relative w-81 px-4 py-2"
+                class="group relative w-85 px-4 py-2"
                 @mouseenter="handlePreviewPosition"
                 @mouseleave="resetPreviewPosition"
               >
