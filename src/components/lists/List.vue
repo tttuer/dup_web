@@ -158,7 +158,7 @@ watch([selectedCompany, selectedDate], () => {
 </script>
 
 <template>
-  <div class="flex h-full w-full flex-col p-8 bg-testPink">
+  <div class="bg-testPink flex h-full w-full flex-col p-8">
     <Dropdown @select="(select) => (selectedCompany = select)" />
     <div
       class="flex h-full w-full flex-1 flex-col overflow-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
@@ -166,7 +166,7 @@ watch([selectedCompany, selectedDate], () => {
       <!-- 고정 헤더 테이블 -->
 
       <div class="block">
-        <table class="w-full min-w-[1000px] table-fixed">
+        <table class="w-full min-w-[900px] table-fixed">
           <thead class="bg-gray-100 dark:bg-gray-700">
             <tr>
               <th class="w-5 px-4 py-2 text-left">
@@ -181,7 +181,42 @@ watch([selectedCompany, selectedDate], () => {
         </table>
       </div>
 
-      <div class="h-full overflow-y-scroll no-scrollbar">
+      <div v-if="selectedCompany" class="block border-b border-gray-200">
+        <table class="w-full min-w-[900px] table-fixed">
+          <thead class="">
+            <tr>
+              <td class="w-5 px-4 py-2 text-left"></td>
+              <td class="w-45 px-4 py-2">
+                <input class="rounded-sm border border-gray-300" type="date" />
+              </td>
+              <td class="min-w-48 truncate px-4 py-2 text-left">
+                <input
+                  class="w-full rounded-sm border border-gray-300"
+                  type="text"
+                />
+              </td>
+              <td class="w-45 px-4 py-2 text-left">
+                <input
+                  class="w-full rounded-sm border border-gray-300"
+                  type="text"
+                />
+              </td>
+              <td class="w-85 px-4 py-2 text-left">
+                <div class="grid-cols-4 grid gap-4">
+                  <input
+                    class="col-span-3 flex w-full rounded-sm border border-gray-300"
+                    type="file"
+                    multiple
+                  />
+                  <button class="col-span-1 border border-gray-300 rounded-md p-0 px-1 py-0.5 text-sm">입력</button>
+                </div>
+              </td>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+      <div class="no-scrollbar h-full overflow-y-scroll">
         <table class="w-full min-w-[900px] table-fixed">
           <tbody>
             <!-- 반복 행 예시 -->
@@ -209,7 +244,7 @@ watch([selectedCompany, selectedDate], () => {
                   <a
                     :href="`data:application/pdf;base64,${file.file_data}`"
                     :download="file.file_name"
-                    class="truncate overflow-hidden whitespace-nowrap text-blue-500 hover:text-blue-600"
+                    class="truncate text-blue-500 hover:text-blue-600"
                     >{{ file.file_name }}</a
                   >
                   <div
