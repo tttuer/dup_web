@@ -2,7 +2,24 @@
 import { ref, watch, onUnmounted, nextTick } from "vue";
 import Dropdown from "./Dropdown.vue";
 import { authFetch } from "../../utils/authFetch";
-const File = ({
+
+const previewUrlCache = new Map();
+const worker = new Worker(
+  new URL("./pdf-worker.js", import.meta.url),
+  { type: "module" }
+);
+
+
+worker.onmessage = (e) => {
+  const { id, pdf_url } = e.data;
+  previewUrlCache.set(id, pdf_url);
+  const file = fileLists.value.find((f) => f.id === id);
+  if (file) {
+    file.pdf_url = pdf_url;
+  }
+};
+
+const File = async ({
   created_at = "",
   file_name = "",
   id = "",
@@ -12,17 +29,39 @@ const File = ({
   updated_at = "",
   withdrawn_at = "",
   file_data = "",
-}) => ({
-  created_at,
-  file_name,
-  id,
-  name,
-  price,
-  company,
-  updated_at,
-  withdrawn_at,
-  file_data,
-});
+}) => {
+  const fileObj = {
+    created_at,
+    file_name,
+    id,
+    name,
+    price,
+    company,
+    updated_at,
+    withdrawn_at,
+    file_data,
+    pdf_url: null,
+  };
+
+  try {
+    if (file_data && !objectUrls.has(id)) {
+      const byteCharacters = atob(file_data);
+      const byteArray = new Uint8Array(
+        [...byteCharacters].map((c) => c.charCodeAt(0)),
+      );
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      objectUrls.set(id, url);
+      fileObj.pdf_url = url;
+    } else {
+      fileObj.pdf_url = objectUrls.get(id) || null;
+    }
+  } catch (e) {
+    console.error("Failed to create PDF URL:", e);
+  }
+
+  return fileObj;
+};
 
 const isLoading = ref(false);
 const selectedCompany = ref("");
@@ -32,32 +71,34 @@ const totalPage = ref(0);
 const currentPage = ref(1);
 const sentinel = ref(null);
 let observer = null;
+const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
 
-import { onUpdated } from "vue";
+import { onMounted } from "vue";
 
-onUpdated(async () => {
-  if (sentinel.value && !observer) {
-    await nextTick();
+onMounted(async () => {
+  await nextTick(); // sentinel이 DOM에 렌더된 뒤에
 
-    observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (
-            entry.isIntersecting &&
-            !isLoading.value &&
-            currentPage.value < totalPage.value
-          ) {
-            currentPage.value++;
-            fetchFiles();
-          }
-        });
-      },
-      {
-        root: null,
-        threshold: 0.1,
-      },
-    );
+  observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (
+          entry.isIntersecting &&
+          !isLoading.value &&
+          !isPdfConverting.value &&
+          currentPage.value < totalPage.value
+        ) {
+          currentPage.value++;
+          fetchFiles();
+        }
+      });
+    },
+    {
+      root: null,
+      threshold: 0.1,
+    },
+  );
 
+  if (sentinel.value) {
     observer.observe(sentinel.value);
   }
 });
@@ -100,6 +141,7 @@ async function fetchFiles(isReset = false) {
   params.append("page", currentPage.value);
 
   isLoading.value = true;
+  isPdfConverting.value = true;
   try {
     const response = await authFetch(
       "http://localhost:8080/api/files?" + params.toString(),
@@ -107,9 +149,30 @@ async function fetchFiles(isReset = false) {
     const [total_count, total_page, lists] = await response.json();
 
     totalPage.value = total_page;
-    fileLists.value = [...fileLists.value, ...lists.map(File)];
+    const newFiles = lists.map((file) => ({
+      ...file,
+      pdf_url: null, // 나중에 Worker가 채워줌
+    }));
+    fileLists.value = [...fileLists.value, ...newFiles];
+
+    newFiles.forEach((file) => {
+      if (!previewUrlCache.has(file.id)) {
+        worker.postMessage({ id: file.id, file_data: file.file_data });
+      } else {
+        file.pdf_url = previewUrlCache.get(file.id);
+      }
+    });
+
+    console.log(fileLists.value);
+
+    await nextTick();
+    if (sentinel.value && observer) {
+      observer.unobserve(sentinel.value); // 중복 방지
+      observer.observe(sentinel.value);
+    }
   } finally {
     isLoading.value = false;
+    isPdfConverting.value = false;
   }
 }
 
@@ -167,29 +230,6 @@ function resetPreviewPosition(event) {
 // 메모리 누수 방지용 URL 저장소
 const objectUrls = new Map();
 
-// base64 → blob → URL 변환 함수
-function getPdfUrl(file) {
-  if (!file?.file_data) return null;
-
-  // 이미 URL이 만들어졌으면 그대로 반환
-  if (objectUrls.has(file.id)) return objectUrls.get(file.id);
-
-  try {
-    const byteCharacters = atob(file.file_data);
-    const byteArray = new Uint8Array(
-      [...byteCharacters].map((c) => c.charCodeAt(0)),
-    );
-    const blob = new Blob([byteArray], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-
-    objectUrls.set(file.id, url);
-    return url;
-  } catch (e) {
-    console.error("Failed to create PDF URL:", e);
-    return null;
-  }
-}
-
 // 컴포넌트가 사라질 때 URL 정리
 onUnmounted(() => {
   for (const url of objectUrls.values()) {
@@ -197,8 +237,8 @@ onUnmounted(() => {
   }
 });
 
-watch([selectedCompany, selectedDate], () => {
-  fetchFiles(true);
+watch([selectedCompany, selectedDate], async () => {
+  await fetchFiles(true);
 });
 </script>
 
@@ -238,7 +278,7 @@ watch([selectedCompany, selectedDate], () => {
             <tr
               v-for="file in fileLists"
               :key="file.id"
-              class="border-b border-gray-200 dark:border-gray-700 files"
+              class="files border-b border-gray-200 dark:border-gray-700"
             >
               <td class="w-5 px-4 py-2">
                 <input type="checkbox" class="row-check" />
@@ -266,8 +306,8 @@ watch([selectedCompany, selectedDate], () => {
                     class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
                   >
                     <embed
-                      v-if="getPdfUrl(file)"
-                      :src="getPdfUrl(file)"
+                      v-if="file.pdf_url"
+                      :src="file.pdf_url"
                       type="application/pdf"
                       class="h-full w-full"
                     />
@@ -279,9 +319,9 @@ watch([selectedCompany, selectedDate], () => {
               <td
                 colspan="5"
                 class="px-4 py-4 text-center"
-                v-if="currentPage < totalPage"
+                v-show="currentPage < totalPage"
               >
-                <div v-if="currentPage < totalPage">
+                <div v-if="isLoading && isPdfConverting">
                   <svg
                     class="size-6 animate-spin text-gray-500"
                     viewBox="0 0 24 24"
