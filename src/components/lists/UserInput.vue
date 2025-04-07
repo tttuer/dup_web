@@ -55,6 +55,7 @@
 <script setup>
 import { ref } from "vue";
 import Flatpickr from "vue-flatpickr-component";
+import { authFetch } from "../../utils/authFetch";
 
 const props = defineProps({
   selectedCompany: String,
@@ -67,6 +68,7 @@ const formatted = ref("");
 const price = ref(0);
 const description = ref("");
 const files = ref([]);
+const emit = defineEmits(["createFiles"]);
 
 const formatCurrency = (e) => {
   let rawValue = e.target.value;
@@ -94,19 +96,25 @@ function handleFileChange(e) {
   console.log(files.value);
 }
 
-function saveFile(e) {
+async function saveFile(e) {
   const formData = new FormData();
   formData.append("company", props.selectedCompany);
-  formData.append("date", date.value);
-  formData.append("description", description.value);
+  formData.append("withdrawn_at", date.value);
+  formData.append("name", description.value);
   formData.append("price", price.value);
-  formData.append("file_datas", files.value);
 
-  authFetch("http://localhost:8080/api/files", {
+  for (const file of files.value) {
+    formData.append("file_datas", file);
+  }
+  console.log(formData);
+
+  await authFetch("http://localhost:8080/api/files", {
     method: "POST",
     body: formData,
-  }).then((response) => {
-    console.log(response);
+  }).then(async (response) => {
+    const result = await response.json();
+
+    emit("createFiles", result);
   }).catch((error) => {
     console.error(error);
   });

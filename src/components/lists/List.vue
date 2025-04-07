@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, nextTick } from "vue";
+import { ref, watch, onUnmounted, nextTick } from "vue";
 import Dropdown from "./Dropdown.vue";
 import { authFetch } from "../../utils/authFetch";
 const File = ({
@@ -74,6 +74,18 @@ onBeforeUnmount(() => {
   }
   observer = null;
 });
+
+function addCreatedFiles(files) {
+  fileLists.value.push(...files.map(File));
+
+  // 다음 렌더링 이후 실행
+  nextTick(() => {
+    const lastItem = document.querySelector(".files:last-child");
+    if (lastItem) {
+      lastItem.scrollIntoView({ behavior: "smooth" }); // 👈 스무스하게 스크롤
+    }
+  });
+}
 
 async function fetchFiles(isReset = false) {
   if (isReset) {
@@ -152,6 +164,39 @@ function resetPreviewPosition(event) {
   preview.classList.add("top-full", "mt-2");
 }
 
+// 메모리 누수 방지용 URL 저장소
+const objectUrls = new Map();
+
+// base64 → blob → URL 변환 함수
+function getPdfUrl(file) {
+  if (!file?.file_data) return null;
+
+  // 이미 URL이 만들어졌으면 그대로 반환
+  if (objectUrls.has(file.id)) return objectUrls.get(file.id);
+
+  try {
+    const byteCharacters = atob(file.file_data);
+    const byteArray = new Uint8Array(
+      [...byteCharacters].map((c) => c.charCodeAt(0)),
+    );
+    const blob = new Blob([byteArray], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+
+    objectUrls.set(file.id, url);
+    return url;
+  } catch (e) {
+    console.error("Failed to create PDF URL:", e);
+    return null;
+  }
+}
+
+// 컴포넌트가 사라질 때 URL 정리
+onUnmounted(() => {
+  for (const url of objectUrls.values()) {
+    URL.revokeObjectURL(url);
+  }
+});
+
 watch([selectedCompany, selectedDate], () => {
   fetchFiles(true);
 });
@@ -181,7 +226,10 @@ watch([selectedCompany, selectedDate], () => {
         </table>
       </div>
 
-      <UserInput :selectedCompany="selectedCompany" />
+      <UserInput
+        :selectedCompany="selectedCompany"
+        @createFiles="addCreatedFiles"
+      />
 
       <div class="no-scrollbar h-full overflow-y-scroll">
         <table class="w-full min-w-[900px] table-fixed">
@@ -190,7 +238,7 @@ watch([selectedCompany, selectedDate], () => {
             <tr
               v-for="file in fileLists"
               :key="file.id"
-              class="border-b border-gray-200 dark:border-gray-700"
+              class="border-b border-gray-200 dark:border-gray-700 files"
             >
               <td class="w-5 px-4 py-2">
                 <input type="checkbox" class="row-check" />
@@ -218,7 +266,8 @@ watch([selectedCompany, selectedDate], () => {
                     class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
                   >
                     <embed
-                      :src="`data:application/pdf;base64,${file.file_data}`"
+                      v-if="getPdfUrl(file)"
+                      :src="getPdfUrl(file)"
                       type="application/pdf"
                       class="h-full w-full"
                     />
