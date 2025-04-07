@@ -40,6 +40,7 @@
               />
               <button
                 class="col-span-1 rounded-md border border-gray-300 p-0 px-1 py-0.5 text-sm"
+                @click="saveFile"
               >
                 입력
               </button>
@@ -68,12 +69,24 @@ const description = ref("");
 const files = ref([]);
 
 const formatCurrency = (e) => {
-  let value = e.target.value;
+  let rawValue = e.target.value;
 
-  price.value = Number(value);
-  // 세 자리마다 , 찍기
-  formatted.value = Number(value).toLocaleString();
+  // , 제거한 숫자 추출
+  const numberOnly = rawValue.replace(/,/g, "");
+
+  // 숫자가 아니면 처리하지 않음 (예: 공백만 입력할 때)
+  if (isNaN(numberOnly)) return;
+
+  // 진짜 숫자 값으로 저장
+  price.value = Number(numberOnly);
+
+  // 세 자리마다 , 붙인 형식으로 다시 포맷
+  formatted.value = formatNumberWithComma(numberOnly);
 };
+
+function formatNumberWithComma(number) {
+  return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
 
 function handleFileChange(e) {
   files.value = e.target.files;
@@ -82,18 +95,22 @@ function handleFileChange(e) {
 }
 
 function saveFile(e) {
+  const formData = new FormData();
+  formData.append("company", props.selectedCompany);
+  formData.append("date", date.value);
+  formData.append("description", description.value);
+  formData.append("price", price.value);
+  formData.append("file_datas", files.value);
+
   authFetch("http://localhost:8080/api/files", {
     method: "POST",
-    body: JSON.stringify({
-      company: props.selectedCompany,
-      date: date.value,
-      description: description.value,
-      price: price.value,
-      files: files.value,
-    }),
+    body: formData,
+  }).then((response) => {
+    console.log(response);
+  }).catch((error) => {
+    console.error(error);
   });
 }
-
 </script>
 
 <style lang="scss" scoped></style>
