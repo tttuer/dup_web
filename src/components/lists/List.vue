@@ -2,13 +2,12 @@
 import { ref, watch, onUnmounted, nextTick } from "vue";
 import Dropdown from "./Dropdown.vue";
 import { authFetch } from "../../utils/authFetch";
+import Sentinel from "./Sentinel.vue";
 
 const previewUrlCache = new Map();
-const worker = new Worker(
-  new URL("./pdf-worker.js", import.meta.url),
-  { type: "module" }
-);
-
+const worker = new Worker(new URL("./pdf-worker.js", import.meta.url), {
+  type: "module",
+});
 
 worker.onmessage = (e) => {
   const { id, pdf_url } = e.data;
@@ -69,52 +68,9 @@ const selectedDate = ref("");
 const fileLists = ref([]);
 const totalPage = ref(0);
 const currentPage = ref(1);
-const sentinel = ref(null);
-let observer = null;
 const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
 
-import { onMounted } from "vue";
-
-onMounted(async () => {
-  await nextTick(); // sentinel이 DOM에 렌더된 뒤에
-
-  observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (
-          entry.isIntersecting &&
-          !isLoading.value &&
-          !isPdfConverting.value &&
-          currentPage.value < totalPage.value
-        ) {
-          currentPage.value++;
-          fetchFiles();
-        }
-      });
-    },
-    {
-      root: null,
-      threshold: 0.1,
-    },
-  );
-
-  if (sentinel.value) {
-    observer.observe(sentinel.value);
-  }
-});
-
-// 컴포넌트 unmount 시 observer 정리 (메모리 누수 방지)
-import { onBeforeUnmount } from "vue";
 import UserInput from "./UserInput.vue";
-onBeforeUnmount(() => {
-  if (observer && sentinel.value) {
-    observer.unobserve(sentinel.value);
-  }
-  if (observer) {
-    observer.disconnect();
-  }
-  observer = null;
-});
 
 function addCreatedFiles(files) {
   fileLists.value.push(...files.map(File));
@@ -163,13 +119,6 @@ async function fetchFiles(isReset = false) {
       }
     });
 
-    console.log(fileLists.value);
-
-    await nextTick();
-    if (sentinel.value && observer) {
-      observer.unobserve(sentinel.value); // 중복 방지
-      observer.observe(sentinel.value);
-    }
   } finally {
     isLoading.value = false;
     isPdfConverting.value = false;
@@ -225,6 +174,17 @@ function resetPreviewPosition(event) {
   // 기본 '아래로' 스타일로 복원
   preview.classList.remove("bottom-full", "mb-2");
   preview.classList.add("top-full", "mt-2");
+}
+
+function handleIntersect() {
+  if (
+    !isLoading.value &&
+    !isPdfConverting.value &&
+    currentPage.value < totalPage.value
+  ) {
+    currentPage.value++;
+    fetchFiles();
+  }
 }
 
 // 메모리 누수 방지용 URL 저장소
@@ -315,39 +275,10 @@ watch([selectedCompany, selectedDate], async () => {
                 </div>
               </td>
             </tr>
-            <tr ref="sentinel">
-              <td
-                colspan="5"
-                class="px-4 py-4 text-center"
-                v-show="currentPage < totalPage"
-              >
-                <div v-if="isLoading && isPdfConverting">
-                  <svg
-                    class="size-6 animate-spin text-gray-500"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <circle
-                      class="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="4"
-                    ></circle>
-                    <path
-                      class="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    ></path>
-                  </svg>
-                  <p class="mt-2 text-sm text-gray-500 dark:text-gray-300">
-                    불러오는 중...
-                  </p>
-                </div>
-              </td>
-            </tr>
+            <Sentinel
+              v-if="currentPage < totalPage"
+              :onIntersect="handleIntersect"
+            />
           </tbody>
         </table>
       </div>
