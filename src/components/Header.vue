@@ -1,11 +1,18 @@
 <script setup>
 import LoginButton from "./LoginButton.vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+
+function home() {
+  router.push("/");
+}
 </script>
 
 <template>
   <header class="border-b border-gray-300">
     <div class="grid h-20 grid-cols-6 grid-rows-1 content-center gap-6">
-      <div class="col-span-1 content-center pl-1">
+      <div class="col-span-1 content-center pl-1" @click="home">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="40"
