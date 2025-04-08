@@ -18,50 +18,6 @@ worker.onmessage = (e) => {
   }
 };
 
-const File = async ({
-  created_at = "",
-  file_name = "",
-  id = "",
-  name = "",
-  price = 0,
-  company = "",
-  updated_at = "",
-  withdrawn_at = "",
-  file_data = "",
-}) => {
-  const fileObj = {
-    created_at,
-    file_name,
-    id,
-    name,
-    price,
-    company,
-    updated_at,
-    withdrawn_at,
-    file_data,
-    pdf_url: null,
-  };
-
-  try {
-    if (file_data && !objectUrls.has(id)) {
-      const byteCharacters = atob(file_data);
-      const byteArray = new Uint8Array(
-        [...byteCharacters].map((c) => c.charCodeAt(0)),
-      );
-      const blob = new Blob([byteArray], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      objectUrls.set(id, url);
-      fileObj.pdf_url = url;
-    } else {
-      fileObj.pdf_url = objectUrls.get(id) || null;
-    }
-  } catch (e) {
-    console.error("Failed to create PDF URL:", e);
-  }
-
-  return fileObj;
-};
-
 const isLoading = ref(false);
 const selectedCompany = ref("");
 const selectedDate = ref("");
@@ -73,7 +29,19 @@ const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
 import UserInput from "./UserInput.vue";
 
 function addCreatedFiles(files) {
-  fileLists.value.push(...files.map(File));
+  const newFiles = files.map((file) => ({
+    ...file,
+    pdf_url: null, // 나중에 Worker가 채워줌
+  }));
+  fileLists.value.push(...newFiles);
+
+  newFiles.forEach((file) => {
+    if (!previewUrlCache.has(file.id)) {
+      worker.postMessage({ id: file.id, file_data: file.file_data });
+    } else {
+      file.pdf_url = previewUrlCache.get(file.id);
+    }
+  });
 
   // 다음 렌더링 이후 실행
   nextTick(() => {
@@ -118,7 +86,6 @@ async function fetchFiles(isReset = false) {
         file.pdf_url = previewUrlCache.get(file.id);
       }
     });
-
   } finally {
     isLoading.value = false;
     isPdfConverting.value = false;
