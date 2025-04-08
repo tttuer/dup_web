@@ -60,6 +60,7 @@ async function login() {
           id="password"
           name="password"
           placeholder="비밀번호"
+          @keydown.enter="login"
           required
         />
       </div>
