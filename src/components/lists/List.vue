@@ -3,6 +3,7 @@ import { ref, watch, onUnmounted, nextTick } from "vue";
 import Dropdown from "./Dropdown.vue";
 import { authFetch } from "../../utils/authFetch";
 import Sentinel from "./Sentinel.vue";
+import DateSearch from "./DateSearch.vue";
 
 const previewUrlCache = new Map();
 const worker = new Worker(new URL("./pdf-worker.js", import.meta.url), {
@@ -29,29 +30,43 @@ const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
 import UserInput from "./UserInput.vue";
 
 function addCreatedFiles(files) {
-  if (currentPage >= totalPage) {
-    const newFiles = files.map((file) => ({
-      ...file,
-      pdf_url: null, // 나중에 Worker가 채워줌
-    }));
-    fileLists.value.push(...newFiles);
+  const newFiles = files.map((file) => ({
+    ...file,
+    pdf_url: null, // 나중에 Worker가 채워줌
+  }));
 
-    newFiles.forEach((file) => {
-      if (!previewUrlCache.has(file.id)) {
-        worker.postMessage({ id: file.id, file_data: file.file_data });
-      } else {
-        file.pdf_url = previewUrlCache.get(file.id);
-      }
-    });
+  newFiles.forEach((file) => {
+    // 리스트에서 같은 날짜가 있는지 확인
+    const targetDate = file.withdrawn_at;
+    let insertIndex = -1;
 
-    // 다음 렌더링 이후 실행
-    nextTick(() => {
-      const lastItem = document.querySelector(".files:last-child");
-      if (lastItem) {
-        lastItem.scrollIntoView({ behavior: "smooth" }); // 👈 스무스하게 스크롤
+    for (let i = fileLists.value.length - 1; i >= 0; i--) {
+      if (fileLists.value[i].withdrawn_at === targetDate) {
+        insertIndex = i + 1;
+        break;
       }
-    });
-  }
+    }
+
+    // 삽입 위치 결정
+    if (insertIndex !== -1) {
+      // 같은 날짜가 있다면 그 그룹 끝에 삽입
+      fileLists.value.splice(insertIndex, 0, file);
+    }
+
+    if (!previewUrlCache.has(file.id)) {
+      worker.postMessage({ id: file.id, file_data: file.file_data });
+    } else {
+      file.pdf_url = previewUrlCache.get(file.id);
+    }
+  });
+
+  // 다음 렌더링 이후 스크롤 (방금 추가된 ID 기준)
+  nextTick(() => {
+    const targetEl = document.querySelector(`.files[data-id="${lastInsertedId}"]`);
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
 }
 
 async function fetchFiles(isReset = false) {
@@ -174,6 +189,7 @@ watch([selectedCompany, selectedDate], async () => {
 <template>
   <div class="bg-testPink flex h-full w-full flex-col p-8">
     <Dropdown @select="(select) => (selectedCompany = select)" />
+    <DateSearch />
     <div
       class="flex h-full w-full flex-1 flex-col overflow-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
