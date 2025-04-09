@@ -1,24 +1,38 @@
 <script setup>
 import Flatpickr from "vue-flatpickr-component";
+import { ref, watch } from "vue";
+
+const config = {
+  dateFormat: "Ymd",
+};
+
+const emit = defineEmits(["search"]);
+
+const start_at = ref("");
+const end_at = ref("");
+
+watch([start_at, end_at], () => {
+  emit("search", { start_at: start_at.value, end_at: end_at.value });
+});
 </script>
 
 <template>
-  <div>
+  <div class="flex flex-row">
     <div>
       <Flatpickr
-        class="w-20 h-9 rounded-sm border border-gray-300"
-        v-model="date"
+        class="h-9 w-20 rounded-sm border border-gray-300 pl-1"
+        v-model="start_at"
         :config="config"
         placeholder="20250409"
       />
     </div>
-    -
+    <p class="mx-2 h-9 content-center">-</p>
     <div>
-        <Flatpickr
-        class="w-20 h-9 rounded-sm border border-gray-300"
-        v-model="date"
+      <Flatpickr
+        class="h-9 w-20 rounded-sm border border-gray-300 pl-1"
+        v-model="end_at"
         :config="config"
-        placeholder="끝"
+        placeholder="20250409"
       />
     </div>
   </div>

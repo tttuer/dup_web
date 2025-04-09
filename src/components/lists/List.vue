@@ -26,47 +26,13 @@ const fileLists = ref([]);
 const totalPage = ref(0);
 const currentPage = ref(1);
 const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
+const start_at = ref("");
+const end_at = ref("");
 
 import UserInput from "./UserInput.vue";
 
-function addCreatedFiles(files) {
-  const newFiles = files.map((file) => ({
-    ...file,
-    pdf_url: null, // 나중에 Worker가 채워줌
-  }));
-
-  newFiles.forEach((file) => {
-    // 리스트에서 같은 날짜가 있는지 확인
-    const targetDate = file.withdrawn_at;
-    let insertIndex = -1;
-
-    for (let i = fileLists.value.length - 1; i >= 0; i--) {
-      if (fileLists.value[i].withdrawn_at === targetDate) {
-        insertIndex = i + 1;
-        break;
-      }
-    }
-
-    // 삽입 위치 결정
-    if (insertIndex !== -1) {
-      // 같은 날짜가 있다면 그 그룹 끝에 삽입
-      fileLists.value.splice(insertIndex, 0, file);
-    }
-
-    if (!previewUrlCache.has(file.id)) {
-      worker.postMessage({ id: file.id, file_data: file.file_data });
-    } else {
-      file.pdf_url = previewUrlCache.get(file.id);
-    }
-  });
-
-  // 다음 렌더링 이후 스크롤 (방금 추가된 ID 기준)
-  nextTick(() => {
-    const targetEl = document.querySelector(`.files[data-id="${lastInsertedId}"]`);
-    if (targetEl) {
-      targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  });
+function addCreatedFiles() {
+  fetchFiles(true);
 }
 
 async function fetchFiles(isReset = false) {
@@ -77,8 +43,10 @@ async function fetchFiles(isReset = false) {
   }
 
   const params = new URLSearchParams();
+
   params.append("company", selectedCompany.value);
-  params.append("start_at", selectedDate.value);
+  params.append("start_at", start_at.value ? start_at.value : "");
+  params.append("end_at", end_at.value ? end_at.value : "");
   params.append("page", currentPage.value);
 
   isLoading.value = true;
@@ -171,6 +139,10 @@ function handleIntersect() {
   }
 }
 
+function search() {
+  fetchFiles(true);
+}
+
 // 메모리 누수 방지용 URL 저장소
 const objectUrls = new Map();
 
@@ -188,8 +160,41 @@ watch([selectedCompany, selectedDate], async () => {
 
 <template>
   <div class="bg-testPink flex h-full w-full flex-col p-8">
-    <Dropdown @select="(select) => (selectedCompany = select)" />
-    <DateSearch />
+    <div class="grid grid-cols-2">
+      <Dropdown
+        class="col-span-1"
+        @select="(select) => (selectedCompany = select)"
+      />
+      <div class="col-span-1 flex flex-row justify-end">
+        <DateSearch
+          @search="
+            ({ start_at: s, end_at: e }) => {
+              start_at = s;
+              end_at = e;
+            }
+          "
+        />
+        <div
+          class="ml-2 h-9 w-9 cursor-pointer rounded-sm hover:bg-black hover:text-white"
+          @click="search"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-9"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
     <div
       class="flex h-full w-full flex-1 flex-col overflow-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
