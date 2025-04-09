@@ -20,7 +20,7 @@ watch([start_at, end_at], () => {
   <div class="flex flex-row">
     <div>
       <Flatpickr
-        class="h-9 w-20 rounded-sm border border-gray-300 pl-1"
+        class="h-9 w-24 rounded-sm border border-gray-300 pl-2"
         v-model="start_at"
         :config="config"
         placeholder="20250409"
@@ -29,7 +29,7 @@ watch([start_at, end_at], () => {
     <p class="mx-2 h-9 content-center">-</p>
     <div>
       <Flatpickr
-        class="h-9 w-20 rounded-sm border border-gray-300 pl-1"
+        class="h-9 w-24 rounded-sm border border-gray-300 pl-2"
         v-model="end_at"
         :config="config"
         placeholder="20250409"
