@@ -24,7 +24,7 @@
             <input
               class="w-full rounded-sm border border-gray-300 pl-1"
               type="text"
-              placeholder="금액을 입력하세요"              
+              placeholder="금액을 입력하세요"
               v-model="formatted"
               @input="formatCurrency"
               pattern="\d*"
@@ -33,9 +33,11 @@
           <td class="w-85 px-4 py-2 text-left">
             <div class="grid grid-cols-4 gap-4">
               <input
+                ref="fileInput"
                 class="col-span-3 flex w-full rounded-sm border border-gray-300 pl-1"
                 type="file"
                 multiple
+                accept=".pdf, .jpg, .jpeg, .png"
                 @change="handleFileChange"
               />
               <button
@@ -68,6 +70,7 @@ const formatted = ref("");
 const price = ref(0);
 const description = ref("");
 const files = ref([]);
+const fileInput = ref(null);
 const emit = defineEmits(["createFiles"]);
 
 const formatCurrency = (e) => {
@@ -86,14 +89,14 @@ const formatCurrency = (e) => {
   formatted.value = formatNumberWithComma(numberOnly);
 };
 
-function formatNumberWithComma(number) {
-  return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+function formatNumberWithComma(price) {
+  // 앞쪽 0 제거 (단, 전부 0이면 0으로 처리)
+  const cleaned = price.replace(/^0+/, "") || "0";
+  return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 function handleFileChange(e) {
   files.value = e.target.files;
-
-  console.log(files.value);
 }
 
 async function saveFile(e) {
@@ -106,18 +109,26 @@ async function saveFile(e) {
   for (const file of files.value) {
     formData.append("file_datas", file);
   }
-  console.log(formData);
 
   await authFetch("http://localhost:8080/api/files", {
     method: "POST",
     body: formData,
-  }).then(async (response) => {
-    const result = await response.json();
+  })
+    .then(async (response) => {
+      const result = await response.json();
 
-    emit("createFiles", result);
-  }).catch((error) => {
-    console.error(error);
-  });
+      emit("createFiles", result);
+      description.value = "";
+      price.value = 0;
+      formatted.value = "";
+      files.value = [];
+      if (fileInput.value) {
+        fileInput.value.value = "";
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 }
 </script>
 

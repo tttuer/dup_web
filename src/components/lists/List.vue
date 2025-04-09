@@ -29,27 +29,29 @@ const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
 import UserInput from "./UserInput.vue";
 
 function addCreatedFiles(files) {
-  const newFiles = files.map((file) => ({
-    ...file,
-    pdf_url: null, // 나중에 Worker가 채워줌
-  }));
-  fileLists.value.push(...newFiles);
+  if (currentPage >= totalPage) {
+    const newFiles = files.map((file) => ({
+      ...file,
+      pdf_url: null, // 나중에 Worker가 채워줌
+    }));
+    fileLists.value.push(...newFiles);
 
-  newFiles.forEach((file) => {
-    if (!previewUrlCache.has(file.id)) {
-      worker.postMessage({ id: file.id, file_data: file.file_data });
-    } else {
-      file.pdf_url = previewUrlCache.get(file.id);
-    }
-  });
+    newFiles.forEach((file) => {
+      if (!previewUrlCache.has(file.id)) {
+        worker.postMessage({ id: file.id, file_data: file.file_data });
+      } else {
+        file.pdf_url = previewUrlCache.get(file.id);
+      }
+    });
 
-  // 다음 렌더링 이후 실행
-  nextTick(() => {
-    const lastItem = document.querySelector(".files:last-child");
-    if (lastItem) {
-      lastItem.scrollIntoView({ behavior: "smooth" }); // 👈 스무스하게 스크롤
-    }
-  });
+    // 다음 렌더링 이후 실행
+    nextTick(() => {
+      const lastItem = document.querySelector(".files:last-child");
+      if (lastItem) {
+        lastItem.scrollIntoView({ behavior: "smooth" }); // 👈 스무스하게 스크롤
+      }
+    });
+  }
 }
 
 async function fetchFiles(isReset = false) {
