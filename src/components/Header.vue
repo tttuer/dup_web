@@ -11,7 +11,7 @@ function home() {
 
 <template>
   <header class="border-b border-gray-300">
-    <div class="grid h-20 grid-cols-6 grid-rows-1 content-center gap-6">
+    <div class="grid h-18 grid-cols-6 grid-rows-1 content-center gap-6">
       <div class="col-span-1 content-center pl-1" @click="home">
         <svg
           xmlns="http://www.w3.org/2000/svg"
