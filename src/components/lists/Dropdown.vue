@@ -1,22 +1,32 @@
 <script setup>
 import {ref} from "vue";
 
-const selected = ref('회사선택')
+const selected = ref('선택')
 const isOpen = ref(false)
 
-const options = ['백성운수', '평택여객', '파란전기']
-const nameToEnum = {
-  '백성운수': 'BAEKSUNG',
-  '평택여객': 'PYEONGTAEK',
-  '파란전기': 'PARAN',
-}
+const props = defineProps({
+  options: {
+    type: Array,
+    required: true,
+  },
+  nameToEnum: {
+    type: Object,
+    required: true,
+  },
+  placeholder: {
+    type: String,
+    default: "선택하세요",
+  },
+})
+
+
 
 const emit = defineEmits(['select'])
 
 const selectOption = (option) => {
   selected.value = option
   isOpen.value = false
-  emit('select', nameToEnum[option])
+  emit('select', props.nameToEnum[option])
 }
 
 
