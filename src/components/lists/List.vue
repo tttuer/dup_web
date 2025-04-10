@@ -28,12 +28,12 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
 const start_at = ref("");
 const end_at = ref("");
-const companyOptions = ['백성운수', '평택여객', '파란전기']
+const companyOptions = ["백성운수", "평택여객", "파란전기"];
 const companyNameToEnum = {
-  '백성운수': 'BAEKSUNG',
-  '평택여객': 'PYEONGTAEK',
-  '파란전기': 'PARAN',
-}
+  백성운수: "BAEKSUNG",
+  평택여객: "PYEONGTAEK",
+  파란전기: "PARAN",
+};
 
 import UserInput from "./UserInput.vue";
 import Searchbar from "./Searchbar.vue";
@@ -183,7 +183,7 @@ watch([selectedCompany, selectedDate], async () => {
             }
           "
         />
-        <Searchbar class="ml-3"/>
+        <Searchbar class="ml-3" />
         <div
           class="ml-2 h-9 w-9 cursor-pointer rounded-sm hover:bg-black hover:text-white"
           @click="search"
