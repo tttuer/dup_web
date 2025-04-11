@@ -9,13 +9,12 @@ const searchToEnum = {
   "설명+첨부파일": "DESCRIPTION_FILENAME",
   금액: "PRICE",
 };
+const selectedOption = ref("");
 
-console.log(searchOptions.value);
-
-watch([search, searchOptions], () => {
+watch([search, selectedOption], () => {
   emit("search", {
     search: search.value,
-    searchOption: searchToEnum[searchOptions.value],
+    searchOption: selectedOption.value,
   });
 });
 </script>
@@ -26,6 +25,7 @@ watch([search, searchOptions], () => {
       class="mr-2"
       :options="searchOptions"
       :nameToEnum="searchToEnum"
+      @select="(select) => (selectedOption = select)"
     />
     <input
       class="h-9 rounded-sm border border-gray-300 pl-2"

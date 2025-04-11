@@ -58,7 +58,7 @@ async function fetchFiles(isReset = false) {
   params.append("end_at", end_at.value ? end_at.value : "");
   params.append("page", currentPage.value);
   params.append("search", searchbar.value);
-  params.append("searchOption", searchbarOption.value);
+  params.append("search_option", searchbarOption.value);
 
   isLoading.value = true;
   isPdfConverting.value = true;
