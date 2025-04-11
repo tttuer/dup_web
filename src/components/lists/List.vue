@@ -34,6 +34,8 @@ const companyNameToEnum = {
   평택여객: "PYEONGTAEK",
   파란전기: "PARAN",
 };
+const searchbar = ref("");
+const searchbarOption = ref("");
 
 import UserInput from "./UserInput.vue";
 import Searchbar from "./Searchbar.vue";
@@ -55,6 +57,8 @@ async function fetchFiles(isReset = false) {
   params.append("start_at", start_at.value ? start_at.value : "");
   params.append("end_at", end_at.value ? end_at.value : "");
   params.append("page", currentPage.value);
+  params.append("search", searchbar.value);
+  params.append("searchOption", searchbarOption.value);
 
   isLoading.value = true;
   isPdfConverting.value = true;
@@ -183,7 +187,15 @@ watch([selectedCompany, selectedDate], async () => {
             }
           "
         />
-        <Searchbar class="ml-3" />
+        <Searchbar
+          class="ml-3"
+          @search="
+            ({ search: s, searchOption: so }) => {
+              searchbar = s;
+              searchbarOption = so;
+            }
+          "
+        />
         <div
           class="ml-2 h-9 w-9 cursor-pointer rounded-sm hover:bg-black hover:text-white"
           @click="search"

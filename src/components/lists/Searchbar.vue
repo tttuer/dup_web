@@ -7,13 +7,15 @@ const search = ref("");
 const searchOptions = ["설명+첨부파일", "금액"];
 const searchToEnum = {
   "설명+첨부파일": "DESCRIPTION_FILENAME",
-  "금액": "PRICE",
+  금액: "PRICE",
 };
 
-watch(search, () => {
-  emit(["search", "searchOption"], {
-    search: search,
-    searchOption: searchToEnum[searchOptions],
+console.log(searchOptions.value);
+
+watch([search, searchOptions], () => {
+  emit("search", {
+    search: search.value,
+    searchOption: searchToEnum[searchOptions.value],
   });
 });
 </script>
