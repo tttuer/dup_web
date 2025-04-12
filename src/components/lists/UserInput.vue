@@ -1,5 +1,5 @@
 <template>
-  <div v-if="selectedCompany" class="block border-b border-gray-200">
+  <div v-if="selectedCompany" class="block border-b border-gray-200 bg-gray-50">
     <table class="w-full min-w-[900px] table-fixed">
       <thead class="">
         <tr>
