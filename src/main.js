@@ -12,6 +12,9 @@ const options = {
     draggable: true,
     draggablePercent: 0.6,
     showCloseButtonOnHover: false,
+    position: "top-center",
+    hideProgressBar: true,
+    maxToasts: 3,
     
 }
 
