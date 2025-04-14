@@ -58,6 +58,7 @@
 import { ref } from "vue";
 import Flatpickr from "vue-flatpickr-component";
 import { authFetch } from "../../utils/authFetch";
+import { useToast } from "vue-toastification";
 
 const props = defineProps({
   selectedCompany: String,
@@ -72,6 +73,7 @@ const description = ref("");
 const files = ref([]);
 const fileInput = ref(null);
 const emit = defineEmits(["createFiles"]);
+const toast = useToast();
 
 const formatCurrency = (e) => {
   let rawValue = e.target.value;
@@ -117,6 +119,10 @@ async function saveFile(e) {
     .then(async (response) => {
       const result = await response.json();
 
+      if (response.status === 200) {
+        toast.success("파일 업로드 성공");
+      }
+
       emit("createFiles", result);
       description.value = "";
       price.value = 0;
@@ -127,6 +133,7 @@ async function saveFile(e) {
       }
     })
     .catch((error) => {
+      toast.error("파일 업로드 실패");
       console.error(error);
     });
 }

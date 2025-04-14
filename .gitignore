@@ -7,20 +7,38 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependency directories
+node_modules/
+
+# Production build output
+dist/
+dist-ssr/
+
+# Environment files
 *.local
-package-lock.json
+.env
+.env.*.local
+
+# Package locks
+package-lock.json  # npm용 (yarn 쓸 거면 무시)
+# yarn.lock은 반드시 Git에 포함해야 하므로 여기에 추가 ❌
 
 # Editor directories and files
-.vscode/*
-.vscode
-!.vscode/extensions.json
-.idea
+.vscode/
+!.vscode/extensions.json  # 팀 설정 공유용
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Yarn (Berry/PnP 환경 고려)
+.pnp.*
+.yarn/*
+!.yarn/cache
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
