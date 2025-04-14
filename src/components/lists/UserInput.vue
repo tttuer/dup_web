@@ -101,6 +101,10 @@ function handleFileChange(e) {
   files.value = e.target.files;
 }
 
+function isSuccessStatus(status) {
+  return status >= 200 && status < 300;
+}
+
 async function saveFile(e) {
   const formData = new FormData();
   formData.append("company", props.selectedCompany);
@@ -119,7 +123,7 @@ async function saveFile(e) {
     .then(async (response) => {
       const result = await response.json();
 
-      if (response.status === 200) {
+      if (isSuccessStatus(response.status)) {
         toast.success("파일 업로드 성공");
       }
 
