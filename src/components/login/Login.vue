@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 const router = useRouter();
 
@@ -14,7 +17,7 @@ async function login() {
   form.append("password", password.value);
 
   if (!username.value || !password.value) {
-    alert("아이디와 비밀번호를 입력해주세요.");
+    toast.error("아이디와 비밀번호를 입력해주세요.");
     return;
   }
 
@@ -33,7 +36,7 @@ async function login() {
     return;
   }
 
-  alert("아이디와 비밀번호를 확인해주세요.");
+  toast.error("아이디와 비밀번호를 확인해주세요.");
 }
 </script>
 
