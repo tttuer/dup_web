@@ -1,14 +1,9 @@
 <script setup>
-import { ref, watch, onUnmounted, nextTick, onMounted } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import Sentinel from './Sentinel.vue';
 import DateSearch from './DateSearch.vue';
-
-onMounted(() => {
-  // fileLists 길이에 맞게 checked 배열 초기화
-  checked.value = new Array(fileLists.value.length).fill(false);
-});
 
 const previewUrlCache = new Map();
 const worker = new Worker(new URL('./pdf-worker.js', import.meta.url), {
@@ -49,24 +44,35 @@ const handleCheckboxClick = (event, index) => {
   const file = fileLists.value[index];
   const id = file.id;
 
-  if (checkedIds.value.has(id)) {
-    checkedIds.value.delete(id);
-  } else {
-    checkedIds.value.add(id);
-  }
-
-  // Shift + 클릭 다중 선택
   if (event.shiftKey && lastCheckedIndex.value !== null) {
     const start = Math.min(lastCheckedIndex.value, index);
     const end = Math.max(lastCheckedIndex.value, index);
 
-    for (let i = start; i <= end; i++) {
-      const rangeId = fileLists.value[i].id;
-      checkedIds.value.add(rangeId); // ✅ 범위 내 id들을 모두 체크
-    }
-  }
+    const rangeFiles = fileLists.value.slice(start, end + 1);
 
-  lastCheckedIndex.value = index;
+    const clickedWasChecked = checkedIds.value.has(id);
+
+    rangeFiles.forEach((f) => {
+      if (clickedWasChecked) {
+        checkedIds.value.delete(f.id); // 전체 해제
+      } else {
+        checkedIds.value.add(f.id); // 전체 체크
+      }
+    });
+
+    // ✅ 기준점 갱신! ← 이게 핵심
+    lastCheckedIndex.value = index;
+  } else {
+    // 일반 클릭 (토글)
+    if (checkedIds.value.has(id)) {
+      checkedIds.value.delete(id);
+    } else {
+      checkedIds.value.add(id);
+    }
+
+    // 기준점 갱신
+    lastCheckedIndex.value = index;
+  }
 };
 
 import UserInput from './UserInput.vue';
