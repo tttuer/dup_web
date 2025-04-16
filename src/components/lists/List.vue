@@ -204,12 +204,23 @@ watch([selectedCompany, selectedDate], async () => {
 <template>
   <div class="bg-testPink flex h-full w-full flex-col p-8">
     <div class="grid grid-cols-2">
-      <Dropdown
-        class="col-span-1"
-        @select="(select) => (selectedCompany = select)"
-        :options="companyOptions"
-        :nameToEnum="companyNameToEnum"
-      />
+      <div class="col-span-1 flex">
+        <Dropdown
+          class="col-span-1"
+          @select="(select) => (selectedCompany = select)"
+          :options="companyOptions"
+          :nameToEnum="companyNameToEnum"
+        />
+        <div
+          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300"
+        >
+          <input
+            class="h-full w-full content-center rounded-sm hover:bg-red-500 hover:text-white"
+            type="button"
+            value="삭제"
+          />
+        </div>
+      </div>
       <div class="col-span-1 flex flex-row justify-end">
         <DateSearch
           @search="
