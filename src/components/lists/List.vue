@@ -1,13 +1,18 @@
 <script setup>
-import { ref, watch, onUnmounted, nextTick } from "vue";
-import Dropdown from "./Dropdown.vue";
-import { authFetch } from "../../utils/authFetch";
-import Sentinel from "./Sentinel.vue";
-import DateSearch from "./DateSearch.vue";
+import { ref, watch, onUnmounted, nextTick, onMounted } from 'vue';
+import Dropdown from './Dropdown.vue';
+import { authFetch } from '../../utils/authFetch';
+import Sentinel from './Sentinel.vue';
+import DateSearch from './DateSearch.vue';
+
+onMounted(() => {
+  // fileLists 길이에 맞게 checked 배열 초기화
+  checked.value = new Array(fileLists.value.length).fill(false);
+});
 
 const previewUrlCache = new Map();
-const worker = new Worker(new URL("./pdf-worker.js", import.meta.url), {
-  type: "module",
+const worker = new Worker(new URL('./pdf-worker.js', import.meta.url), {
+  type: 'module',
 });
 
 worker.onmessage = (e) => {
@@ -20,25 +25,52 @@ worker.onmessage = (e) => {
 };
 
 const isLoading = ref(false);
-const selectedCompany = ref("");
-const selectedDate = ref("");
+const selectedCompany = ref('');
+const selectedDate = ref('');
 const fileLists = ref([]);
 const totalPage = ref(0);
 const currentPage = ref(1);
 const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
-const start_at = ref("");
-const end_at = ref("");
-const companyOptions = ["백성운수", "평택여객", "파란전기"];
+const start_at = ref('');
+const end_at = ref('');
+const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
-  백성운수: "BAEKSUNG",
-  평택여객: "PYEONGTAEK",
-  파란전기: "PARAN",
+  백성운수: 'BAEKSUNG',
+  평택여객: 'PYEONGTAEK',
+  파란전기: 'PARAN',
 };
-const searchbar = ref("");
-const searchbarOption = ref("");
+const searchbar = ref('');
+const searchbarOption = ref('');
 
-import UserInput from "./UserInput.vue";
-import Searchbar from "./Searchbar.vue";
+const checkedIds = ref(new Set()); // ✅ 체크된 파일의 id 저장
+const lastCheckedIndex = ref(null);
+
+const handleCheckboxClick = (event, index) => {
+  const file = fileLists.value[index];
+  const id = file.id;
+
+  if (checkedIds.value.has(id)) {
+    checkedIds.value.delete(id);
+  } else {
+    checkedIds.value.add(id);
+  }
+
+  // Shift + 클릭 다중 선택
+  if (event.shiftKey && lastCheckedIndex.value !== null) {
+    const start = Math.min(lastCheckedIndex.value, index);
+    const end = Math.max(lastCheckedIndex.value, index);
+
+    for (let i = start; i <= end; i++) {
+      const rangeId = fileLists.value[i].id;
+      checkedIds.value.add(rangeId); // ✅ 범위 내 id들을 모두 체크
+    }
+  }
+
+  lastCheckedIndex.value = index;
+};
+
+import UserInput from './UserInput.vue';
+import Searchbar from './Searchbar.vue';
 
 function addCreatedFiles() {
   fetchFiles(true);
@@ -53,19 +85,17 @@ async function fetchFiles(isReset = false) {
 
   const params = new URLSearchParams();
 
-  params.append("company", selectedCompany.value);
-  params.append("start_at", start_at.value ? start_at.value : "");
-  params.append("end_at", end_at.value ? end_at.value : "");
-  params.append("page", currentPage.value);
-  params.append("search", searchbar.value);
-  params.append("search_option", searchbarOption.value);
+  params.append('company', selectedCompany.value);
+  params.append('start_at', start_at.value ? start_at.value : '');
+  params.append('end_at', end_at.value ? end_at.value : '');
+  params.append('page', currentPage.value);
+  params.append('search', searchbar.value);
+  params.append('search_option', searchbarOption.value);
 
   isLoading.value = true;
   isPdfConverting.value = true;
   try {
-    const response = await authFetch(
-      "http://localhost:8080/api/files?" + params.toString(),
-    );
+    const response = await authFetch('http://localhost:8080/api/files?' + params.toString());
     const [total_count, total_page, lists] = await response.json();
 
     totalPage.value = total_page;
@@ -101,13 +131,13 @@ function formatDate(dateStr) {
 
 // 금액 포맷 함수 (세 자리 콤마 추가)
 function formatPrice(price) {
-  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 // *** 미리보기 위치 계산 및 조정 함수 ***
 function handlePreviewPosition(event) {
   const container = event.currentTarget; // 이벤트가 부착된 요소 (div.group.relative.inline-block)
-  const preview = container.querySelector(".pdf-preview"); // 미리보기 div (클래스 추가 필요)
+  const preview = container.querySelector('.pdf-preview'); // 미리보기 div (클래스 추가 필요)
   if (!preview) return;
 
   const containerRect = container.getBoundingClientRect(); // 컨테이너의 뷰포트 내 위치/크기
@@ -117,13 +147,13 @@ function handlePreviewPosition(event) {
   const spaceAbove = containerRect.top; // 요소 위 남은 공간 (뷰포트 상단 기준)
 
   // 기본값: 아래로 표시
-  preview.classList.remove("bottom-full", "mb-2"); // '위로' 스타일 제거
-  preview.classList.add("top-full", "mt-2"); // '아래로' 스타일 추가 (기본)
+  preview.classList.remove('bottom-full', 'mb-2'); // '위로' 스타일 제거
+  preview.classList.add('top-full', 'mt-2'); // '아래로' 스타일 추가 (기본)
 
   // 아래 공간이 부족하고 위 공간이 충분하면 위로 표시
   if (spaceBelow < previewHeight && spaceAbove > previewHeight) {
-    preview.classList.remove("top-full", "mt-2"); // '아래로' 스타일 제거
-    preview.classList.add("bottom-full", "mb-2"); // '위로' 스타일 추가 (mb-2는 위쪽 여백)
+    preview.classList.remove('top-full', 'mt-2'); // '아래로' 스타일 제거
+    preview.classList.add('bottom-full', 'mb-2'); // '위로' 스타일 추가 (mb-2는 위쪽 여백)
   }
   // 다른 경우는 기본값(아래로 표시) 유지
 }
@@ -131,20 +161,16 @@ function handlePreviewPosition(event) {
 // *** 마우스 벗어날 때 스타일 초기화 함수 (선택적이지만 권장) ***
 function resetPreviewPosition(event) {
   const container = event.currentTarget;
-  const preview = container.querySelector(".pdf-preview");
+  const preview = container.querySelector('.pdf-preview');
   if (!preview) return;
 
   // 기본 '아래로' 스타일로 복원
-  preview.classList.remove("bottom-full", "mb-2");
-  preview.classList.add("top-full", "mt-2");
+  preview.classList.remove('bottom-full', 'mb-2');
+  preview.classList.add('top-full', 'mt-2');
 }
 
 function handleIntersect() {
-  if (
-    !isLoading.value &&
-    !isPdfConverting.value &&
-    currentPage.value < totalPage.value
-  ) {
+  if (!isLoading.value && !isPdfConverting.value && currentPage.value < totalPage.value) {
     currentPage.value++;
     fetchFiles();
   }
@@ -238,22 +264,24 @@ watch([selectedCompany, selectedDate], async () => {
         </table>
       </div>
 
-      <UserInput
-        :selectedCompany="selectedCompany"
-        @createFiles="addCreatedFiles"
-      />
+      <UserInput :selectedCompany="selectedCompany" @createFiles="addCreatedFiles" />
 
       <div class="no-scrollbar h-full overflow-y-scroll">
         <table class="w-full min-w-[900px] table-fixed">
           <tbody>
             <!-- 반복 행 예시 -->
             <tr
-              v-for="file in fileLists"
+              v-for="(file, index) in fileLists"
               :key="file.id"
               class="files border-b border-gray-200 dark:border-gray-700"
             >
               <td class="w-5 px-4 py-2">
-                <input type="checkbox" class="row-check" />
+                <input
+                  type="checkbox"
+                  class="row-check"
+                  :checked="checkedIds.has(file.id)"
+                  @click="handleCheckboxClick($event, index)"
+                />
               </td>
               <td class="w-45 px-4 py-2">
                 {{ formatDate(file.withdrawn_at) }}
@@ -287,10 +315,7 @@ watch([selectedCompany, selectedDate], async () => {
                 </div>
               </td>
             </tr>
-            <Sentinel
-              v-if="currentPage < totalPage"
-              :onIntersect="handleIntersect"
-            />
+            <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
           </tbody>
         </table>
       </div>
