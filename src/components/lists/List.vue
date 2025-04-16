@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onUnmounted } from 'vue';
+import { ref, watch, onUnmounted, computed } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import Sentinel from './Sentinel.vue';
@@ -39,6 +39,7 @@ const searchbarOption = ref('');
 
 const checkedIds = ref(new Set()); // ✅ 체크된 파일의 id 저장
 const lastCheckedIndex = ref(null);
+const hasChecked = computed(() => checkedIds.value.size > 0);
 
 const handleCheckboxClick = (event, index) => {
   const file = fileLists.value[index];
@@ -212,13 +213,10 @@ watch([selectedCompany, selectedDate], async () => {
           :nameToEnum="companyNameToEnum"
         />
         <div
-          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300"
+          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-red-500 hover:text-white"
+          v-show="hasChecked"
         >
-          <input
-            class="h-full w-full content-center rounded-sm hover:bg-red-500 hover:text-white"
-            type="button"
-            value="삭제"
-          />
+          <input class="h-full w-full content-center rounded-sm" type="button" value="삭제" />
         </div>
       </div>
       <div class="col-span-1 flex flex-row justify-end">
