@@ -20,12 +20,12 @@ dist-ssr/
 .env.*.local
 
 # Package locks
-package-lock.json  # npm용 (yarn 쓸 거면 무시)
-# yarn.lock은 반드시 Git에 포함해야 하므로 여기에 추가 ❌
+package-lock.json
+yarn.lock  # 이제 사용 안 하므로 무시
 
 # Editor directories and files
 .vscode/
-!.vscode/extensions.json  # 팀 설정 공유용
+!.vscode/extensions.json
 .idea/
 .DS_Store
 *.suo
@@ -33,12 +33,3 @@ package-lock.json  # npm용 (yarn 쓸 거면 무시)
 *.njsproj
 *.sln
 *.sw?
-
-# Yarn (Berry/PnP 환경 고려)
-.pnp.*
-.yarn/*
-!.yarn/cache
-!.yarn/releases
-!.yarn/plugins
-!.yarn/sdks
-!.yarn/versions
