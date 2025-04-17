@@ -78,7 +78,10 @@ const handleCheckboxClick = (event, index) => {
 
 import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
+import { useToast } from 'vue-toastification';
 
+const fileUrl = 'http://localhost:8080/api/files';
+const toast = useToast();
 function addCreatedFiles() {
   fetchFiles(true);
 }
@@ -102,7 +105,7 @@ async function fetchFiles(isReset = false) {
   isLoading.value = true;
   isPdfConverting.value = true;
   try {
-    const response = await authFetch('http://localhost:8080/api/files?' + params.toString());
+    const response = await authFetch(fileUrl + '?' + params.toString());
     const [total_count, total_page, lists] = await response.json();
 
     totalPage.value = total_page;
@@ -122,6 +125,26 @@ async function fetchFiles(isReset = false) {
   } finally {
     isLoading.value = false;
     isPdfConverting.value = false;
+  }
+}
+
+async function deleteFiles() {
+  const query = [...checkedIds.value].map((id) => `ids=${id}`).join('&');
+
+  try {
+    const response = await authFetch(`${fileUrl}?${query}`, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      toast.success('파일 삭제 성공');
+      fetchFiles(true);
+    } else {
+      toast.error('파일 삭제 실패');
+    }
+  } catch (error) {
+    toast.error('파일 삭제 실패');
+    console.error(error);
   }
 }
 
@@ -216,7 +239,12 @@ watch([selectedCompany, selectedDate], async () => {
           class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-red-500 hover:text-white"
           v-show="hasChecked"
         >
-          <input class="h-full w-full content-center rounded-sm cursor-pointer" type="button" value="삭제" />
+          <input
+            class="h-full w-full cursor-pointer content-center rounded-sm"
+            type="button"
+            value="삭제"
+            @click="deleteFiles"
+          />
         </div>
       </div>
       <div class="col-span-1 flex flex-row justify-end">
