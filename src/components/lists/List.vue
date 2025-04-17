@@ -216,7 +216,7 @@ watch([selectedCompany, selectedDate], async () => {
           class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-red-500 hover:text-white"
           v-show="hasChecked"
         >
-          <input class="h-full w-full content-center rounded-sm" type="button" value="삭제" />
+          <input class="h-full w-full content-center rounded-sm cursor-pointer" type="button" value="삭제" />
         </div>
       </div>
       <div class="col-span-1 flex flex-row justify-end">
