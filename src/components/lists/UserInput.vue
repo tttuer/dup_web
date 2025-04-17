@@ -41,7 +41,7 @@
                 @change="handleFileChange"
               />
               <button
-                class="col-span-1 rounded-md border border-gray-300 p-0 px-1 py-0.5 text-sm"
+                class="col-span-1 cursor-pointer rounded-md hover:bg-black hover:text-white border border-gray-300 p-0 px-1 py-0.5 text-sm"
                 @click="saveFile"
               >
                 입력
@@ -60,7 +60,7 @@ import Flatpickr from 'vue-flatpickr-component';
 import { authFetch } from '../../utils/authFetch';
 import { useToast } from 'vue-toastification';
 
-const fileApiUrl = `${import.meta.env.VITE_FILE_API_URL}`
+const fileApiUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 
 const props = defineProps({
   selectedCompany: String,

@@ -138,6 +138,7 @@ async function deleteFiles() {
 
     if (response.ok) {
       toast.success('파일 삭제 성공');
+      checkedIds.value.clear();
       fetchFiles(true);
     } else {
       toast.error('파일 삭제 실패');
