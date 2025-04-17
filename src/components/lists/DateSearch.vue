@@ -1,18 +1,18 @@
 <script setup>
-import Flatpickr from "vue-flatpickr-component";
-import { ref, watch } from "vue";
+import Flatpickr from 'vue-flatpickr-component';
+import { ref, watch } from 'vue';
 
 const config = {
-  dateFormat: "Ymd",
+  dateFormat: 'Ymd',
 };
 
-const emit = defineEmits(["search"]);
+const emit = defineEmits(['search']);
 
-const start_at = ref("");
-const end_at = ref("");
+const start_at = ref('');
+const end_at = ref('');
 
 watch([start_at, end_at], () => {
-  emit("search", { start_at: start_at.value, end_at: end_at.value });
+  emit('search', { start_at: start_at.value, end_at: end_at.value });
 });
 </script>
 

@@ -1,12 +1,12 @@
-import { createRouter, createWebHistory } from "vue-router";
-import { jwtDecode } from "jwt-decode";
+import { createRouter, createWebHistory } from 'vue-router';
+import { jwtDecode } from 'jwt-decode';
 
-import HomeView from "./components/lists/App.vue";
-import LoginView from "./components/login/App.vue";
+import HomeView from './components/lists/App.vue';
+import LoginView from './components/login/App.vue';
 
 const routes = [
-  { path: "/", component: HomeView, meta: { requiresAuth: true } },
-  { path: "/login", component: LoginView },
+  { path: '/', component: HomeView, meta: { requiresAuth: true } },
+  { path: '/login', component: LoginView },
 ];
 
 const router = createRouter({
@@ -15,7 +15,7 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem('access_token');
 
   let isAuthenticated = false;
 
@@ -28,13 +28,13 @@ router.beforeEach(async (to) => {
         isAuthenticated = true; // 아직 유효한 토큰
       }
     } catch (error) {
-      console.error("토큰 디코딩 실패:", error);
+      console.error('토큰 디코딩 실패:', error);
       isAuthenticated = false;
     }
   }
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    return "/login";
+    return '/login';
   }
 
   return true;

@@ -1,42 +1,42 @@
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { useToast } from "vue-toastification";
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toastification';
 
 const toast = useToast();
 
 const router = useRouter();
 
-const username = ref("");
-const password = ref("");
+const username = ref('');
+const password = ref('');
 
 async function login() {
   const form = new URLSearchParams();
-  form.append("grant_type", "password");
-  form.append("username", username.value);
-  form.append("password", password.value);
+  form.append('grant_type', 'password');
+  form.append('username', username.value);
+  form.append('password', password.value);
 
   if (!username.value || !password.value) {
-    toast.error("아이디와 비밀번호를 입력해주세요.");
+    toast.error('아이디와 비밀번호를 입력해주세요.');
     return;
   }
 
-  const response = await fetch("http://localhost:8080/api/users/login", {
-    method: "POST",
+  const response = await fetch('http://localhost:8080/api/users/login', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: form.toString(),
   });
   const data = await response.json();
 
   if (response.ok) {
-    localStorage.setItem("access_token", data.access_token);
-    router.push("/");
+    localStorage.setItem('access_token', data.access_token);
+    router.push('/');
     return;
   }
 
-  toast.error("아이디와 비밀번호를 확인해주세요.");
+  toast.error('아이디와 비밀번호를 확인해주세요.');
 }
 </script>
 

@@ -55,31 +55,31 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import Flatpickr from "vue-flatpickr-component";
-import { authFetch } from "../../utils/authFetch";
-import { useToast } from "vue-toastification";
+import { ref } from 'vue';
+import Flatpickr from 'vue-flatpickr-component';
+import { authFetch } from '../../utils/authFetch';
+import { useToast } from 'vue-toastification';
 
 const props = defineProps({
   selectedCompany: String,
 });
 const date = ref(null);
 const config = {
-  dateFormat: "Ymd",
+  dateFormat: 'Ymd',
 };
-const formatted = ref("");
+const formatted = ref('');
 const price = ref(0);
-const description = ref("");
+const description = ref('');
 const files = ref([]);
 const fileInput = ref(null);
-const emit = defineEmits(["createFiles"]);
+const emit = defineEmits(['createFiles']);
 const toast = useToast();
 
 const formatCurrency = (e) => {
   let rawValue = e.target.value;
 
   // , 제거한 숫자 추출
-  const numberOnly = rawValue.replace(/,/g, "");
+  const numberOnly = rawValue.replace(/,/g, '');
 
   // 숫자가 아니면 처리하지 않음 (예: 공백만 입력할 때)
   if (isNaN(numberOnly)) return;
@@ -93,8 +93,8 @@ const formatCurrency = (e) => {
 
 function formatNumberWithComma(price) {
   // 앞쪽 0 제거 (단, 전부 0이면 0으로 처리)
-  const cleaned = price.replace(/^0+/, "") || "0";
-  return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const cleaned = price.replace(/^0+/, '') || '0';
+  return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 function handleFileChange(e) {
@@ -107,37 +107,37 @@ function isSuccessStatus(status) {
 
 async function saveFile(e) {
   const formData = new FormData();
-  formData.append("company", props.selectedCompany);
-  formData.append("withdrawn_at", date.value);
-  formData.append("name", description.value);
-  formData.append("price", price.value);
+  formData.append('company', props.selectedCompany);
+  formData.append('withdrawn_at', date.value);
+  formData.append('name', description.value);
+  formData.append('price', price.value);
 
   for (const file of files.value) {
-    formData.append("file_datas", file);
+    formData.append('file_datas', file);
   }
 
-  await authFetch("http://localhost:8080/api/files", {
-    method: "POST",
+  await authFetch('http://localhost:8080/api/files', {
+    method: 'POST',
     body: formData,
   })
     .then(async (response) => {
       const result = await response.json();
 
       if (isSuccessStatus(response.status)) {
-        toast.success("파일 업로드 성공");
+        toast.success('파일 업로드 성공');
       }
 
-      emit("createFiles", result);
-      description.value = "";
+      emit('createFiles', result);
+      description.value = '';
       price.value = 0;
-      formatted.value = "";
+      formatted.value = '';
       files.value = [];
       if (fileInput.value) {
-        fileInput.value.value = "";
+        fileInput.value.value = '';
       }
     })
     .catch((error) => {
-      toast.error("파일 업로드 실패");
+      toast.error('파일 업로드 실패');
       console.error(error);
     });
 }

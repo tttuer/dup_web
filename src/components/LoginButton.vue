@@ -1,24 +1,24 @@
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const props = defineProps({
   buttonText: String,
 });
 
-const buttonText = ref("로그인");
+const buttonText = ref('로그인');
 
-const accessToken = localStorage.getItem("access_token");
+const accessToken = localStorage.getItem('access_token');
 
 if (accessToken) {
-  buttonText.value = "로그아웃";
+  buttonText.value = '로그아웃';
 }
 
 function logout() {
-  localStorage.removeItem("access_token");
-  buttonText.value = "로그인";
-  router.push("/login");
+  localStorage.removeItem('access_token');
+  buttonText.value = '로그인';
+  router.push('/login');
 }
 </script>
 

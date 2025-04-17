@@ -1,18 +1,18 @@
 <script setup>
-import { ref, watch } from "vue";
-import Dropdown from "./Dropdown.vue";
+import { ref, watch } from 'vue';
+import Dropdown from './Dropdown.vue';
 
-const emit = defineEmits(["search"]);
-const search = ref("");
-const searchOptions = ["설명+첨부파일", "금액"];
+const emit = defineEmits(['search']);
+const search = ref('');
+const searchOptions = ['설명+첨부파일', '금액'];
 const searchToEnum = {
-  "설명+첨부파일": "DESCRIPTION_FILENAME",
-  금액: "PRICE",
+  '설명+첨부파일': 'DESCRIPTION_FILENAME',
+  금액: 'PRICE',
 };
-const selectedOption = ref("");
+const selectedOption = ref('');
 
 watch([search, selectedOption], () => {
-  emit("search", {
+  emit('search', {
     search: search.value,
     searchOption: selectedOption.value,
   });

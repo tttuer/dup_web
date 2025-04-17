@@ -1,6 +1,6 @@
 <!-- components/PdfPreview.vue -->
 <script setup>
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps({
   fileData: String,
@@ -12,8 +12,8 @@ const pdfUrl = ref(null);
 const previewUrlCache = new Map();
 const objectUrls = new Map();
 
-const worker = new Worker(new URL("./pdf-worker.js", import.meta.url), {
-  type: "module",
+const worker = new Worker(new URL('./pdf-worker.js', import.meta.url), {
+  type: 'module',
 });
 
 worker.onmessage = (e) => {
@@ -27,15 +27,13 @@ worker.onmessage = (e) => {
 function convertToBlobUrl(fileData, id) {
   try {
     const byteCharacters = atob(fileData);
-    const byteArray = new Uint8Array(
-      [...byteCharacters].map((c) => c.charCodeAt(0))
-    );
-    const blob = new Blob([byteArray], { type: "application/pdf" });
+    const byteArray = new Uint8Array([...byteCharacters].map((c) => c.charCodeAt(0)));
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     objectUrls.set(id, url);
     return url;
   } catch (e) {
-    console.error("PDF 변환 실패:", e);
+    console.error('PDF 변환 실패:', e);
     return null;
   }
 }
@@ -73,12 +71,7 @@ onUnmounted(() => {
     <div
       class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
     >
-      <embed
-        v-if="pdfUrl"
-        :src="pdfUrl"
-        type="application/pdf"
-        class="h-full w-full"
-      />
+      <embed v-if="pdfUrl" :src="pdfUrl" type="application/pdf" class="h-full w-full" />
     </div>
   </div>
 </template>

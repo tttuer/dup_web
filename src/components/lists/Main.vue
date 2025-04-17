@@ -1,5 +1,5 @@
 <script setup>
-import List from "./List.vue";
+import List from './List.vue';
 </script>
 
 <template>
