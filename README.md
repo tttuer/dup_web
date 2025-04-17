@@ -19,6 +19,12 @@ brew install pnpm
 pnpm install
 ```
 
+### arm64 에러 발생시
+
+```
+pnpm install @rollup/rollup-linux-x64-gnu --save-optional
+
+```
 
 
 # 실행
