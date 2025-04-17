@@ -80,7 +80,7 @@ import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 
-const fileUrl = 'http://localhost:8080/api/files';
+const fileUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 const toast = useToast();
 function addCreatedFiles() {
   fetchFiles(true);

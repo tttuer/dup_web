@@ -10,6 +10,8 @@ const router = useRouter();
 const username = ref('');
 const password = ref('');
 
+const userApiUrl = `${import.meta.env.VITE_USER_API_URL}`
+
 async function login() {
   const form = new URLSearchParams();
   form.append('grant_type', 'password');
@@ -21,7 +23,7 @@ async function login() {
     return;
   }
 
-  const response = await fetch('http://localhost:8080/api/users/login', {
+  const response = await fetch(`${userApiUrl}/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

@@ -60,6 +60,8 @@ import Flatpickr from 'vue-flatpickr-component';
 import { authFetch } from '../../utils/authFetch';
 import { useToast } from 'vue-toastification';
 
+const fileApiUrl = `${import.meta.env.VITE_FILE_API_URL}`
+
 const props = defineProps({
   selectedCompany: String,
 });
@@ -116,7 +118,7 @@ async function saveFile(e) {
     formData.append('file_datas', file);
   }
 
-  await authFetch('http://localhost:8080/api/files', {
+  await authFetch(fileApiUrl, {
     method: 'POST',
     body: formData,
   })
