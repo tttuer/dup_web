@@ -4,6 +4,7 @@ import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import Sentinel from './Sentinel.vue';
 import DateSearch from './DateSearch.vue';
+import EditModal from './EditModal.vue';
 
 const previewUrlCache = new Map();
 const worker = new Worker(new URL('./pdf-worker.js', import.meta.url), {
@@ -82,6 +83,19 @@ import { useToast } from 'vue-toastification';
 
 const fileUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 const toast = useToast();
+const isEditModalOpen = ref(false);
+const editTargetFile = ref(null);
+
+function openEditModal(file) {
+  editTargetFile.value = file;
+  isEditModalOpen.value = true;
+}
+
+function closeEditModal() {
+  isEditModalOpen.value = false;
+  editTargetFile.value = null;
+}
+
 function addCreatedFiles() {
   fetchFiles(true);
 }
@@ -146,6 +160,35 @@ async function deleteFiles() {
   } catch (error) {
     toast.error('파일 삭제 실패');
     console.error(error);
+  }
+}
+
+async function editFile(payload) {
+  const formData = new FormData();
+  formData.append('name', payload.name);
+  formData.append('price', payload.price);
+  formData.append('withdrawn_at', payload.withdrawn_at);
+
+  if (payload.file) {
+    formData.append('file_data', payload.file);
+  }
+
+  try {
+    const response = await authFetch(`${fileUrl}/${payload.id}`, {
+      method: 'PUT',
+      body: formData,
+    });
+
+    if (response.ok) {
+      toast.success('수정 완료');
+      closeEditModal();
+      fetchFiles(true);
+    } else {
+      toast.error('수정 실패');
+    }
+  } catch (e) {
+    toast.error('수정 중 오류 발생');
+    console.error(e);
   }
 }
 
@@ -365,7 +408,14 @@ watch([selectedCompany, selectedDate], async () => {
                 <input
                   type="button"
                   value="수정"
+                  @click="openEditModal(file)"
                   class="h-6 w-17 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
+                />
+                <EditModal
+                  :visible="isEditModalOpen"
+                  :file="editTargetFile"
+                  @close="closeEditModal"
+                  @save="editFile"
                 />
               </td>
             </tr>
