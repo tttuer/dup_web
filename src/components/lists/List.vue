@@ -302,7 +302,7 @@ watch([selectedCompany, selectedDate], async () => {
               <th class="w-45 px-4 py-2 text-left">날짜</th>
               <th class="min-w-48 truncate px-4 py-2 text-left">설명</th>
               <th class="w-45 px-4 py-2 text-left">금액</th>
-              <th class="w-85 px-4 py-2 text-left">첨부파일</th>
+              <th class="w-90 px-4 py-2 text-left">첨부파일</th>
             </tr>
           </thead>
         </table>
@@ -335,17 +335,20 @@ watch([selectedCompany, selectedDate], async () => {
               </td>
               <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
               <td
-                class="group relative w-85 px-4 py-2"
+                class="group relative w-69 px-4 py-2"
                 @mouseenter="handlePreviewPosition"
                 @mouseleave="resetPreviewPosition"
               >
                 <div class="group relative inline-block">
-                  <a
-                    :href="`data:application/pdf;base64,${file.file_data}`"
-                    :download="file.file_name"
-                    class="truncate text-blue-500 hover:text-blue-600"
-                    >{{ file.file_name }}</a
-                  >
+                  <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                    <a
+                      :href="`data:application/pdf;base64,${file.file_data}`"
+                      :download="file.file_name"
+                      class="text-blue-500 hover:text-blue-600"
+                    >
+                      {{ file.file_name }}
+                    </a>
+                  </div>
                   <div
                     class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
                   >
@@ -357,6 +360,13 @@ watch([selectedCompany, selectedDate], async () => {
                     />
                   </div>
                 </div>
+              </td>
+              <td class="mr-2 h-full w-21 py-2 text-sm">
+                <input
+                  type="button"
+                  value="수정"
+                  class="h-6 w-17 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
+                />
               </td>
             </tr>
             <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />

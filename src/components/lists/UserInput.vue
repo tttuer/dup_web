@@ -30,7 +30,7 @@
               pattern="\d*"
             />
           </td>
-          <td class="w-85 px-4 py-2 text-left">
+          <td class="w-90 px-4 py-2 text-left">
             <div class="grid grid-cols-4 gap-4">
               <input
                 ref="fileInput"
