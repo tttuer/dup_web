@@ -404,12 +404,12 @@ watch([selectedCompany, selectedDate], async () => {
                   </div>
                 </div>
               </td>
-              <td class="mr-2 h-full w-21 py-2 text-sm">
+              <td class="mr-2 h-full w-21 py-2 text-base">
                 <input
                   type="button"
                   value="수정"
                   @click="openEditModal(file)"
-                  class="h-6 w-17 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
+                  class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
                 />
                 <EditModal
                   :visible="isEditModalOpen"

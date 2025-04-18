@@ -41,7 +41,7 @@
                 @change="handleFileChange"
               />
               <button
-                class="col-span-1 cursor-pointer rounded-md hover:bg-black hover:text-white border border-gray-300 p-0 px-1 py-0.5 text-sm"
+                class="col-span-1 w-15 cursor-pointer rounded-md hover:bg-black hover:text-white border border-gray-300 p-0 px-1 py-0.5 text-sm"
                 @click="saveFile"
               >
                 입력
