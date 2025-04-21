@@ -41,7 +41,7 @@
                 @change="handleFileChange"
               />
               <button
-                class="col-span-1 w-15 cursor-pointer rounded-md hover:bg-black hover:text-white border border-gray-300 p-0 px-1 py-0.5 text-sm"
+                class="col-span-1 w-15 cursor-pointer rounded-md border border-gray-300 p-0 px-1 py-0.5 text-sm hover:bg-black hover:text-white"
                 @click="saveFile"
               >
                 입력
@@ -59,6 +59,7 @@ import { ref } from 'vue';
 import Flatpickr from 'vue-flatpickr-component';
 import { authFetch } from '../../utils/authFetch';
 import { useToast } from 'vue-toastification';
+import { useCurrencyFormatter } from '@/utils/currencyFormatter';
 
 const fileApiUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 
@@ -69,35 +70,12 @@ const date = ref(null);
 const config = {
   dateFormat: 'Ymd',
 };
-const formatted = ref('');
-const price = ref(0);
 const description = ref('');
 const files = ref([]);
 const fileInput = ref(null);
 const emit = defineEmits(['createFiles']);
 const toast = useToast();
-
-const formatCurrency = (e) => {
-  let rawValue = e.target.value;
-
-  // , 제거한 숫자 추출
-  const numberOnly = rawValue.replace(/,/g, '');
-
-  // 숫자가 아니면 처리하지 않음 (예: 공백만 입력할 때)
-  if (isNaN(numberOnly)) return;
-
-  // 진짜 숫자 값으로 저장
-  price.value = Number(numberOnly);
-
-  // 세 자리마다 , 붙인 형식으로 다시 포맷
-  formatted.value = formatNumberWithComma(numberOnly);
-};
-
-function formatNumberWithComma(price) {
-  // 앞쪽 0 제거 (단, 전부 0이면 0으로 처리)
-  const cleaned = price.replace(/^0+/, '') || '0';
-  return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
+const { formatted, price, formatCurrency } = useCurrencyFormatter();
 
 function handleFileChange(e) {
   files.value = e.target.files;
@@ -126,13 +104,12 @@ async function saveFile(e) {
       }
 
       emit('createFiles', result);
+      // 저장 후 리셋하는 부분
       description.value = '';
-      price.value = 0;
-      formatted.value = '';
       files.value = [];
-      if (fileInput.value) {
-        fileInput.value.value = '';
-      }
+      if (fileInput.value) fileInput.value.value = '';
+      price.value = null; // null이 Composable에서 허용되게 변경했으니
+      formatted.value = '';
     })
     .catch((error) => {
       toast.error('파일 업로드 실패');

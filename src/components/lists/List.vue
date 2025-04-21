@@ -411,12 +411,6 @@ watch([selectedCompany, selectedDate], async () => {
                   @click="openEditModal(file)"
                   class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
                 />
-                <EditModal
-                  :visible="isEditModalOpen"
-                  :file="editTargetFile"
-                  @close="closeEditModal"
-                  @save="editFile"
-                />
               </td>
             </tr>
             <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
@@ -424,6 +418,12 @@ watch([selectedCompany, selectedDate], async () => {
         </table>
       </div>
     </div>
+    <EditModal
+      :visible="isEditModalOpen"
+      :file="editTargetFile"
+      @close="closeEditModal"
+      @save="editFile"
+    />
   </div>
 </template>
 

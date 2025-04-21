@@ -2,8 +2,10 @@
 <template>
   <div
     v-if="visible"
-    @click="$emit('close')"
-    class="backdrop-blur-2xs fixed inset-0 z-50 flex items-center justify-center"
+    @mousedown="handleMouseDown"
+    @mousemove="handleMouseMove"
+    @click="handleBackgroundClick"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
   >
     <div class="w-[450px] rounded-lg bg-white p-6 shadow-sm" @click.stop>
       <h2 class="mb-4 text-lg font-semibold">파일 수정</h2>
@@ -33,9 +35,12 @@
       <div class="mb-4">
         <label class="block text-sm font-medium">금액</label>
         <input
-          v-model.number="form.price"
-          type="number"
+          v-model="formatted"
+          @input="formatCurrency"
+          type="text"
+          inputmode="numeric"
           class="mt-1 w-full rounded border border-gray-300 p-2"
+          placeholder="금액을 입력하세요"
         />
       </div>
 
@@ -66,6 +71,9 @@
 <script setup>
 import { reactive, watch, ref } from 'vue';
 import Flatpickr from 'vue-flatpickr-component';
+import { useCurrencyFormatter } from '@/utils/currencyFormatter';
+
+const { formatted, price, formatCurrency, setPrice } = useCurrencyFormatter();
 
 const props = defineProps({
   visible: Boolean,
@@ -88,27 +96,46 @@ const config = {
   dateFormat: 'Ymd',
 };
 
+// 드래그 중 클릭 방지를 위한 상태
+let isDragging = false;
+
 watch(
-  () => props.file,
-  (file) => {
-    if (file) {
-      form.id = file.id;
-      form.name = file.name;
-      form.price = file.price;
-      form.withdrawn_at = file.withdrawn_at; // "2025-03-20" 형식
-      form.company = file.company;
+  () => props.visible,
+  (val) => {
+    if (val && props.file) {
+      form.id = props.file.id;
+      form.name = props.file.name;
+      form.withdrawn_at = props.file.withdrawn_at;
+      form.company = props.file.company;
+      setPrice(props.file.price); // 여기가 핵심
     }
   },
-  { immediate: true },
 );
 
 function handleFileChange(event) {
   newFile.value = event.target.files[0];
 }
+function handleMouseDown() {
+  isDragging = false;
+}
+
+function handleMouseMove() {
+  isDragging = true;
+}
+
+function handleBackgroundClick(event) {
+  // 드래그로 인한 클릭은 무시
+  if (isDragging) return;
+  // 클릭한 대상이 이 배경 div 본인인 경우에만 닫기
+  if (event.target === event.currentTarget) {
+    emit('close');
+  }
+}
 
 function save() {
   const payload = {
     ...form,
+    price: price.value,
     file: newFile.value || null,
   };
   emit('save', payload);
