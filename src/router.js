@@ -2,10 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 
 import HomeView from './components/lists/App.vue';
+import ExtraView from './components/extra/App.vue';
 import LoginView from './components/login/App.vue';
 
 const routes = [
   { path: '/', component: HomeView, meta: { requiresAuth: true } },
+  { path: '/extra', component: ExtraView, meta: { requiresAuth: true } },
   { path: '/login', component: LoginView },
 ];
 
