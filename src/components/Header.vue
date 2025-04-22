@@ -3,33 +3,36 @@ import { ref, watchEffect } from 'vue';
 import LoginButton from './LoginButton.vue';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
+import { useTypeStore, TYPE } from '@/stores/typeStore';
 
 const router = useRouter();
 const route = useRoute();
-const activeMenu = ref('');
+const typeStore = useTypeStore();
 
 function goToVoucher() {
+  typeStore.setType(TYPE.VOUCHER);
   router.push('/');
 }
 
 function goToExtra() {
+  typeStore.setType(TYPE.EXTRA);
   router.push('/extra');
 }
 
 watchEffect(() => {
   if (route.path === '/') {
-    activeMenu.value = '전표 증빙자료';
+    typeStore.setType(TYPE.VOUCHER);
   } else if (route.path === '/extra') {
-    activeMenu.value = '그 외';
+    typeStore.setType(TYPE.EXTRA);
   } else {
-    activeMenu.value = '';
+    typeStore.setType('');
   }
 });
 </script>
 
 <template>
   <header class="border-b border-gray-300">
-    <div class="flex grid h-18 grid-cols-6 grid-rows-1 content-center gap-6">
+    <div class="grid h-18 grid-cols-6 grid-rows-1 content-center gap-6">
       <div class="col-span-1 flex content-center pl-1">
         <div class="content-center">
           <svg
@@ -57,7 +60,9 @@ watchEffect(() => {
         <div class="flex h-full content-center" v-show="route.path !== '/login'">
           <div
             class="content-center"
-            :class="activeMenu == '전표 증빙자료' ? 'border-b-2 border-black font-bold' : ''"
+            :class="
+              typeStore.currentType == TYPE.VOUCHER ? 'border-b-2 border-black font-bold' : ''
+            "
           >
             <input
               class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
@@ -68,7 +73,7 @@ watchEffect(() => {
           </div>
           <div
             class="ml-5 content-center"
-            :class="activeMenu == '그 외' ? 'border-b-2 border-black font-bold' : ''"
+            :class="typeStore.currentType == TYPE.EXTRA ? 'border-b-2 border-black font-bold' : ''"
           >
             <input
               class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"

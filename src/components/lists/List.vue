@@ -5,6 +5,9 @@ import { authFetch } from '../../utils/authFetch';
 import Sentinel from './Sentinel.vue';
 import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
+import { useTypeStore } from '@/stores/typeStore';
+
+const typeStore = useTypeStore();
 
 const previewUrlCache = new Map();
 const worker = new Worker(new URL('./pdf-worker.js', import.meta.url), {
@@ -108,7 +111,7 @@ async function fetchFiles(isReset = false) {
   }
 
   const params = new URLSearchParams();
-
+  params.append('type', typeStore.currentType);
   params.append('company', selectedCompany.value);
   params.append('start_at', start_at.value ? start_at.value : '');
   params.append('end_at', end_at.value ? end_at.value : '');
