@@ -60,6 +60,9 @@ import Flatpickr from 'vue-flatpickr-component';
 import { authFetch } from '../../utils/authFetch';
 import { useToast } from 'vue-toastification';
 import { useCurrencyFormatter } from '@/utils/currencyFormatter';
+import { useTypeStore } from '@/stores/typeStore'
+
+const typeStroe = useTypeStore();
 
 const fileApiUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 
@@ -83,6 +86,7 @@ function handleFileChange(e) {
 
 async function saveFile(e) {
   const formData = new FormData();
+  formData.append('type', typeStroe.currentType)
   formData.append('company', props.selectedCompany);
   formData.append('withdrawn_at', date.value);
   formData.append('name', description.value);
