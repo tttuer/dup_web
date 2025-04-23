@@ -4,6 +4,7 @@ import { ref, watch } from 'vue';
 
 const config = {
   dateFormat: 'Ymd',
+  allowInput: true,
 };
 
 const emit = defineEmits(['search']);
@@ -14,6 +15,11 @@ const end_at = ref('');
 watch([start_at, end_at], () => {
   emit('search', { start_at: start_at.value, end_at: end_at.value });
 });
+
+// blur 시점에도 emit (입력 후 포커스 빠질 때)
+const handleBlur = () => {
+  emit('search', { start_at: start_at.value, end_at: end_at.value });
+};
 </script>
 
 <template>
@@ -24,6 +30,7 @@ watch([start_at, end_at], () => {
         v-model="start_at"
         :config="config"
         placeholder="20250409"
+        @blur="handleBlur"
       />
     </div>
     <p class="mx-2 h-9 content-center">-</p>
@@ -33,6 +40,7 @@ watch([start_at, end_at], () => {
         v-model="end_at"
         :config="config"
         placeholder="20250409"
+        @blur="handleBlur"
       />
     </div>
   </div>
