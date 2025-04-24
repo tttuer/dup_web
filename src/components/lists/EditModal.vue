@@ -57,7 +57,7 @@
       </div>
 
       <div class="flex">
-        <p class="mr-2 text-sm font-medium">잠금</p>
+        <p class="mr-2 text-sm font-medium" v-show="role === 'ADMIN'">잠금</p>
         <input id="modal-lock" v-show="false" type="checkbox" v-model="form.lock" />
         <label
           v-show="role === 'ADMIN'"
