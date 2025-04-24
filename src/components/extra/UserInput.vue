@@ -118,6 +118,8 @@ const fileInput = ref(null);
 const emit = defineEmits(['createFiles']);
 const toast = useToast();
 const { formatted, price, formatCurrency } = useCurrencyFormatter();
+const isLocked = ref(false);
+
 
 function handleFileChange(e) {
   files.value = e.target.files;
@@ -130,6 +132,7 @@ async function saveFile(e) {
   formData.append('withdrawn_at', date.value);
   formData.append('name', description.value);
   formData.append('price', price.value);
+  formData.append('lock', isLocked.value);
 
   for (const file of files.value) {
     formData.append('file_datas', file);
