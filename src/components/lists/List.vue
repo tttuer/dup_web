@@ -172,7 +172,7 @@ async function editFile(payload) {
   formData.append('price', payload.price);
   formData.append('withdrawn_at', payload.withdrawn_at);
   formData.append('lock', payload.lock);
-  
+
   if (payload.file) {
     formData.append('file_data', payload.file);
   }
@@ -377,8 +377,19 @@ watch([selectedCompany, selectedDate], async () => {
               <td class="w-45 px-4 py-2">
                 {{ formatDate(file.withdrawn_at) }}
               </td>
-              <td class="truncate px-4 py-2">
+              <td class="flex truncate px-4 py-2">
                 {{ file.name }}
+                <svg
+                  v-if="file.lock"
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="ml-1 h-4 w-4 text-gray-800"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
+                  />
+                </svg>
               </td>
               <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
               <td
