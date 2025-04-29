@@ -359,7 +359,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                   <div>
                     <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
                     <label
-                      v-show="role === 'ADMIN'"
+                      v-show="role === 'ADMIN' && selectedCompany"
                       for="lock-filter"
                       class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gray-300 hover:bg-gray-200"
                     >
