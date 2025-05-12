@@ -29,7 +29,7 @@ worker.onmessage = (e) => {
 const isLoading = ref(false);
 const selectedCompany = ref('');
 const selectedDate = ref('');
-const fileLists = ref([]);
+const voucherLists = ref([]);
 const totalPage = ref(0);
 const currentPage = ref(1);
 const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
@@ -49,22 +49,22 @@ const lastCheckedIndex = ref(null);
 const hasChecked = computed(() => checkedIds.value.size > 0);
 
 const handleCheckboxClick = (event, index) => {
-  const file = fileLists.value[index];
-  const id = file.id;
+  const voucher = voucherLists.value[index];
+  const id = voucher.id;
 
   if (event.shiftKey && lastCheckedIndex.value !== null) {
     const start = Math.min(lastCheckedIndex.value, index);
     const end = Math.max(lastCheckedIndex.value, index);
 
-    const rangeFiles = fileLists.value.slice(start, end + 1);
+    const rangeVouchers = voucherLists.value.slice(start, end + 1);
 
     const clickedWasChecked = checkedIds.value.has(id);
 
-    rangeFiles.forEach((f) => {
+    rangeVouchers.forEach((v) => {
       if (clickedWasChecked) {
-        checkedIds.value.delete(f.id); // 전체 해제
+        checkedIds.value.delete(v.id); // 전체 해제
       } else {
-        checkedIds.value.add(f.id); // 전체 체크
+        checkedIds.value.add(v.id); // 전체 체크
       }
     });
 
@@ -87,61 +87,59 @@ import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 
-const fileUrl = `${import.meta.env.VITE_FILE_API_URL}`;
+const voucherUrl = `${import.meta.env.VITE_VOUCHER_API_URL}`;
 const toast = useToast();
 const isEditModalOpen = ref(false);
-const editTargetFile = ref(null);
+const editTargetVoucher = ref(null);
 const lockFilter = ref(false);
 
-function openEditModal(file) {
-  editTargetFile.value = file;
+function openEditModal(voucher) {
+  editTargetVoucher.value = voucher;
   isEditModalOpen.value = true;
 }
 
 function closeEditModal() {
   isEditModalOpen.value = false;
-  editTargetFile.value = null;
+  editTargetVoucher.value = null;
 }
 
 function addCreatedFiles() {
-  fetchFiles(true);
+  fetchVouchers(true);
 }
 
-async function fetchFiles(isReset = false) {
+async function fetchVouchers(isReset = false) {
   if (isReset) {
-    fileLists.value = [];
+    voucherLists.value = [];
     totalPage.value = 0;
     currentPage.value = 1;
   }
 
   const params = new URLSearchParams();
-  params.append('type', typeStore.currentType);
   params.append('company', selectedCompany.value);
   params.append('start_at', start_at.value ? start_at.value : '');
   params.append('end_at', end_at.value ? end_at.value : '');
   params.append('page', currentPage.value);
   params.append('search', searchbar.value);
   params.append('search_option', searchbarOption.value);
-  params.append('is_locked', lockFilter.value);
 
   isLoading.value = true;
   isPdfConverting.value = true;
   try {
-    const response = await authFetch(fileUrl + '?' + params.toString());
+    const response = await authFetch(voucherUrl + '?' + params.toString());
     const [total_count, total_page, lists] = await response.json();
 
     totalPage.value = total_page;
-    const newFiles = lists.map((file) => ({
-      ...file,
+    const vouchers = lists.map((voucher) => ({
+      ...voucher,
       pdf_url: null, // 나중에 Worker가 채워줌
     }));
-    fileLists.value = [...fileLists.value, ...newFiles];
+    voucherLists.value = [...voucherLists.value, ...vouchers];
 
-    newFiles.forEach((file) => {
-      if (!previewUrlCache.has(file.id)) {
-        worker.postMessage({ id: file.id, file_data: file.file_data });
+    vouchers.forEach((voucher) => {
+      if (!previewUrlCache.has(voucher.id)) {
+        worker.postMessage({ id: voucher.id, voucher_data: voucher.voucher_data });
       } else {
-        file.pdf_url = previewUrlCache.get(file.id);
+        voucher.pdf_url = previewUrlCache.get(voucher.id);
       }
     });
   } finally {
@@ -154,14 +152,14 @@ async function deleteFiles() {
   const query = [...checkedIds.value].map((id) => `ids=${id}`).join('&');
 
   try {
-    const response = await authFetch(`${fileUrl}?${query}`, {
+    const response = await authFetch(`${voucherUrl}?${query}`, {
       method: 'DELETE',
     });
 
     if (response.ok) {
       toast.success('파일 삭제 성공');
       checkedIds.value.clear();
-      fetchFiles(true);
+      fetchVouchers(true);
     } else {
       toast.error('파일 삭제 실패');
     }
@@ -171,27 +169,23 @@ async function deleteFiles() {
   }
 }
 
-async function editFile(payload) {
+async function editVoucher(payload) {
   const formData = new FormData();
-  formData.append('name', payload.name);
-  formData.append('price', payload.price);
-  formData.append('withdrawn_at', payload.withdrawn_at);
-  formData.append('lock', payload.lock);
 
   if (payload.file) {
     formData.append('file_data', payload.file);
   }
 
   try {
-    const response = await authFetch(`${fileUrl}/${payload.id}`, {
-      method: 'PUT',
+    const response = await authFetch(`${voucherUrl}/${payload.id}`, {
+      method: 'PATCH',
       body: formData,
     });
 
     if (response.ok) {
       toast.success('수정 완료');
       closeEditModal();
-      fetchFiles(true);
+      fetchVouchers(true);
     } else {
       toast.error('수정 실패');
     }
@@ -255,12 +249,12 @@ function resetPreviewPosition(event) {
 function handleIntersect() {
   if (!isLoading.value && !isPdfConverting.value && currentPage.value < totalPage.value) {
     currentPage.value++;
-    fetchFiles();
+    fetchVouchers();
   }
 }
 
 function search() {
-  fetchFiles(true);
+  fetchVouchers(true);
 }
 
 // 메모리 누수 방지용 URL 저장소
@@ -274,7 +268,7 @@ onUnmounted(() => {
 });
 
 watch([selectedCompany, selectedDate, lockFilter], async () => {
-  await fetchFiles(true);
+  await fetchVouchers(true);
 });
 </script>
 
@@ -400,32 +394,30 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
         </table>
       </div>
 
-      <UserInput :selectedCompany="selectedCompany" @createFiles="addCreatedFiles" />
-
       <div class="no-scrollbar h-full overflow-y-scroll">
         <table class="w-full min-w-[900px] table-fixed">
           <tbody>
             <!-- 반복 행 예시 -->
             <tr
-              v-for="(file, index) in fileLists"
-              :key="file.id"
+              v-for="(voucher, index) in voucherLists"
+              :key="voucher.id"
               class="files border-b border-gray-200 dark:border-gray-700"
             >
               <td class="w-5 px-4 py-2">
                 <input
                   type="checkbox"
                   class="row-check"
-                  :checked="checkedIds.has(file.id)"
+                  :checked="checkedIds.has(voucher.id)"
                   @click="handleCheckboxClick($event, index)"
                 />
               </td>
               <td class="w-45 px-4 py-2">
-                {{ formatDate(file.withdrawn_at) }}
+                {{ formatDate(voucher.withdrawn_at) }}
               </td>
               <td class="flex truncate px-4 py-2">
-                {{ file.name }}
+                {{ voucher.name }}
                 <svg
-                  v-if="file.lock"
+                  v-if="voucher.lock"
                   xmlns="http://www.w3.org/2000/svg"
                   class="ml-1 h-4 w-4 text-gray-800"
                   fill="currentColor"
@@ -436,7 +428,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                   />
                 </svg>
               </td>
-              <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
+              <td class="w-45 px-4 py-2">{{ formatPrice(voucher.price) }}</td>
               <td
                 class="group relative w-69 px-4 py-2"
                 @mouseenter="handlePreviewPosition"
@@ -445,19 +437,19 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 <div class="group relative inline-block">
                   <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     <a
-                      :href="`data:application/pdf;base64,${file.file_data}`"
-                      :download="file.file_name"
+                      :href="`data:application/pdf;base64,${voucher.voucher_data}`"
+                      :download="voucher.voucher_name"
                       class="text-blue-500 hover:text-blue-600"
                     >
-                      {{ file.file_name }}
+                      {{ voucher.voucher_name }}
                     </a>
                   </div>
                   <div
                     class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
                   >
                     <embed
-                      v-if="file.pdf_url"
-                      :src="file.pdf_url"
+                      v-if="voucher.pdf_url"
+                      :src="voucher.pdf_url"
                       type="application/pdf"
                       class="h-full w-full"
                     />
@@ -468,7 +460,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 <input
                   type="button"
                   value="수정"
-                  @click="openEditModal(file)"
+                  @click="openEditModal(voucher)"
                   class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
                 />
               </td>
@@ -480,9 +472,9 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
     </div>
     <EditModal
       :visible="isEditModalOpen"
-      :file="editTargetFile"
+      :voucher="editTargetVoucher"
       @close="closeEditModal"
-      @save="editFile"
+      @save="editVoucher"
     />
   </div>
 </template>
