@@ -20,9 +20,9 @@ const worker = new Worker(new URL('./pdf-worker.js', import.meta.url), {
 worker.onmessage = (e) => {
   const { id, pdf_url } = e.data;
   previewUrlCache.set(id, pdf_url);
-  const file = fileLists.value.find((f) => f.id === id);
-  if (file) {
-    file.pdf_url = pdf_url;
+  const voucher = voucherLists.value.find((v) => v.id === id);
+  if (voucher) {
+    voucher.pdf_url = pdf_url;
   }
 };
 
@@ -128,6 +128,8 @@ async function fetchVouchers(isReset = false) {
     const response = await authFetch(voucherUrl + '?' + params.toString());
     const [total_count, total_page, lists] = await response.json();
 
+    console.log(lists);
+
     totalPage.value = total_page;
     const vouchers = lists.map((voucher) => ({
       ...voucher,
@@ -137,7 +139,7 @@ async function fetchVouchers(isReset = false) {
 
     vouchers.forEach((voucher) => {
       if (!previewUrlCache.has(voucher.id)) {
-        worker.postMessage({ id: voucher.id, voucher_data: voucher.voucher_data });
+        worker.postMessage({ id: voucher.id, voucher_data: voucher.file_data });
       } else {
         voucher.pdf_url = previewUrlCache.get(voucher.id);
       }
@@ -412,10 +414,10 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 />
               </td>
               <td class="w-45 px-4 py-2">
-                {{ formatDate(voucher.withdrawn_at) }}
+                {{ formatDate(voucher.voucher_date) }}
               </td>
               <td class="flex truncate px-4 py-2">
-                {{ voucher.name }}
+                {{ voucher.nm_acctit }}
                 <svg
                   v-if="voucher.lock"
                   xmlns="http://www.w3.org/2000/svg"
@@ -428,7 +430,10 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                   />
                 </svg>
               </td>
-              <td class="w-45 px-4 py-2">{{ formatPrice(voucher.price) }}</td>
+              <td class="w-45 px-4 py-2">{{ voucher.nm_trade }}</td>
+              <td class="w-45 px-4 py-2">{{ formatPrice(voucher.mn_bungae1) }}</td>
+              <td class="w-45 px-4 py-2">{{ formatPrice(voucher.mn_bungae2) }}</td>
+              <td class="w-45 px-4 py-2">{{ formatPrice(voucher.nm_remark) }}</td>
               <td
                 class="group relative w-69 px-4 py-2"
                 @mouseenter="handlePreviewPosition"
@@ -437,11 +442,11 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 <div class="group relative inline-block">
                   <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     <a
-                      :href="`data:application/pdf;base64,${voucher.voucher_data}`"
-                      :download="voucher.voucher_name"
+                      :href="`data:application/pdf;base64,${voucher.file_data}`"
+                      :download="voucher.file_name"
                       class="text-blue-500 hover:text-blue-600"
                     >
-                      {{ voucher.voucher_name }}
+                      {{ voucher.file_name }}
                     </a>
                   </div>
                   <div
