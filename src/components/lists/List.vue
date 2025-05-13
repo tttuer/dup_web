@@ -113,6 +113,7 @@ async function fetchVouchers(isReset = false) {
     totalPage.value = 0;
     currentPage.value = 1;
   }
+  console.log('[Fetch] 요청 페이지:', currentPage.value);
 
   const params = new URLSearchParams();
   params.append('company', selectedCompany.value);
@@ -128,8 +129,6 @@ async function fetchVouchers(isReset = false) {
     const response = await authFetch(voucherUrl + '?' + params.toString());
     const [total_count, total_page, lists] = await response.json();
 
-    console.log(lists);
-
     totalPage.value = total_page;
     const vouchers = lists.map((voucher) => ({
       ...voucher,
@@ -139,7 +138,7 @@ async function fetchVouchers(isReset = false) {
 
     vouchers.forEach((voucher) => {
       if (!previewUrlCache.has(voucher.id)) {
-        worker.postMessage({ id: voucher.id, voucher_data: voucher.file_data });
+        worker.postMessage({ id: voucher.id, file_data: voucher.file_data });
       } else {
         voucher.pdf_url = previewUrlCache.get(voucher.id);
       }
@@ -186,6 +185,8 @@ async function editVoucher(payload) {
 
     if (response.ok) {
       toast.success('수정 완료');
+      // ✅ 기존 PDF URL 캐시 제거 (다시 생성되도록 유도)
+      previewUrlCache.delete(payload.id);
       closeEditModal();
       fetchVouchers(true);
     } else {
@@ -348,9 +349,12 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 <input type="checkbox" id="check-all" />
               </th>
               <th class="w-45 px-4 py-2 text-left">날짜</th>
-              <th class="min-w-48 truncate px-4 py-2 text-left">설명</th>
-              <th class="w-45 px-4 py-2 text-left">금액</th>
-              <th class="w-69 px-4 py-2 text-left">
+              <th class="w-45 truncate px-4 py-2 text-left">계정과목</th>
+              <th class="w-45 truncate px-4 py-2 text-left">거래처</th>
+              <th class="w-45 truncate px-4 py-2 text-right">차변금액</th>
+              <th class="w-45 px-4 py-2 text-right">대변금액</th>
+              <th class="w-70 px-4 py-2 text-left">적요</th>
+              <th class="px-4 py-2 text-left">
                 <div class="flex justify-between">
                   첨부파일
                   <div>
@@ -416,9 +420,9 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
               <td class="w-45 px-4 py-2">
                 {{ formatDate(voucher.voucher_date) }}
               </td>
-              <td class="flex truncate px-4 py-2">
+              <td class="w-45 truncate px-4 py-2">
                 {{ voucher.nm_acctit }}
-                <svg
+                <!-- <svg
                   v-if="voucher.lock"
                   xmlns="http://www.w3.org/2000/svg"
                   class="ml-1 h-4 w-4 text-gray-800"
@@ -428,20 +432,21 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                   <path
                     d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
                   />
-                </svg>
+                </svg> -->
               </td>
               <td class="w-45 px-4 py-2">{{ voucher.nm_trade }}</td>
-              <td class="w-45 px-4 py-2">{{ formatPrice(voucher.mn_bungae1) }}</td>
-              <td class="w-45 px-4 py-2">{{ formatPrice(voucher.mn_bungae2) }}</td>
-              <td class="w-45 px-4 py-2">{{ formatPrice(voucher.nm_remark) }}</td>
+              <td class="w-45 px-4 py-2 text-right">{{ formatPrice(voucher.mn_bungae1) }}</td>
+              <td class="w-45 px-4 py-2 text-right">{{ formatPrice(voucher.mn_bungae2) }}</td>
+              <td class="w-70 px-4 py-2">{{ voucher.nm_remark }}</td>
               <td
-                class="group relative w-69 px-4 py-2"
+                class="group relative px-4 py-2"
                 @mouseenter="handlePreviewPosition"
                 @mouseleave="resetPreviewPosition"
               >
                 <div class="group relative inline-block">
                   <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     <a
+                      v-if="voucher.file_data"
                       :href="`data:application/pdf;base64,${voucher.file_data}`"
                       :download="voucher.file_name"
                       class="text-blue-500 hover:text-blue-600"
@@ -450,6 +455,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                     </a>
                   </div>
                   <div
+                    v-if="voucher.file_data && voucher.pdf_url"
                     class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
                   >
                     <embed
