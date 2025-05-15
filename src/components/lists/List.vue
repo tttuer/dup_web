@@ -149,32 +149,71 @@ async function fetchVouchers(isReset = false) {
   }
 }
 
-async function deleteFiles() {
-  const query = [...checkedIds.value].map((id) => `ids=${id}`).join('&');
+const isSyncing = ref(false);
+
+async function syncWhg() {
+  isSyncing.value = true;
+
+  // params.append('start_at', start_at.value ? start_at.value : '');
+  // params.append('end_at', end_at.value ? end_at.value : '');
 
   try {
-    const response = await authFetch(`${voucherUrl}?${query}`, {
-      method: 'DELETE',
+    const response = await authFetch(`${voucherUrl}/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        company: selectedCompany.value,
+        // start_at: startAt.value,
+        // end_at: endAt.value,
+      }),
     });
 
     if (response.ok) {
-      toast.success('파일 삭제 성공');
-      checkedIds.value.clear();
+      toast.success('파일 동기화 성공');
       fetchVouchers(true);
     } else {
-      toast.error('파일 삭제 실패');
+      toast.error('파일 동기화 실패');
     }
   } catch (error) {
-    toast.error('파일 삭제 실패');
+    toast.error('파일 동기화 실패');
     console.error(error);
+  } finally {
+    isSyncing.value = false;
   }
 }
+
+// 전표 삭제는 안할거기 때문에 주석처리리
+// async function deleteFiles() {
+//   const query = [...checkedIds.value].map((id) => `ids=${id}`).join('&');
+
+//   try {
+//     const response = await authFetch(`${voucherUrl}?${query}`, {
+//       method: 'DELETE',
+//     });
+
+//     if (response.ok) {
+//       toast.success('파일 삭제 성공');
+//       checkedIds.value.clear();
+//       fetchVouchers(true);
+//     } else {
+//       toast.error('파일 삭제 실패');
+//     }
+//   } catch (error) {
+//     toast.error('파일 삭제 실패');
+//     console.error(error);
+//   }
+// }
 
 async function editVoucher(payload) {
   const formData = new FormData();
 
   if (payload.files) {
-    formData.append('file_data', payload.files);
+    formData.append('files', payload.files);
+  }
+  if (payload.files) {
+    formData.append('file_ids', payload.deleteTargets);
   }
 
   try {
@@ -286,7 +325,43 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
           :nameToEnum="companyNameToEnum"
         />
         <div
-          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-red-500 hover:text-white"
+          v-show="selectedCompany"
+          :class="[
+            'mb-2 ml-2 flex w-18 items-center justify-center rounded-xl border border-gray-300 font-semibold transition-colors',
+            isSyncing
+              ? 'cursor-not-allowed bg-gray-200 text-gray-500'
+              : 'cursor-pointer hover:bg-blue-500 hover:text-white',
+          ]"
+        >
+          <!-- 버튼 안쪽은 그대로 유지 -->
+          <button
+            class="flex w-full items-center justify-center px-2 py-1 font-semibold transition-colors"
+            @click="syncWhg"
+            :disabled="isSyncing"
+          >
+            <template v-if="isSyncing">
+              <svg
+                class="mx-auto h-4 w-4 animate-spin text-blue-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+            </template>
+            <template v-else>Sync</template>
+          </button>
+        </div>
+        <!-- <div
+          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-blue-500 hover:text-white"
           v-show="hasChecked"
         >
           <input
@@ -295,7 +370,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
             value="삭제"
             @click="deleteFiles"
           />
-        </div>
+        </div> -->
       </div>
       <div class="col-span-1 flex flex-row justify-end">
         <DateSearch

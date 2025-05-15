@@ -34,12 +34,12 @@
               <label :for="`delete-${i}`" class="flex items-center space-x-1">
                 <span
                   :class="{
-                    'text-red-500 line-through': deleteTargets.includes(file.file_name),
+                    'text-red-500 line-through': deleteTargets.includes(file.file_id),
                   }"
                 >
                   {{ file.file_name }}
                 </span>
-                <span v-if="deleteTargets.includes(file.file_name)">❌</span>
+                <span v-if="deleteTargets.includes(file.file_id)">❌</span>
               </label>
             </div>
           </template>
@@ -152,7 +152,7 @@ function save() {
   const payload = {
     ...form,
     files: selectedFiles.value, // 새로 선택된 파일들
-    deleteTargets: deleteTargets.value, // 삭제 대상 파일 이름들
+    deleteTargets: deleteTargets.value, // file_ids
   };
   emit('save', payload);
 }
