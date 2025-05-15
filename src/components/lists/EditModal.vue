@@ -15,11 +15,36 @@
         <label class="block text-sm font-medium">새 첨부파일 (선택 시 기존 파일 대체)</label>
         <input
           type="file"
+          multiple
           accept="application/pdf"
           class="mt-1 w-full cursor-pointer border pt-1 pb-1"
           @change="handleFileChange"
         />
-        <p class="mt-1 text-xs text-gray-500">기존 파일: {{ voucher?.file_name }}</p>
+        <p class="mt-1 text-xs text-gray-500">
+          기존 파일:
+          <template v-if="voucher?.files?.length">
+            <div v-for="(file, i) in voucher.files" :key="i" class="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                :id="`delete-${i}`"
+                v-model="deleteTargets"
+                :value="file.file_name"
+                class="form-checkbox text-red-500"
+              />
+              <label :for="`delete-${i}`" class="flex items-center space-x-1">
+                <span
+                  :class="{
+                    'text-red-500 line-through': deleteTargets.includes(file.file_name),
+                  }"
+                >
+                  {{ file.file_name }}
+                </span>
+                <span v-if="deleteTargets.includes(file.file_name)">❌</span>
+              </label>
+            </div>
+          </template>
+          <template v-else> 없음 </template>
+        </p>
       </div>
 
       <div class="flex">
@@ -89,13 +114,10 @@ const form = reactive({
 });
 const newFile = ref(null);
 
-// flatpickr 옵션
-const config = {
-  dateFormat: 'Ymd',
-};
-
 // 드래그 중 클릭 방지를 위한 상태
 let isDragging = false;
+const deleteTargets = ref([]); // 삭제할 file_name 목록
+
 
 watch(
   () => props.visible,
@@ -129,7 +151,8 @@ function handleBackgroundClick(event) {
 function save() {
   const payload = {
     ...form,
-    file: newFile.value || null,
+    files: selectedFiles.value, // 새로 선택된 파일들
+    deleteTargets: deleteTargets.value, // 삭제 대상 파일 이름들
   };
   emit('save', payload);
 }

@@ -173,8 +173,8 @@ async function deleteFiles() {
 async function editVoucher(payload) {
   const formData = new FormData();
 
-  if (payload.file) {
-    formData.append('file_data', payload.file);
+  if (payload.files) {
+    formData.append('file_data', payload.files);
   }
 
   try {
@@ -350,10 +350,10 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
               </th>
               <th class="w-45 px-4 py-2 text-left">날짜</th>
               <th class="w-45 truncate px-4 py-2 text-left">계정과목</th>
-              <th class="w-45 truncate px-4 py-2 text-left">거래처</th>
+              <th class="w-65 truncate px-4 py-2 text-left">거래처</th>
               <th class="w-45 truncate px-4 py-2 text-right">차변금액</th>
               <th class="w-45 px-4 py-2 text-right">대변금액</th>
-              <th class="w-70 px-4 py-2 text-left">적요</th>
+              <th class="w-80 px-4 py-2 text-left">적요</th>
               <th class="px-4 py-2 text-left">
                 <div class="flex justify-between">
                   첨부파일
@@ -434,10 +434,10 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                   />
                 </svg> -->
               </td>
-              <td class="w-45 px-4 py-2">{{ voucher.nm_trade }}</td>
+              <td class="w-65 px-4 py-2">{{ voucher.nm_trade }}</td>
               <td class="w-45 px-4 py-2 text-right">{{ formatPrice(voucher.mn_bungae1) }}</td>
               <td class="w-45 px-4 py-2 text-right">{{ formatPrice(voucher.mn_bungae2) }}</td>
-              <td class="w-70 px-4 py-2">{{ voucher.nm_remark }}</td>
+              <td class="w-80 px-4 py-2">{{ voucher.nm_remark }}</td>
               <td
                 class="group relative px-4 py-2"
                 @mouseenter="handlePreviewPosition"
