@@ -18,11 +18,11 @@ const worker = new Worker(new URL('./pdf-worker.js', import.meta.url), {
 });
 
 worker.onmessage = (e) => {
-  const { id, pdf_url } = e.data;
-  previewUrlCache.set(id, pdf_url);
+  const { id, merged_pdf_url } = e.data;
+  previewUrlCache.set(id, merged_pdf_url);
   const voucher = voucherLists.value.find((v) => v.id === id);
   if (voucher) {
-    voucher.pdf_url = pdf_url;
+    voucher.merged_pdf_url = merged_pdf_url;
   }
 };
 
@@ -83,7 +83,6 @@ const handleCheckboxClick = (event, index) => {
   }
 };
 
-import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 
@@ -137,9 +136,13 @@ async function fetchVouchers(isReset = false) {
 
     vouchers.forEach((voucher) => {
       if (!previewUrlCache.has(voucher.id)) {
-        worker.postMessage({ id: voucher.id, file_data: voucher.file_data });
+        const files = voucher.files || [];
+        worker.postMessage({
+          id: voucher.id,
+          files: files.map(({ file_data }) => ({ file_data })),
+        });
       } else {
-        voucher.pdf_url = previewUrlCache.get(voucher.id);
+        voucher.merged_pdf_url = previewUrlCache.get(voucher.id);
       }
     });
   } finally {
@@ -315,6 +318,24 @@ onUnmounted(() => {
   }
 });
 
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
+
+function downloadAllFiles(files, id = '') {
+  const zip = new JSZip()
+
+  files.forEach((file) => {
+    const binary = atob(file.file_data)
+    const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)))
+    zip.file(file.file_name || `file-${Date.now()}.pdf`, byteArray)
+  })
+
+  zip.generateAsync({ type: 'blob' }).then((content) => {
+    const filename = id ? `${id}.zip` : '첨부파일.zip'
+    saveAs(content, filename)
+  })
+}
+
 watch([selectedCompany, selectedDate, lockFilter], async () => {
   await fetchVouchers(true);
 });
@@ -341,7 +362,12 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
         >
           <!-- 버튼 안쪽은 그대로 유지 -->
           <button
-            class="flex w-full items-center justify-center px-2 py-1 font-semibold transition-colors cursor-pointer"
+            :class="[
+              'flex w-full items-center justify-center rounded-xl px-2 py-1 font-semibold transition-colors',
+              isSyncing
+                ? 'cursor-not-allowed bg-gray-200 text-gray-500'
+                : 'cursor-pointer hover:bg-blue-500 hover:text-white',
+            ]"
             @click="syncWhg"
             :disabled="isSyncing"
           >
@@ -432,10 +458,10 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
               </th>
               <th class="w-45 px-4 py-2 text-left">날짜</th>
               <th class="w-45 truncate px-4 py-2 text-left">계정과목</th>
-              <th class="w-65 truncate px-4 py-2 text-left">거래처</th>
+              <th class="w-60 truncate px-4 py-2 text-left">거래처</th>
               <th class="w-45 truncate px-4 py-2 text-right">차변금액</th>
               <th class="w-45 px-4 py-2 text-right">대변금액</th>
-              <th class="w-80 px-4 py-2 text-left">적요</th>
+              <th class="px-4 py-2 text-left">적요</th>
               <th class="px-4 py-2 text-left">
                 <div class="flex justify-between">
                   첨부파일
@@ -516,20 +542,51 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                   />
                 </svg> -->
               </td>
-              <td class="w-65 px-4 py-2">{{ voucher.nm_trade }}</td>
+              <td class="w-60 px-4 py-2">{{ voucher.nm_trade }}</td>
               <td class="w-45 px-4 py-2 text-right">
                 {{ voucher.mn_bungae1 == 0 ? '' : formatPrice(voucher.mn_bungae1) }}
               </td>
               <td class="w-45 px-4 py-2 text-right">
                 {{ voucher.mn_bungae2 == 0 ? '' : formatPrice(voucher.mn_bungae2) }}
               </td>
-              <td class="w-80 px-4 py-2">{{ voucher.nm_remark }}</td>
+              <td class="px-4 py-2">{{ voucher.nm_remark }}</td>
               <td
-                class="group relative px-4 py-2"
+                class="w-45 group relative px-4 py-2"
                 @mouseenter="handlePreviewPosition"
                 @mouseleave="resetPreviewPosition"
               >
-                <div class="group relative inline-block">
+                <div class="w-full group relative inline-block ">
+                  <!-- 파일 이름 리스트 -->
+                  <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                    <template v-if="voucher.files && voucher.files.length">
+                      <a
+                        href="#"
+                        @click.prevent="downloadAllFiles(voucher.files, voucher.nm_remark)"
+                        class="block text-blue-500 hover:text-blue-600"
+                      >
+                        {{
+                          voucher.files.length === 1
+                            ? voucher.files[0].file_name
+                            : `${voucher.files[0].file_name} 외 ${voucher.files.length - 1}건`
+                        }}
+                      </a>
+                    </template>
+                  </div>
+
+                  <!-- 하나의 병합된 PDF 미리보기 -->
+                  <div
+                    v-if="voucher.files && voucher.merged_pdf_url"
+                    class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
+                  >
+                    <embed
+                      :src="voucher.merged_pdf_url"
+                      type="application/pdf"
+                      class="h-full w-full"
+                    />
+                  </div>
+                </div>
+
+                <!-- <div class="group relative inline-block">
                   <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     <a
                       v-if="voucher.file_data"
@@ -551,7 +608,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                       class="h-full w-full"
                     />
                   </div>
-                </div>
+                </div> -->
               </td>
               <td class="mr-2 h-full w-21 py-2 text-base">
                 <input
