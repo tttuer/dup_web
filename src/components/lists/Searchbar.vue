@@ -4,19 +4,23 @@ import Dropdown from './Dropdown.vue';
 
 const emit = defineEmits(['search']);
 const search = ref('');
-const searchOptions = ['설명+첨부파일', '금액'];
+const searchOptions = ['계정과목', '거래처', '적요'];
 const searchToEnum = {
-  '설명+첨부파일': 'DESCRIPTION_FILENAME',
-  금액: 'PRICE',
+  계정과목: 'NM_ACCTIT',
+  거래처: 'NM_TRADE',
+  적요: 'NM_REMARK',
 };
 const selectedOption = ref('');
 
-watch([search, selectedOption], () => {
+// Enter 키나 watch에서 모두 이 함수 사용
+function emitSearch() {
   emit('search', {
     search: search.value,
     searchOption: selectedOption.value,
   });
-});
+}
+
+watch([search, selectedOption], emitSearch());
 </script>
 
 <template>
@@ -32,6 +36,7 @@ watch([search, selectedOption], () => {
       type="text"
       placeholder="검색"
       v-model="search"
+      @keyup.enter="emitSearch"
     />
   </div>
 </template>

@@ -113,12 +113,11 @@ async function fetchVouchers(isReset = false) {
     totalPage.value = 0;
     currentPage.value = 1;
   }
-  console.log('[Fetch] 요청 페이지:', currentPage.value);
 
   const params = new URLSearchParams();
   params.append('company', selectedCompany.value);
-  params.append('start_at', start_at.value ? start_at.value : '');
-  params.append('end_at', end_at.value ? end_at.value : '');
+  // params.append('start_at', start_at.value ? start_at.value : '');
+  // params.append('end_at', end_at.value ? end_at.value : '');
   params.append('page', currentPage.value);
   params.append('search', searchbar.value);
   params.append('search_option', searchbarOption.value);
@@ -209,11 +208,18 @@ async function syncWhg() {
 async function editVoucher(payload) {
   const formData = new FormData();
 
-  if (payload.files) {
-    formData.append('files', payload.files);
+  // ✅ 새로 업로드할 파일들
+  if (payload.files && payload.files.length > 0) {
+    payload.files.forEach((file) => {
+      formData.append('files', file);
+    });
   }
-  if (payload.files) {
-    formData.append('file_ids', payload.deleteTargets);
+
+  // ✅ 삭제할 파일 ID 목록
+  if (payload.deleteTargets && payload.deleteTargets.length > 0) {
+    payload.deleteTargets.forEach((fileId) => {
+      formData.append('file_ids', fileId);
+    });
   }
 
   try {
@@ -335,7 +341,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
         >
           <!-- 버튼 안쪽은 그대로 유지 -->
           <button
-            class="flex w-full items-center justify-center px-2 py-1 font-semibold transition-colors"
+            class="flex w-full items-center justify-center px-2 py-1 font-semibold transition-colors cursor-pointer"
             @click="syncWhg"
             :disabled="isSyncing"
           >
@@ -357,7 +363,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
             </template>
-            <template v-else>Sync</template>
+            <template v-else>동기화</template>
           </button>
         </div>
         <!-- <div
@@ -387,6 +393,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
             ({ search: s, searchOption: so }) => {
               searchbar = s;
               searchbarOption = so;
+              search();
             }
           "
         />
@@ -510,8 +517,12 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 </svg> -->
               </td>
               <td class="w-65 px-4 py-2">{{ voucher.nm_trade }}</td>
-              <td class="w-45 px-4 py-2 text-right">{{ formatPrice(voucher.mn_bungae1) }}</td>
-              <td class="w-45 px-4 py-2 text-right">{{ formatPrice(voucher.mn_bungae2) }}</td>
+              <td class="w-45 px-4 py-2 text-right">
+                {{ voucher.mn_bungae1 == 0 ? '' : formatPrice(voucher.mn_bungae1) }}
+              </td>
+              <td class="w-45 px-4 py-2 text-right">
+                {{ voucher.mn_bungae2 == 0 ? '' : formatPrice(voucher.mn_bungae2) }}
+              </td>
               <td class="w-80 px-4 py-2">{{ voucher.nm_remark }}</td>
               <td
                 class="group relative px-4 py-2"
@@ -545,7 +556,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
               <td class="mr-2 h-full w-21 py-2 text-base">
                 <input
                   type="button"
-                  value="수정"
+                  value="첨부"
                   @click="openEditModal(voucher)"
                   class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
                 />

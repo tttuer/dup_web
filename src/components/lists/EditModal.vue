@@ -28,10 +28,10 @@
                 type="checkbox"
                 :id="`delete-${i}`"
                 v-model="deleteTargets"
-                :value="file.file_name"
+                :value="file.file_id"
                 class="form-checkbox text-red-500"
               />
-              <label :for="`delete-${i}`" class="flex items-center space-x-1">
+              <label :for="`delete-${i}`" class="flex items-center space-x-1 pl-1">
                 <span
                   :class="{
                     'text-red-500 line-through': deleteTargets.includes(file.file_id),
@@ -112,12 +112,11 @@ const emit = defineEmits(['close', 'save']);
 const form = reactive({
   id: '',
 });
-const newFile = ref(null);
 
 // 드래그 중 클릭 방지를 위한 상태
 let isDragging = false;
 const deleteTargets = ref([]); // 삭제할 file_name 목록
-
+const selectedFiles = ref([]);
 
 watch(
   () => props.visible,
@@ -128,9 +127,11 @@ watch(
   },
 );
 
-function handleFileChange(event) {
-  newFile.value = event.target.files[0];
+function handleFileChange(e) {
+  const files = Array.from(e.target.files);
+  selectedFiles.value = files;
 }
+
 function handleMouseDown() {
   isDragging = false;
 }
@@ -155,5 +156,9 @@ function save() {
     deleteTargets: deleteTargets.value, // file_ids
   };
   emit('save', payload);
+
+  // ✅ 상태 초기화
+  selectedFiles.value = [];
+  deleteTargets.value = [];
 }
 </script>
