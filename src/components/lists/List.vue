@@ -102,10 +102,6 @@ function closeEditModal() {
   editTargetVoucher.value = null;
 }
 
-function addCreatedFiles() {
-  fetchVouchers(true);
-}
-
 async function fetchVouchers(isReset = false) {
   if (!selectedCompany.value || selectedCompany.value === '') return;
   if (isReset) {
