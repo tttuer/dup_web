@@ -20,7 +20,7 @@ function emitSearch() {
   });
 }
 
-watch([search, selectedOption], emitSearch());
+watch([search, selectedOption], () => emitSearch());
 </script>
 
 <template>
