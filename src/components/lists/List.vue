@@ -27,7 +27,7 @@ worker.onmessage = (e) => {
 };
 
 const isLoading = ref(false);
-const selectedCompany = ref('');
+const selectedCompany = ref(null);
 const selectedDate = ref('');
 const voucherLists = ref([]);
 const totalPage = ref(0);
@@ -107,6 +107,7 @@ function addCreatedFiles() {
 }
 
 async function fetchVouchers(isReset = false) {
+  if (!selectedCompany.value || selectedCompany.value === '') return;
   if (isReset) {
     voucherLists.value = [];
     totalPage.value = 0;
@@ -318,22 +319,22 @@ onUnmounted(() => {
   }
 });
 
-import JSZip from 'jszip'
-import { saveAs } from 'file-saver'
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 function downloadAllFiles(files, id = '') {
-  const zip = new JSZip()
+  const zip = new JSZip();
 
   files.forEach((file) => {
-    const binary = atob(file.file_data)
-    const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)))
-    zip.file(file.file_name || `file-${Date.now()}.pdf`, byteArray)
-  })
+    const binary = atob(file.file_data);
+    const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)));
+    zip.file(file.file_name || `file-${Date.now()}.pdf`, byteArray);
+  });
 
   zip.generateAsync({ type: 'blob' }).then((content) => {
-    const filename = id ? `${id}.zip` : '첨부파일.zip'
-    saveAs(content, filename)
-  })
+    const filename = id ? `${id}.zip` : '첨부파일.zip';
+    saveAs(content, filename);
+  });
 }
 
 watch([selectedCompany, selectedDate, lockFilter], async () => {
@@ -551,13 +552,13 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
               </td>
               <td class="px-4 py-2">{{ voucher.nm_remark }}</td>
               <td
-                class="w-45 group relative px-4 py-2"
+                class="group relative px-4 py-2"
                 @mouseenter="handlePreviewPosition"
                 @mouseleave="resetPreviewPosition"
               >
-                <div class="w-full group relative inline-block ">
+                <div class="group relative inline-block w-full">
                   <!-- 파일 이름 리스트 -->
-                  <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                  <div class="overflow-hidden text-ellipsis whitespace-nowrap">
                     <template v-if="voucher.files && voucher.files.length">
                       <a
                         href="#"

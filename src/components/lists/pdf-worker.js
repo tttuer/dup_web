@@ -1,5 +1,15 @@
 import { PDFDocument } from 'pdf-lib';
 
+function base64ToUint8Array(base64) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 self.onmessage = async (e) => {
   const { id, files } = e.data;
 
@@ -7,10 +17,12 @@ self.onmessage = async (e) => {
     const mergedPdf = await PDFDocument.create();
 
     for (const { file_data } of files) {
-      const byteCharacters = atob(file_data);
-      const byteArray = new Uint8Array([...byteCharacters].map((c) => c.charCodeAt(0)));
+      const byteArray = base64ToUint8Array(file_data);
 
-      const donorPdf = await PDFDocument.load(byteArray);
+      const donorPdf = await PDFDocument.load(byteArray, {
+        ignoreEncryption: true, // ✅ 여전히 예외 방지를 위해 남김
+      });
+
       const copiedPages = await mergedPdf.copyPages(donorPdf, donorPdf.getPageIndices());
       copiedPages.forEach((page) => mergedPdf.addPage(page));
     }
@@ -21,6 +33,7 @@ self.onmessage = async (e) => {
 
     self.postMessage({ id, merged_pdf_url: url });
   } catch (err) {
+    console.error('PDF 병합 실패:', err);
     self.postMessage({ id, merged_pdf_url: null, error: err.message });
   }
 };
