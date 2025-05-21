@@ -67,6 +67,8 @@ const handleCheckboxClick = (event, index) => {
         checkedIds.value.add(v.id); // 전체 체크
       }
     });
+    checkedIds.value = new Set(checkedIds.value); // 반응 유도
+
 
     // ✅ 기준점 갱신! ← 이게 핵심
     lastCheckedIndex.value = index;
@@ -318,6 +320,18 @@ onUnmounted(() => {
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
+function downloadCheckedFiles() {
+  const files = [...checkedIds.value].reduce((acc, id) => {
+    const voucher = voucherLists.value.find((v) => v.id === id);
+    if (voucher?.files?.length) {
+      acc.push(...voucher.files); // => 파일들을 하나하나 분해해서 acc에 추가
+    }
+    return acc;
+  }, []);
+
+  downloadAllFiles(files);
+}
+
 function downloadAllFiles(files, id = '') {
   const zip = new JSZip();
 
@@ -348,6 +362,17 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
           :options="companyOptions"
           :nameToEnum="companyNameToEnum"
         />
+        <div
+          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-blue-500 hover:text-white"
+          v-show="hasChecked"
+        >
+          <input
+            class="h-full w-full cursor-pointer content-center rounded-sm"
+            type="button"
+            value="일괄 저장"
+            @click="downloadCheckedFiles"
+          />
+        </div>
         <div
           v-show="selectedCompany"
           :class="[
@@ -389,17 +414,6 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
             <template v-else>동기화</template>
           </button>
         </div>
-        <!-- <div
-          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-blue-500 hover:text-white"
-          v-show="hasChecked"
-        >
-          <input
-            class="h-full w-full cursor-pointer content-center rounded-sm"
-            type="button"
-            value="삭제"
-            @click="deleteFiles"
-          />
-        </div> -->
       </div>
       <div class="col-span-1 flex flex-row justify-end">
         <DateSearch
