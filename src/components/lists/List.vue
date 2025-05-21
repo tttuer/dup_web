@@ -114,8 +114,8 @@ async function fetchVouchers(isReset = false) {
 
   const params = new URLSearchParams();
   params.append('company', selectedCompany.value);
-  // params.append('start_at', start_at.value ? start_at.value : '');
-  // params.append('end_at', end_at.value ? end_at.value : '');
+  params.append('start_at', start_at.value ? start_at.value : '');
+  params.append('end_at', end_at.value ? end_at.value : '');
   params.append('page', currentPage.value);
   params.append('search', searchbar.value);
   params.append('search_option', searchbarOption.value);
