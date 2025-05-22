@@ -1,4 +1,5 @@
 # 실행 화면
+https://github.com/user-attachments/assets/1ea49b40-5750-40a6-9136-2571bbcfdf39
 
 # 환경설정
 

@@ -465,7 +465,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 <div class="flex">
                   <div class="flex items-center justify-center"><p>첨부파일</p></div>
                   <div
-                    class="ml-2 flex w-20 h-7 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
+                    class="ml-2 flex h-7 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
                     v-show="hasChecked"
                   >
                     <input
@@ -573,6 +573,11 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                         href="#"
                         @click.prevent="downloadAllFiles(voucher.files, voucher.nm_remark)"
                         class="block text-blue-500 hover:text-blue-600"
+                        :title="
+                          voucher.files.length === 1
+                            ? voucher.files[0].file_name
+                            : `${voucher.files[0].file_name} 외 ${voucher.files.length - 1}건`
+                        "
                       >
                         {{
                           voucher.files.length === 1
