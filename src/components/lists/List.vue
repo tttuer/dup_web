@@ -69,7 +69,6 @@ const handleCheckboxClick = (event, index) => {
     });
     checkedIds.value = new Set(checkedIds.value); // 반응 유도
 
-
     // ✅ 기준점 갱신! ← 이게 핵심
     lastCheckedIndex.value = index;
   } else {
@@ -363,17 +362,6 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
           :nameToEnum="companyNameToEnum"
         />
         <div
-          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-blue-500 hover:text-white"
-          v-show="hasChecked"
-        >
-          <input
-            class="h-full w-full cursor-pointer content-center rounded-sm"
-            type="button"
-            value="일괄 저장"
-            @click="downloadCheckedFiles"
-          />
-        </div>
-        <div
           v-show="selectedCompany"
           :class="[
             'mb-2 ml-2 flex w-18 items-center justify-center rounded-xl border border-gray-300 font-semibold transition-colors',
@@ -460,8 +448,8 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
     >
       <!-- 고정 헤더 테이블 -->
 
-      <div class="block">
-        <table class="w-full min-w-[900px] table-fixed">
+      <div class="block h-14">
+        <table class="h-full w-full min-w-[900px] table-fixed">
           <thead class="bg-gray-100 dark:bg-gray-700">
             <tr>
               <th class="w-5 px-4 py-2 text-left">
@@ -474,9 +462,20 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
               <th class="w-45 px-4 py-2 text-right">대변금액</th>
               <th class="px-4 py-2 text-left">적요</th>
               <th class="px-4 py-2 text-left">
-                <div class="flex justify-between">
-                  첨부파일
-                  <div>
+                <div class="flex">
+                  <div class="flex items-center justify-center"><p>첨부파일</p></div>
+                  <div
+                    class="ml-2 flex w-20 h-7 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
+                    v-show="hasChecked"
+                  >
+                    <input
+                      class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
+                      type="button"
+                      value="일괄 저장"
+                      @click="downloadCheckedFiles"
+                    />
+                  </div>
+                  <!-- <div>
                     <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
                     <label
                       v-show="role === 'ADMIN' && selectedCompany"
@@ -510,7 +509,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                         />
                       </svg>
                     </label>
-                  </div>
+                  </div> -->
                 </div>
               </th>
               <th class="w-21 px-4 py-2 text-left"></th>
@@ -596,30 +595,6 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                     />
                   </div>
                 </div>
-
-                <!-- <div class="group relative inline-block">
-                  <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
-                    <a
-                      v-if="voucher.file_data"
-                      :href="`data:application/pdf;base64,${voucher.file_data}`"
-                      :download="voucher.file_name"
-                      class="text-blue-500 hover:text-blue-600"
-                    >
-                      {{ voucher.file_name }}
-                    </a>
-                  </div>
-                  <div
-                    v-if="voucher.file_data && voucher.pdf_url"
-                    class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
-                  >
-                    <embed
-                      v-if="voucher.pdf_url"
-                      :src="voucher.pdf_url"
-                      type="application/pdf"
-                      class="h-full w-full"
-                    />
-                  </div>
-                </div> -->
               </td>
               <td class="mr-2 h-full w-21 py-2 text-base">
                 <input
