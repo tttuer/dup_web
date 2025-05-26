@@ -4,10 +4,25 @@ import LoginButton from './LoginButton.vue';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
 import { useTypeStore, TYPE } from '@/stores/typeStore';
+import { jwtDecode } from 'jwt-decode';
 
 const router = useRouter();
 const route = useRoute();
 const typeStore = useTypeStore();
+const hasVoucherRole = ref(false);
+
+if (typeof window !== 'undefined') {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      const roles = decoded.roles || [];
+      hasVoucherRole.value = roles.includes('VOUCHER');
+    } catch (e) {
+      console.error('토큰 디코딩 실패:', e);
+    }
+  }
+}
 
 function goToVoucher() {
   typeStore.setType(TYPE.VOUCHER);
@@ -60,6 +75,7 @@ watchEffect(() => {
         <div class="flex h-full content-center" v-show="route.path !== '/login'">
           <div
             class="content-center"
+            v-if="hasVoucherRole"
             :class="
               typeStore.currentType == TYPE.VOUCHER ? 'border-b-2 border-black font-bold' : ''
             "
@@ -78,7 +94,7 @@ watchEffect(() => {
             <input
               class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
               type="button"
-              value="그 외"
+              value="업무 파일"
               @click="goToExtra"
             />
           </div>

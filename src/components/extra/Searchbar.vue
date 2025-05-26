@@ -4,10 +4,9 @@ import Dropdown from './Dropdown.vue';
 
 const emit = defineEmits(['search']);
 const search = ref('');
-const searchOptions = ['설명+첨부파일', '금액'];
+const searchOptions = ['설명+첨부파일'];
 const searchToEnum = {
   '설명+첨부파일': 'DESCRIPTION_FILENAME',
-  금액: 'PRICE',
 };
 const selectedOption = ref('');
 

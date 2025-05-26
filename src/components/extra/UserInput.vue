@@ -20,16 +20,6 @@
               v-model="description"
             />
           </td>
-          <td class="w-45 px-4 py-2 text-left">
-            <input
-              class="w-full rounded-sm border border-gray-300 pl-1"
-              type="text"
-              placeholder="금액을 입력하세요"
-              v-model="formatted"
-              @input="formatCurrency"
-              pattern="\d*"
-            />
-          </td>
           <td class="w-69 px-4 py-2 text-left">
             <div class="flex gap-1.5">
               <input
@@ -131,7 +121,6 @@ async function saveFile(e) {
   formData.append('company', props.selectedCompany);
   formData.append('withdrawn_at', date.value);
   formData.append('name', description.value);
-  formData.append('price', price.value);
   formData.append('lock', isLocked.value);
 
   for (const file of files.value) {

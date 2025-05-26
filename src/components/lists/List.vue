@@ -329,6 +329,9 @@ function downloadCheckedFiles() {
   }, []);
 
   downloadAllFiles(files);
+
+  checkedIds.value.clear(); // 다운로드 후 체크박스 초기화
+  lastCheckedIndex.value = null; // 기준점 초기화
 }
 
 function downloadAllFiles(files, id = '') {

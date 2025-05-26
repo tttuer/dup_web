@@ -31,19 +31,6 @@
         />
       </div>
 
-      <!-- 금액 -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium">금액</label>
-        <input
-          v-model="formatted"
-          @input="formatCurrency"
-          type="text"
-          inputmode="numeric"
-          class="mt-1 w-full rounded border border-gray-300 p-2"
-          placeholder="금액을 입력하세요"
-        />
-      </div>
-
       <!-- 파일 첨부 -->
       <div class="mb-4">
         <label class="block text-sm font-medium">새 첨부파일 (선택 시 기존 파일 대체)</label>
@@ -110,7 +97,7 @@ import { useCurrencyFormatter } from '@/utils/currencyFormatter';
 import { getRoleFromLocalStorage } from '@/utils/token';
 
 const role = ref(getRoleFromLocalStorage());
-const { formatted, price, formatCurrency, setPrice } = useCurrencyFormatter();
+const { formatted, formatCurrency } = useCurrencyFormatter();
 
 const props = defineProps({
   visible: Boolean,
@@ -122,7 +109,6 @@ const emit = defineEmits(['close', 'save']);
 const form = reactive({
   id: '',
   name: '',
-  price: '',
   withdrawn_at: '',
   company: '',
   lock: false,
@@ -147,7 +133,6 @@ watch(
       form.company = props.file.company;
       form.lock = props.file.lock;
 
-      setPrice(props.file.price); // 여기가 핵심
     }
   },
 );
@@ -175,7 +160,6 @@ function handleBackgroundClick(event) {
 function save() {
   const payload = {
     ...form,
-    price: price.value,
     file: newFile.value || null,
   };
   emit('save', payload);

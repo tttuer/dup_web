@@ -344,8 +344,8 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
     >
       <!-- 고정 헤더 테이블 -->
 
-      <div class="block">
-        <table class="w-full min-w-[900px] table-fixed">
+      <div class="block h-10">
+        <table class="h-10 w-full min-w-[900px] table-fixed">
           <thead class="bg-gray-100 dark:bg-gray-700">
             <tr>
               <th class="w-5 px-4 py-2 text-left">
@@ -355,7 +355,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
               <th class="min-w-48 truncate px-4 py-2 text-left">설명</th>
               <th class="w-69 px-4 py-2 text-left">
                 <div class="flex justify-between">
-                  첨부파일
+                  <div class="flex items-center justify-center">첨부파일</div>
                   <div>
                     <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
                     <label
@@ -435,7 +435,6 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                   />
                 </svg>
               </td>
-              <td class="w-45 px-4 py-2">{{ formatPrice(file.price) }}</td>
               <td
                 class="group relative w-69 px-4 py-2"
                 @mouseenter="handlePreviewPosition"
