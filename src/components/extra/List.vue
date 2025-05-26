@@ -8,7 +8,7 @@ import EditModal from './EditModal.vue';
 import { useTypeStore } from '@/stores/typeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
 
-const role = ref(getRoleFromLocalStorage());
+const roles = ref(getRoleFromLocalStorage());
 
 const typeStore = useTypeStore();
 
@@ -360,7 +360,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                   <div>
                     <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
                     <label
-                      v-show="role === 'ADMIN' && selectedCompany"
+                      v-if="roles.includes('ADMIN') && selectedCompany"
                       for="lock-filter"
                       class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gray-300 hover:bg-gray-200"
                     >
