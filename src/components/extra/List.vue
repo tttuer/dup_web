@@ -315,6 +315,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
             ({ search: s, searchOption: so }) => {
               searchbar = s;
               searchbarOption = so;
+              search();
             }
           "
         />

@@ -10,12 +10,13 @@ const searchToEnum = {
 };
 const selectedOption = ref('');
 
-watch([search, selectedOption], () => {
+function emitSearch() {
   emit('search', {
     search: search.value,
     searchOption: selectedOption.value,
   });
-});
+}
+
 </script>
 
 <template>
@@ -31,6 +32,7 @@ watch([search, selectedOption], () => {
       type="text"
       placeholder="검색"
       v-model="search"
+      @keyup.enter="emitSearch"
     />
   </div>
 </template>
