@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onUnmounted, computed } from 'vue';
+import { ref, watch, onUnmounted, computed, onMounted } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import Sentinel from './Sentinel.vue';
@@ -7,7 +7,8 @@ import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
 import { useTypeStore } from '@/stores/typeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
-
+import { groupOptions, groupNameToEnum, groupIdToName, loadGroupOptions } from '@/stores/group';
+const selectedGroup = ref('');
 const roles = ref(getRoleFromLocalStorage());
 
 const typeStore = useTypeStore();
@@ -123,6 +124,7 @@ async function fetchFiles(isReset = false) {
   params.append('search', searchbar.value);
   params.append('search_option', searchbarOption.value);
   params.append('is_locked', lockFilter.value);
+  params.append('group_id', groupIdToName[selectedGroup.value]);
 
   isLoading.value = true;
   isPdfConverting.value = true;
@@ -273,33 +275,57 @@ onUnmounted(() => {
   }
 });
 
-watch([selectedCompany, selectedDate, lockFilter], async () => {
-  await fetchFiles(true);
+watch(selectedCompany, async (newCompany) => {
+  selectedGroup.value = '';
+  if (newCompany) {
+    await loadGroupOptions(newCompany);
+  }
+});
+
+watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
+  if (selectedGroup.value) {
+    await fetchFiles(true);
+  }
 });
 </script>
 
 <template>
   <div class="bg-testPink flex h-full w-full flex-col p-8">
     <div class="grid grid-cols-2">
-      <div class="col-span-1 flex">
-        <Dropdown
-          class="col-span-1"
-          @select="(select) => (selectedCompany = select)"
-          :options="companyOptions"
-          :nameToEnum="companyNameToEnum"
-        />
+      <div class="col-span-1 flex gap-1">
+        <!-- 회사 선택 -->
+        <div class="max-w-30">
+          <Dropdown
+            @select="(select) => (selectedCompany = select)"
+            :options="companyOptions"
+            :nameToEnum="companyNameToEnum"
+          />
+        </div>
+
+        <!-- 그룹 선택 -->
+        <div class="max-w-40" v-show="selectedCompany">
+          <Dropdown
+            v-model="selectedGroup"
+            @select="(select) => (selectedGroup = select)"
+            :options="groupOptions"
+            :nameToEnum="groupNameToEnum"
+          />
+        </div>
+
+        <!-- 삭제 버튼 -->
         <div
-          class="mb-2 ml-2 flex w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-red-500 hover:text-white"
+          class="flex max-w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-red-500 hover:text-white"
           v-show="hasChecked"
         >
           <input
-            class="h-full w-full cursor-pointer content-center rounded-sm"
+            class="h-full w-full cursor-pointer rounded-sm"
             type="button"
-            value="삭제"
+            value="선택 파일 삭제"
             @click="deleteFiles"
           />
         </div>
       </div>
+
       <div class="col-span-1 flex flex-row justify-end">
         <DateSearch
           @search="

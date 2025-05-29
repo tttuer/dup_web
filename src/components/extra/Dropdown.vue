@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const selected = ref('선택');
 const isOpen = ref(false);
@@ -15,17 +15,39 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: '선택하세요',
+    default: '선택',
+  },
+  modelValue: {
+    type: String,
+    default: '',
   },
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(['update:modelValue', 'select']);
 
 const selectOption = (option) => {
   selected.value = option;
   isOpen.value = false;
+  emit('update:modelValue', props.nameToEnum[option]);
   emit('select', props.nameToEnum[option]);
 };
+
+// modelValue가 바뀌면 selected도 바뀌도록
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    const found = Object.entries(props.nameToEnum).find(
+      ([name, id]) => id === newValue
+    );
+    if (found) {
+      selected.value = found[0];
+    } else {
+      selected.value = props.placeholder; // 값이 없으면 기본값으로
+    }
+  },
+  { immediate: true }
+);
+
 </script>
 
 <template>
