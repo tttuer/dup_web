@@ -309,6 +309,9 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
             @select="(select) => (selectedGroup = select)"
             :options="groupOptions"
             :nameToEnum="groupNameToEnum"
+            :isGroupDropdown="true"
+            :company="selectedCompany"
+            @group-created="() => loadGroupOptions(selectedCompany)"
           />
         </div>
 
