@@ -23,7 +23,7 @@
           <td class="w-69 px-4 py-2 text-left">
             <div class="flex gap-1.5">
               <input
-                :class="role === 'ADMIN' ? 'col-span-3' : 'col-span-4'"
+                :class="roles.includes('ADMIN') ? 'col-span-3' : 'col-span-4'"
                 ref="fileInput"
                 class="flex w-full rounded-sm border border-gray-300 pl-1"
                 type="file"
@@ -33,7 +33,7 @@
               />
               <input id="lock" v-show="false" type="checkbox" v-model="isLocked" />
               <label
-                v-show="role === 'ADMIN'"
+                v-show="roles.includes('ADMIN')"
                 for="lock"
                 class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gray-300 hover:bg-gray-200"
               >
@@ -89,7 +89,7 @@ import { useCurrencyFormatter } from '@/utils/currencyFormatter';
 import { useTypeStore } from '@/stores/typeStore'
 import { getRoleFromLocalStorage } from '@/utils/token';
 
-const role = ref(getRoleFromLocalStorage());
+const roles = ref(getRoleFromLocalStorage());
 
 const typeStroe = useTypeStore();
 
@@ -97,6 +97,7 @@ const fileApiUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 
 const props = defineProps({
   selectedCompany: String,
+  selectedGroupId: String,
 });
 const date = ref(null);
 const config = {
@@ -122,6 +123,7 @@ async function saveFile(e) {
   formData.append('withdrawn_at', date.value);
   formData.append('name', description.value);
   formData.append('lock', isLocked.value);
+  formData.append('group_id', props.selectedGroupId);
 
   for (const file of files.value) {
     formData.append('file_datas', file);

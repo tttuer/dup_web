@@ -124,7 +124,7 @@ async function fetchFiles(isReset = false) {
   params.append('search', searchbar.value);
   params.append('search_option', searchbarOption.value);
   params.append('is_locked', lockFilter.value);
-  params.append('group_id', groupIdToName[selectedGroup.value]);
+  params.append('group_id', selectedGroup.value);
 
   isLoading.value = true;
   isPdfConverting.value = true;
@@ -317,13 +317,13 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
 
         <!-- 삭제 버튼 -->
         <div
-          class="flex max-w-18 items-center justify-center rounded-sm border border-gray-300 font-semibold hover:bg-red-500 hover:text-white"
+          class="flex h-9 max-w-35 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-red-500 hover:text-white"
           v-show="hasChecked"
         >
           <input
-            class="h-full w-full cursor-pointer rounded-sm"
+            class="h-full w-10 cursor-pointer rounded-sm"
             type="button"
-            value="선택 파일 삭제"
+            value="삭제"
             @click="deleteFiles"
           />
         </div>
@@ -429,7 +429,12 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
         </table>
       </div>
 
-      <UserInput :selectedCompany="selectedCompany" @createFiles="addCreatedFiles" />
+      <UserInput
+        v-show="selectedGroup"
+        :selectedCompany="selectedCompany"
+        @createFiles="addCreatedFiles"
+        :selectedGroupId="selectedGroup"
+      />
 
       <div class="no-scrollbar h-full overflow-y-scroll">
         <table class="w-full min-w-[900px] table-fixed">
