@@ -11,4 +11,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)), // 🟡 이거 중요!
     },
   },
+  preview: {
+    port: 4173,
+    host: true,
+    allowedHosts: ['arc.baeksung.kr'], // ✅ 여기에 추가
+  },
 });
