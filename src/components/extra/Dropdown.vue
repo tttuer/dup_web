@@ -108,7 +108,7 @@ watch(
       >
         <div class="flex max-h-60 flex-col overflow-y-auto">
           <!-- ✅ 항상 위에 고정되는 그룹 추가 입력 -->
-          <div v-if="props.isGroupDropdown" class="sticky top-0 z-10 bg-white px-2 py-1">
+          <div v-if="props.isGroupDropdown" class="sticky top-0 z-10 bg-white px-2 py-1 rounded-md">
             <div class="flex items-center">
               <input
                 v-model="newGroupName"
