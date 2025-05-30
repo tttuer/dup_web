@@ -181,6 +181,7 @@ async function editFile(payload) {
   formData.append('price', payload.price);
   formData.append('withdrawn_at', payload.withdrawn_at);
   formData.append('lock', payload.lock);
+  formData.append('group_id', payload.group_id);
 
   if (payload.file) {
     formData.append('file_data', payload.file);

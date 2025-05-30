@@ -112,6 +112,7 @@ const form = reactive({
   withdrawn_at: '',
   company: '',
   lock: false,
+  group_id: '',
 });
 const newFile = ref(null);
 
@@ -132,6 +133,7 @@ watch(
       form.withdrawn_at = props.file.withdrawn_at;
       form.company = props.file.company;
       form.lock = props.file.lock;
+      form.group_id = props.file.group_id;
 
     }
   },
