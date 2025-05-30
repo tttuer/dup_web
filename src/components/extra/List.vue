@@ -87,6 +87,8 @@ const handleCheckboxClick = (event, index) => {
 import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
+import { files } from 'jszip';
+import { file } from 'jszip';
 
 const fileUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 const toast = useToast();
@@ -277,6 +279,7 @@ onUnmounted(() => {
 
 watch(selectedCompany, async (newCompany) => {
   selectedGroup.value = '';
+  fileLists.value = [];
   if (newCompany) {
     await loadGroupOptions(newCompany);
   }
