@@ -47,8 +47,8 @@ watchEffect(() => {
 
 <template>
   <header class="border-b border-gray-300">
-    <div class="grid h-18 grid-cols-6 grid-rows-1 content-center gap-6">
-      <div class="col-span-1 flex content-center pl-1">
+    <div class="grid h-18 grid-cols-4 grid-rows-1 content-center gap-6">
+      <div class="col-span-1 flex content-center pl-1 w-full">
         <div class="content-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -67,11 +67,11 @@ watchEffect(() => {
             <path d="M10 12h4" />
           </svg>
         </div>
-        <div class="ml-4 content-center">
-          <h1 class="font-sans text-xl font-semibold">아카이브</h1>
+        <div class="ml-4 content-center w-full">
+          <h1 class="font-sans text-xl font-semibold w-full">아카이브</h1>
         </div>
       </div>
-      <div class="col-span-4 content-center">
+      <div class="col-span-2 content-center">
         <div class="flex h-full content-center" v-show="route.path !== '/login'">
           <div
             class="content-center"
