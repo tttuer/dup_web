@@ -43,10 +43,10 @@
         <p class="mt-1 text-xs text-gray-500">기존 파일: {{ file?.file_name }}</p>
       </div>
       <div class="flex">
-        <p class="mr-2 text-sm font-medium" v-show="role ==='ADMIN'">잠금</p>
+        <p class="mr-2 text-sm font-medium" v-show="roles.includes('ADMIN')">잠금</p>
         <input id="modal-lock" v-show="false" type="checkbox" v-model="form.lock" />
         <label
-          v-show="role === 'ADMIN'"
+          v-show="roles.includes('ADMIN')"
           for="modal-lock"
           class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gray-300 hover:bg-gray-200"
         >
@@ -96,7 +96,7 @@ import Flatpickr from 'vue-flatpickr-component';
 import { useCurrencyFormatter } from '@/utils/currencyFormatter';
 import { getRoleFromLocalStorage } from '@/utils/token';
 
-const role = ref(getRoleFromLocalStorage());
+const roles = ref(getRoleFromLocalStorage());
 const { formatted, formatCurrency } = useCurrencyFormatter();
 
 const props = defineProps({
