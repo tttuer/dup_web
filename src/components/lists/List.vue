@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onUnmounted, computed } from 'vue';
+import { ref, watch, onUnmounted, computed, onMounted } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import Sentinel from './Sentinel.vue';
@@ -7,6 +7,15 @@ import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
 import { useTypeStore } from '@/stores/typeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
+import { connectSyncStatusSocket, disconnectSyncStatusSocket } from '@/utils/syncStatus';
+
+onMounted(() => {
+  connectSyncStatusSocket({
+    onMessage: (data) => {
+      isSyncing.value = data.syncing;
+    },
+  });
+});
 
 const role = ref(getRoleFromLocalStorage());
 
@@ -184,6 +193,8 @@ async function syncWhg() {
   }
 }
 
+
+
 // 전표 삭제는 안할거기 때문에 주석처리리
 // async function deleteFiles() {
 //   const query = [...checkedIds.value].map((id) => `ids=${id}`).join('&');
@@ -314,6 +325,8 @@ onUnmounted(() => {
   for (const url of objectUrls.values()) {
     URL.revokeObjectURL(url);
   }
+  disconnectSyncStatusSocket();
+
 });
 
 import JSZip from 'jszip';
