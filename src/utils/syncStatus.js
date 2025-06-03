@@ -23,6 +23,7 @@ export function connectSyncStatusSocket() {
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
+    console.log('[WebSocket] 📩 Message:', data); // ← 이 로그 찍히나요?
     if ('syncing' in data) {
       store.setSyncing(data.syncing);
     }
