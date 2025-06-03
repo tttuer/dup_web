@@ -14,7 +14,6 @@ export function connectSyncStatusSocket() {
   socket = new WebSocket(wsUrl);
 
   socket.onopen = () => {
-    console.log('[WebSocket] ✅ Connected to sync-status');
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
@@ -23,14 +22,12 @@ export function connectSyncStatusSocket() {
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log('[WebSocket] 📩 Message:', data); // ← 이 로그 찍히나요?
     if ('syncing' in data) {
       store.setSyncing(data.syncing);
     }
   };
 
   socket.onclose = () => {
-    console.warn('[WebSocket] 🔌 Disconnected. Reconnecting in 3s...');
     socket = null;
     scheduleReconnect();
   };
