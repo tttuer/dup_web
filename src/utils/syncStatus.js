@@ -1,13 +1,16 @@
+// src/utils/syncStatus.js
+import { useSyncStatusStore } from '@/stores/syncStatusStore';
+
 let socket = null;
-let onMessageCallback = null;
 let reconnectTimer = null;
 
 const wsUrl = `${import.meta.env.VITE_WS_URL}`;
 
-export function connectSyncStatusSocket({ onMessage }) {
-  if (socket && socket.readyState <= 1) return; // CONNECTING(0) or OPEN(1)이면 중복 연결 방지
+export function connectSyncStatusSocket() {
+  const store = useSyncStatusStore();
 
-  onMessageCallback = onMessage;
+  if (socket && socket.readyState <= 1) return;
+
   socket = new WebSocket(wsUrl);
 
   socket.onopen = () => {
@@ -20,8 +23,8 @@ export function connectSyncStatusSocket({ onMessage }) {
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    if (onMessageCallback) {
-      onMessageCallback(data);
+    if ('syncing' in data) {
+      store.setSyncing(data.syncing);
     }
   };
 
@@ -33,14 +36,14 @@ export function connectSyncStatusSocket({ onMessage }) {
 
   socket.onerror = (error) => {
     console.error('[WebSocket] ❌ Error:', error);
-    socket.close(); // 닫히면 onclose에서 reconnect됨
+    socket.close();
   };
 }
 
 function scheduleReconnect() {
   if (reconnectTimer) return;
   reconnectTimer = setTimeout(() => {
-    connectSyncStatusSocket({ onMessage: onMessageCallback });
+    connectSyncStatusSocket();
   }, 3000);
 }
 

@@ -8,13 +8,11 @@ import EditModal from './EditModal.vue';
 import { useTypeStore } from '@/stores/typeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
 import { connectSyncStatusSocket, disconnectSyncStatusSocket } from '@/utils/syncStatus';
+import { useSyncStatusStore } from '@/stores/syncStatusStore';
+const syncStore = useSyncStatusStore();
 
 onMounted(() => {
-  connectSyncStatusSocket({
-    onMessage: (data) => {
-      isSyncing.value = data.syncing;
-    },
-  });
+  connectSyncStatusSocket();
 });
 
 const role = ref(getRoleFromLocalStorage());
@@ -158,15 +156,16 @@ async function fetchVouchers(isReset = false) {
   }
 }
 
-const isSyncing = ref(false);
+const isSyncing = computed(() => syncStore.syncing);
 
 async function syncWhg() {
-  isSyncing.value = true;
+  if (isSyncing.value) return;
 
   // params.append('start_at', start_at.value ? start_at.value : '');
   // params.append('end_at', end_at.value ? end_at.value : '');
 
   try {
+    syncStore.setSyncing(true); // 로컬에서도 UX적으로 미리 처리
     const response = await authFetch(`${voucherUrl}/sync`, {
       method: 'POST',
       headers: {
@@ -188,9 +187,7 @@ async function syncWhg() {
   } catch (error) {
     toast.error('파일 동기화 실패');
     console.error(error);
-  } finally {
-    isSyncing.value = false;
-  }
+  } 
 }
 
 
