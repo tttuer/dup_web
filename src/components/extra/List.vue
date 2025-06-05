@@ -277,8 +277,6 @@ function downloadCheckedFiles() {
     return acc;
   }, []);
 
-  console.log('다운로드할 파일들:', files);
-
   downloadAllFiles(files);
 
   checkedIds.value.clear(); // 다운로드 후 체크박스 초기화
