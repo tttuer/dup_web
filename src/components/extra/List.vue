@@ -268,6 +268,39 @@ function search() {
   fetchFiles(true);
 }
 
+function downloadCheckedFiles() {
+  const files = [...checkedIds.value].reduce((acc, id) => {
+    const file = fileLists.value.find((v) => v.id === id);
+    if (file.file_data) {
+      acc.push(file); // => 파일들을 하나하나 분해해서 acc에 추가
+    }
+    return acc;
+  }, []);
+
+  console.log('다운로드할 파일들:', files);
+
+  downloadAllFiles(files);
+
+  checkedIds.value.clear(); // 다운로드 후 체크박스 초기화
+  lastCheckedIndex.value = null; // 기준점 초기화
+}
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+function downloadAllFiles(files, id = '') {
+  const zip = new JSZip();
+
+  files.forEach((file) => {
+    const binary = atob(file.file_data);
+    const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)));
+    zip.file(file.file_name || `file-${Date.now()}.pdf`, byteArray);
+  });
+
+  zip.generateAsync({ type: 'blob' }).then((content) => {
+    const filename = id ? `${id}.zip` : '첨부파일.zip';
+    saveAs(content, filename);
+  });
+}
+
 // 메모리 누수 방지용 URL 저장소
 const objectUrls = new Map();
 
@@ -390,6 +423,17 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
               <th class="w-69 px-4 py-2 text-left">
                 <div class="flex justify-between">
                   <div class="flex items-center justify-center">첨부파일</div>
+                  <div
+                    class="ml-2 flex h-6 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
+                    v-show="hasChecked"
+                  >
+                    <input
+                      class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
+                      type="button"
+                      value="일괄 저장"
+                      @click="downloadCheckedFiles"
+                    />
+                  </div>
                   <div>
                     <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
                     <label
