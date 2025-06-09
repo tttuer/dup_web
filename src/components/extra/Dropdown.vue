@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { authFetch } from '@/utils/authFetch'; // 백엔드 요청에 사용
 import { Plus } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
+import UserAuth from '@/components/extra/UserAuth.vue';
 
 const selected = ref('선택');
 const isOpen = ref(false);
@@ -108,7 +109,7 @@ watch(
       >
         <div class="flex max-h-60 flex-col overflow-y-auto">
           <!-- ✅ 항상 위에 고정되는 그룹 추가 입력 -->
-          <div v-if="props.isGroupDropdown" class="sticky top-0 z-10 bg-white px-2 py-1 rounded-md">
+          <div v-if="props.isGroupDropdown" class="sticky top-0 z-10 rounded-md bg-white px-2 py-1">
             <div class="flex items-center">
               <input
                 v-model="newGroupName"
@@ -126,15 +127,23 @@ watch(
           </div>
 
           <!-- 옵션 리스트 -->
-          <a
+          <div
             v-for="(option, index) in options"
             :key="index"
-            href="#"
-            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            class="block cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             @click="selectOption(option)"
           >
-            {{ option }}
-          </a>
+            <div class="flex items-center justify-between">
+              {{ option }}
+              <UserAuth
+                v-if="isGroupDropdown"
+                class="inline-block"
+                :groupName="option"
+                :company="props.company"
+                @click.stop="console.log('Auth clicked: ', option)"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
