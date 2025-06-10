@@ -3,12 +3,19 @@ import UserAuthModal from '@/components/extra/UserAuthModal.vue';
 import { useToast } from 'vue-toastification';
 
 import { ref, watch } from 'vue';
+import { getRoleFromLocalStorage } from '@/utils/token';
+
+const roles = ref(getRoleFromLocalStorage());
 
 const groupUrl = `${import.meta.env.VITE_GROUP_API_URL}`;
 const toast = useToast();
 const isEditModalOpen = ref(false);
 const editTargetFile = ref(null);
 const props = defineProps({
+  groupId: {
+    type: String,
+    required: true,
+  },
   groupName: {
     type: String,
     required: true,
@@ -29,66 +36,37 @@ function closeEditModal() {
   editTargetFile.value = null;
 }
 
-async function fetchGroup(groupName, company) {
-  params.append('name', groupName);
-  params.append('company', company);
-
-  try {
-    const response = await authFetch(groupUrl + '?' + params.toString());
-    if (res.ok) {
-      groupInfo.value = await res.json();
-    } else {
-      groupInfo.value = null;
-    }
-  } catch (err) {
-    console.error(err);
-    groupInfo.value = null;
-  }
-}
-
 async function editFile(payload) {
-  const formData = new FormData();
-  formData.append('name', payload.name);
-  formData.append('price', payload.price);
-  formData.append('withdrawn_at', payload.withdrawn_at);
-  formData.append('lock', payload.lock);
-  formData.append('group_id', payload.group_id);
-
-  if (payload.file) {
-    formData.append('file_data', payload.file);
-  }
-
-  try {
-    const response = await authFetch(`${fileUrl}/${payload.id}`, {
-      method: 'PUT',
-      body: formData,
-    });
-
-    if (response.ok) {
-      toast.success('수정 완료');
-      closeEditModal();
-      fetchFiles(true);
-    } else {
-      toast.error('수정 실패');
-    }
-  } catch (e) {
-    toast.error('수정 중 오류 발생');
-    console.error(e);
-  }
+  // const formData = new FormData();
+  // formData.append('name', payload.name);
+  // formData.append('price', payload.price);
+  // formData.append('withdrawn_at', payload.withdrawn_at);
+  // formData.append('lock', payload.lock);
+  // formData.append('group_id', payload.group_id);
+  // if (payload.file) {
+  //   formData.append('file_data', payload.file);
+  // }
+  // try {
+  //   const response = await authFetch(`${fileUrl}/${payload.id}`, {
+  //     method: 'PUT',
+  //     body: formData,
+  //   });
+  //   if (response.ok) {
+  //     toast.success('수정 완료');
+  //     closeEditModal();
+  //     fetchFiles(true);
+  //   } else {
+  //     toast.error('수정 실패');
+  //   }
+  // } catch (e) {
+  //   toast.error('수정 중 오류 발생');
+  //   console.error(e);
+  // }
 }
-
-watch(
-  () => [props.groupName], // ✅ 둘 중 하나라도 바뀌면
-  ([groupName]) => {
-    if (groupName) {
-      fetchGroup(groupName, company);
-    }
-  },
-);
 </script>
 
 <template>
-  <div class="group flex flex-row">
+  <div class="group flex flex-row" v-if="roles.includes('ADMIN')">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
@@ -106,6 +84,7 @@ watch(
     </svg>
     <UserAuthModal
       :visible="isEditModalOpen"
+      :groupId="props.groupId"
       :groupName="props.groupName"
       :company="props.company"
       @close="closeEditModal"

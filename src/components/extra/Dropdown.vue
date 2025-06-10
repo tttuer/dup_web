@@ -138,6 +138,7 @@ watch(
               <UserAuth
                 v-if="isGroupDropdown"
                 class="inline-block"
+                :groupId="nameToEnum[option]"
                 :groupName="option"
                 :company="props.company"
                 @click.stop="console.log('Auth clicked: ', option)"

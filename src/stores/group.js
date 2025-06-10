@@ -25,10 +25,6 @@ export async function loadGroupOptions(company = 'BAEKSUNG') {
       return acc;
     }, {});
 
-    groupNameToId.value = fetchedGroups.reduce((acc, group) => {
-      acc[group.name] = group.id;
-      return acc;
-    }, {});
   } catch (error) {
     console.error('❌ 그룹 불러오기 실패:', error);
   }
