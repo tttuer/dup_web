@@ -20,27 +20,29 @@
           readonly
         />
       </div>
-      <div class="mb-4">
-        <label v-for="user in group.auth_users" class="flex items-center space-x-1 pl-1">
-          <span
-            :class="{
-              'text-red-500 line-through': deleteTargets.includes(user),
-            }"
-          >
-            {{ user }}
-          </span>
-          <span v-if="deleteTargets.includes(user)">❌</span>
-        </label>
-        <label v-for="user in getNewUsers()" class="flex items-center space-x-1 pl-1">
-          <span
-            :class="{
-              'text-red-500 line-through': deleteTargets.includes(user),
-            }"
-          >
-            {{ user }}
-          </span>
-          <span v-if="deleteTargets.includes(user)">❌</span>
-        </label>
+
+      <div class="mb-4" v-if="group">
+        <p class="mt-1">권한 할당</p>
+        <div v-for="(user, i) in users" :key="user.user_id" class="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            :id="`user-${i}`"
+            v-model="finalAuthUsers"
+            :value="user.user_id"
+            class="form-checkbox text-blue-600"
+          />
+          <label :for="`user-${i}`" class="flex items-center space-x-1 pl-1">
+            <span
+              :class="{
+                'text-gray-900': finalAuthUsers.includes(user.user_id),
+                'text-gray-400 line-through': !finalAuthUsers.includes(user.user_id),
+              }"
+            >
+              {{ user.user_id }}
+            </span>
+            <span v-if="finalAuthUsers.includes(user.user_id)">✅</span>
+          </label>
+        </div>
       </div>
 
       <div class="flex justify-end space-x-2">
@@ -75,7 +77,7 @@ const roles = ref(getRoleFromLocalStorage());
 const params = new URLSearchParams();
 const group = ref(null);
 const users = ref([]);
-const deleteTargets = ref([]); // 삭제할 file_name 목록
+const finalAuthUsers = ref([]); // ✔ 최종 권한자 목록
 
 const props = defineProps({
   visible: Boolean,
@@ -99,6 +101,7 @@ async function fetchGroup() {
     });
     if (response.ok) {
       group.value = await response.json();
+      finalAuthUsers.value = [...group.value.auth_users];
     }
   } catch (err) {
     console.error(err);
@@ -113,15 +116,12 @@ async function fetchUsers() {
     });
 
     if (response.ok) {
-      users.value = await response.json();
+      const data = await response.json();
+      users.value = data.filter((u) => !u.roles.includes('ADMIN'));
     }
   } catch (err) {
     console.error(err);
   }
-}
-
-function getNewUsers() {
-  return users.value.filter((user) => !group.value.auth_users.includes(user.username));
 }
 
 watch([() => props.visible, () => props.groupId], ([visible, groupId]) => {
@@ -166,10 +166,8 @@ function handleBackgroundClick(event) {
 }
 
 function save() {
-  const payload = {
-    ...form,
-    file: newFile.value || null,
-  };
-  emit('save', payload);
+  emit('save', {
+    auth_users: finalAuthUsers.value,
+  });
 }
 </script>

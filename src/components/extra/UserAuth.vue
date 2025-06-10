@@ -1,6 +1,8 @@
 <script setup>
 import UserAuthModal from '@/components/extra/UserAuthModal.vue';
 import { useToast } from 'vue-toastification';
+import { authFetch } from '@/utils/authFetch';
+
 
 import { ref, watch } from 'vue';
 import { getRoleFromLocalStorage } from '@/utils/token';
@@ -34,6 +36,28 @@ function openEditModal() {
 function closeEditModal() {
   isEditModalOpen.value = false;
   editTargetFile.value = null;
+}
+
+async function grantGroup(payload) {
+  try {
+    const response = await authFetch(`${groupUrl}/${props.groupId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        auth_users: payload.auth_users,
+      }),
+    });
+
+    if (response.ok) {
+      toast.success('권한 부여 완료');
+      closeEditModal();
+    } else {
+      toast.error('권한 부여 실패');
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error('권한 부여 중 오류 발생');
+  }
 }
 
 async function editFile(payload) {
@@ -88,7 +112,7 @@ async function editFile(payload) {
       :groupName="props.groupName"
       :company="props.company"
       @close="closeEditModal"
-      @save="editFile"
+      @save="grantGroup"
     />
   </div>
 </template>
