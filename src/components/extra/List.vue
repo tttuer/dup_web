@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onUnmounted, computed, onMounted } from 'vue';
+import { ref, watch, onUnmounted, computed, onMounted, nextTick } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import Sentinel from './Sentinel.vue';
@@ -379,7 +379,9 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
             ({ search: s, searchOption: so }) => {
               searchbar = s;
               searchbarOption = so;
-              search();
+              nextTick(() => {
+                search();
+              });
             }
           "
         />
