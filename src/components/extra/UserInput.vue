@@ -1,10 +1,10 @@
 <template>
   <div v-if="selectedCompany" class="block border-b border-gray-200 bg-gray-50">
-    <table class="w-full min-w-[900px] table-fixed">
+    <table class="w-full min-w-[1300px] table-fixed">
       <thead class="">
-        <tr>
-          <td class="w-5 px-4 py-2 text-left"></td>
-          <td class="w-45 px-4 py-2">
+        <tr class="w-full">
+          <td class="w-[2%] px-4 py-2 text-left"></td>
+          <td class="w-[8%] px-4 py-2">
             <Flatpickr
               class="w-full rounded-sm border border-gray-300"
               v-model="date"
@@ -12,7 +12,7 @@
               placeholder="날짜를 선택하세요"
             />
           </td>
-          <td class="min-w-48 truncate px-4 py-2 text-left">
+          <td class="w-[60%] truncate px-4 py-2 text-left">
             <input
               class="w-full rounded-sm border border-gray-300 pl-1"
               type="text"
@@ -20,7 +20,7 @@
               v-model="description"
             />
           </td>
-          <td class="w-69 px-4 py-2 text-left">
+          <td class="w-[25%] px-4 py-2 text-left">
             <div class="flex gap-1.5">
               <input
                 :class="roles.includes('ADMIN') ? 'col-span-3' : 'col-span-4'"
@@ -66,7 +66,7 @@
               </label>
             </div>
           </td>
-          <td class="w-21">
+          <td class="w-[5%]">
             <button
               class="col-span-1 w-15 cursor-pointer rounded-md border border-gray-300 p-0 px-1 py-0.5 text-sm hover:bg-black hover:text-white"
               @click="saveFile"

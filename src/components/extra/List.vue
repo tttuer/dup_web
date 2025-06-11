@@ -405,158 +405,160 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
       </div>
     </div>
     <div
-      class="flex h-full w-full flex-1 flex-col overflow-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+      class="flex h-full w-full flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
-
-      <div class="block h-10">
-        <table class="h-10 w-full min-w-[900px] table-fixed">
-          <thead class="bg-gray-100 dark:bg-gray-700">
-            <tr>
-              <th class="w-5 px-4 py-2 text-left">
-                <input type="checkbox" id="check-all" />
-              </th>
-              <th class="w-45 px-4 py-2 text-left">날짜</th>
-              <th class="min-w-48 truncate px-4 py-2 text-left">설명</th>
-              <th class="w-69 px-4 py-2 text-left">
-                <div class="flex justify-between">
-                  <div class="flex items-center justify-center">첨부파일</div>
-                  <div
-                    class="ml-2 flex h-6 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
-                    v-show="hasChecked"
-                  >
-                    <input
-                      class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
-                      type="button"
-                      value="일괄 저장"
-                      @click="downloadCheckedFiles"
-                    />
-                  </div>
-                  <div>
-                    <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
-                    <label
-                      v-if="roles.includes('ADMIN') && selectedCompany"
-                      for="lock-filter"
-                      class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gray-300 hover:bg-gray-200"
+      <div class="min-w-[1300px] h-full">
+        <div class="block h-10 w-full">
+          <table class="h-10 w-full min-w-[1300px] table-fixed">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th class="w-[2%] px-4 py-2 text-left">
+                  <input type="checkbox" id="check-all" />
+                </th>
+                <th class="w-[8%] px-4 py-2 text-left">날짜</th>
+                <th class="w-[60%] truncate px-4 py-2 text-left">설명</th>
+                <th class="w-[25%] px-4 py-2 text-left">
+                  <div class="flex justify-between">
+                    <div class="flex items-center justify-center">첨부파일</div>
+                    <div
+                      class="ml-2 flex h-6 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
+                      v-show="hasChecked"
                     >
-                      <svg
-                        v-if="lockFilter"
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-4 w-4 text-gray-800"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
+                      <input
+                        class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
+                        type="button"
+                        value="일괄 저장"
+                        @click="downloadCheckedFiles"
+                      />
+                    </div>
+                    <div>
+                      <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
+                      <label
+                        v-if="roles.includes('ADMIN') && selectedCompany"
+                        for="lock-filter"
+                        class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gray-300 hover:bg-gray-200"
                       >
-                        <path
-                          d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
-                        />
-                      </svg>
-                      <svg
-                        v-else
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="size-3"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-                        />
-                      </svg>
-                    </label>
+                        <svg
+                          v-if="lockFilter"
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 text-gray-800"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
+                          />
+                        </svg>
+                        <svg
+                          v-else
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="1.5"
+                          stroke="currentColor"
+                          class="size-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                          />
+                        </svg>
+                      </label>
+                    </div>
                   </div>
-                </div>
-              </th>
-              <th class="w-21 px-4 py-2 text-left"></th>
-            </tr>
-          </thead>
-        </table>
-      </div>
+                </th>
+                <th class="w-[5%] px-4 py-2 text-left"></th>
+              </tr>
+            </thead>
+          </table>
+        </div>
 
-      <UserInput
-        v-show="selectedGroup"
-        :selectedCompany="selectedCompany"
-        @createFiles="addCreatedFiles"
-        :selectedGroupId="selectedGroup"
-      />
+        <UserInput
+          v-show="selectedGroup"
+          :selectedCompany="selectedCompany"
+          @createFiles="addCreatedFiles"
+          :selectedGroupId="selectedGroup"
+        />
 
-      <div class="no-scrollbar h-full overflow-y-scroll">
-        <table class="w-full min-w-[900px] table-fixed">
-          <tbody>
-            <!-- 반복 행 예시 -->
-            <tr
-              v-for="(file, index) in fileLists"
-              :key="file.id"
-              class="files border-b border-gray-200 dark:border-gray-700"
-            >
-              <td class="w-5 px-4 py-2">
-                <input
-                  type="checkbox"
-                  class="row-check"
-                  :checked="checkedIds.has(file.id)"
-                  @click="handleCheckboxClick($event, index)"
-                />
-              </td>
-              <td class="w-45 px-4 py-2">
-                {{ formatDate(file.withdrawn_at) }}
-              </td>
-              <td class="flex truncate px-4 py-2">
-                {{ file.name }}
-                <svg
-                  v-if="file.lock"
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="ml-1 h-4 w-4 text-gray-800"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
-                  />
-                </svg>
-              </td>
-              <td
-                class="group relative w-69 px-4 py-2"
-                @mouseenter="handlePreviewPosition"
-                @mouseleave="resetPreviewPosition"
+        <div class="no-scrollbar flex-1 overflow-y-auto h-full">
+          <table class="w-full min-w-[1300px] table-fixed">
+            <tbody>
+              <!-- 반복 행 예시 -->
+              <tr
+                v-for="(file, index) in fileLists"
+                :key="file.id"
+                class="files w-full border-b border-gray-200 dark:border-gray-700"
               >
-                <div class="group relative inline-block">
-                  <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
-                    <a
-                      :href="`data:application/pdf;base64,${file.file_data}`"
-                      :download="file.file_name"
-                      class="text-blue-500 hover:text-blue-600"
-                    >
-                      {{ file.file_name }}
-                    </a>
-                  </div>
-                  <div
-                    class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
+                <td class="w-[2%] px-4 py-2">
+                  <input
+                    type="checkbox"
+                    class="row-check"
+                    :checked="checkedIds.has(file.id)"
+                    @click="handleCheckboxClick($event, index)"
+                  />
+                </td>
+                <td class="w-[8%] px-4 py-2">
+                  {{ formatDate(file.withdrawn_at) }}
+                </td>
+                <td class="flex w-[60%] truncate px-4 py-2">
+                  {{ file.name }}
+                  <svg
+                    v-if="file.lock"
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="ml-1 h-4 w-4 text-gray-800"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <embed
-                      v-if="file.pdf_url"
-                      :src="file.pdf_url"
-                      type="application/pdf"
-                      class="h-full w-full"
+                    <path
+                      d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
                     />
+                  </svg>
+                </td>
+                <td
+                  class="group relative w-[25%] px-4 py-2 text-ellipsis whitespace-nowrap"
+                  @mouseenter="handlePreviewPosition"
+                  @mouseleave="resetPreviewPosition"
+                >
+                  <div class="group relative inline-block">
+                    <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <a
+                        :href="`data:application/pdf;base64,${file.file_data}`"
+                        :download="file.file_name"
+                        class="text-blue-500 hover:text-blue-600"
+                      >
+                        {{ file.file_name }}
+                      </a>
+                    </div>
+                    <div
+                      class="pdf-preview absolute top-full left-0 z-20 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
+                    >
+                      <embed
+                        v-if="file.pdf_url"
+                        :src="file.pdf_url"
+                        type="application/pdf"
+                        class="h-full w-full"
+                      />
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td class="mr-2 h-full w-21 py-2 text-base">
-                <input
-                  type="button"
-                  value="수정"
-                  @click="openEditModal(file)"
-                  class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
-                />
-              </td>
-            </tr>
-            <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
-          </tbody>
-        </table>
+                </td>
+                <td class="mr-2 h-full w-[5%] py-2 text-base">
+                  <input
+                    type="button"
+                    value="수정"
+                    @click="openEditModal(file)"
+                    class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
+                  />
+                </td>
+              </tr>
+              <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+
     <EditModal
       :visible="isEditModalOpen"
       :file="editTargetFile"
