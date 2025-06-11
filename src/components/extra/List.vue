@@ -405,10 +405,10 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
       </div>
     </div>
     <div
-      class="flex h-full w-full flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+      class="flex flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
-      <div class="min-w-[1300px] h-full">
+      <div class="flex min-w-[1300px] flex-1 flex-col overflow-y-hidden">
         <div class="block h-10 w-full">
           <table class="h-10 w-full min-w-[1300px] table-fixed">
             <thead class="bg-gray-100 dark:bg-gray-700">
@@ -482,7 +482,7 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
           :selectedGroupId="selectedGroup"
         />
 
-        <div class="no-scrollbar flex-1 overflow-y-auto h-full">
+        <div class="no-scrollbar min-h-0 flex-1 overflow-y-scroll">
           <table class="w-full min-w-[1300px] table-fixed">
             <tbody>
               <!-- 반복 행 예시 -->

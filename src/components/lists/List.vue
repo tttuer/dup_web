@@ -454,10 +454,10 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
       </div>
     </div>
     <div
-      class="flex h-full w-full flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+      class="flex flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
-      <div class="h-full min-w-[1300px]">
+      <div class="flex-1 flex flex-col overflow-y-hidden min-w-[1300px]">
         <div class="block h-14">
           <table class="h-full w-full min-w-[1300px] table-fixed">
             <thead class="bg-gray-100 dark:bg-gray-700">
@@ -528,7 +528,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
           </table>
         </div>
 
-        <div class="no-scrollbar h-full overflow-y-scroll">
+        <div class="no-scrollbar flex-1 overflow-y-scroll min-h-0">
           <table class="w-full min-w-[1300px] table-fixed">
             <tbody>
               <!-- 반복 행 예시 -->
@@ -571,7 +571,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 </td>
                 <td class="w-[17%] px-4 py-2">{{ voucher.nm_remark }}</td>
                 <td
-                  class="w-[30%] group relative px-4 py-2"
+                  class="group relative w-[30%] px-4 py-2"
                   @mouseenter="handlePreviewPosition"
                   @mouseleave="resetPreviewPosition"
                 >
@@ -611,7 +611,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                     </div>
                   </div>
                 </td>
-                <td class="w-[5%] mr-2 h-full py-2 text-base">
+                <td class="mr-2 h-full w-[5%] py-2 text-base">
                   <input
                     type="button"
                     value="첨부"

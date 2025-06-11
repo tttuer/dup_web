@@ -3,7 +3,7 @@ import List from './List.vue';
 </script>
 
 <template>
-  <main class="grow overflow-hidden">
+  <main class="flex flex-col grow overflow-hidden">
     <List />
   </main>
 </template>
