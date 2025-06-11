@@ -187,10 +187,8 @@ async function syncWhg() {
   } catch (error) {
     toast.error('파일 동기화 실패');
     console.error(error);
-  } 
+  }
 }
-
-
 
 // 전표 삭제는 안할거기 때문에 주석처리리
 // async function deleteFiles() {
@@ -323,7 +321,6 @@ onUnmounted(() => {
     URL.revokeObjectURL(url);
   }
   disconnectSyncStatusSocket();
-
 });
 
 import JSZip from 'jszip';
@@ -457,38 +454,38 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
       </div>
     </div>
     <div
-      class="flex h-full w-full flex-1 flex-col overflow-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+      class="flex h-full w-full flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
-
-      <div class="block h-14">
-        <table class="h-full w-full min-w-[900px] table-fixed">
-          <thead class="bg-gray-100 dark:bg-gray-700">
-            <tr>
-              <th class="w-5 px-4 py-2 text-left">
-                <input type="checkbox" id="check-all" />
-              </th>
-              <th class="w-45 px-4 py-2 text-left">날짜</th>
-              <th class="w-45 truncate px-4 py-2 text-left">계정과목</th>
-              <th class="w-60 truncate px-4 py-2 text-left">거래처</th>
-              <th class="w-45 truncate px-4 py-2 text-right">차변금액</th>
-              <th class="w-45 px-4 py-2 text-right">대변금액</th>
-              <th class="px-4 py-2 text-left">적요</th>
-              <th class="px-4 py-2 text-left">
-                <div class="flex">
-                  <div class="flex items-center justify-center"><p>첨부파일</p></div>
-                  <div
-                    class="ml-2 flex h-7 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
-                    v-show="hasChecked"
-                  >
-                    <input
-                      class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
-                      type="button"
-                      value="일괄 저장"
-                      @click="downloadCheckedFiles"
-                    />
-                  </div>
-                  <!-- <div>
+      <div class="h-full min-w-[1300px]">
+        <div class="block h-14">
+          <table class="h-full w-full min-w-[1300px] table-fixed">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th class="w-[2%] px-4 py-2 text-left">
+                  <input type="checkbox" id="check-all" />
+                </th>
+                <th class="w-[9%] px-4 py-2 text-left">날짜</th>
+                <th class="w-[9%] truncate px-4 py-2 text-left">계정과목</th>
+                <th class="w-[10%] truncate px-4 py-2 text-left">거래처</th>
+                <th class="w-[9%] truncate px-4 py-2 text-right">차변금액</th>
+                <th class="w-[9%] px-4 py-2 text-right">대변금액</th>
+                <th class="w-[17%] px-4 py-2 text-left">적요</th>
+                <th class="w-[30%] px-4 py-2 text-left">
+                  <div class="flex">
+                    <div class="flex items-center justify-center"><p>첨부파일</p></div>
+                    <div
+                      class="ml-2 flex h-7 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
+                      v-show="hasChecked"
+                    >
+                      <input
+                        class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
+                        type="button"
+                        value="일괄 저장"
+                        @click="downloadCheckedFiles"
+                      />
+                    </div>
+                    <!-- <div>
                     <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
                     <label
                       v-show="role === 'ADMIN' && selectedCompany"
@@ -523,37 +520,37 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                       </svg>
                     </label>
                   </div> -->
-                </div>
-              </th>
-              <th class="w-21 px-4 py-2 text-left"></th>
-            </tr>
-          </thead>
-        </table>
-      </div>
+                  </div>
+                </th>
+                <th class="w-[5%] px-4 py-2 text-left"></th>
+              </tr>
+            </thead>
+          </table>
+        </div>
 
-      <div class="no-scrollbar h-full overflow-y-scroll">
-        <table class="w-full min-w-[900px] table-fixed">
-          <tbody>
-            <!-- 반복 행 예시 -->
-            <tr
-              v-for="(voucher, index) in voucherLists"
-              :key="voucher.id"
-              class="files border-b border-gray-200 dark:border-gray-700"
-            >
-              <td class="w-5 px-4 py-2">
-                <input
-                  type="checkbox"
-                  class="row-check"
-                  :checked="checkedIds.has(voucher.id)"
-                  @click="handleCheckboxClick($event, index)"
-                />
-              </td>
-              <td class="w-45 px-4 py-2">
-                {{ formatDate(voucher.voucher_date) }}
-              </td>
-              <td class="w-45 truncate px-4 py-2">
-                {{ voucher.nm_acctit }}
-                <!-- <svg
+        <div class="no-scrollbar h-full overflow-y-scroll">
+          <table class="w-full min-w-[1300px] table-fixed">
+            <tbody>
+              <!-- 반복 행 예시 -->
+              <tr
+                v-for="(voucher, index) in voucherLists"
+                :key="voucher.id"
+                class="files border-b border-gray-200 dark:border-gray-700"
+              >
+                <td class="w-[2%] px-4 py-2">
+                  <input
+                    type="checkbox"
+                    class="row-check"
+                    :checked="checkedIds.has(voucher.id)"
+                    @click="handleCheckboxClick($event, index)"
+                  />
+                </td>
+                <td class="w-[9%] px-4 py-2">
+                  {{ formatDate(voucher.voucher_date) }}
+                </td>
+                <td class="w-[9%] truncate px-4 py-2">
+                  {{ voucher.nm_acctit }}
+                  <!-- <svg
                   v-if="voucher.lock"
                   xmlns="http://www.w3.org/2000/svg"
                   class="ml-1 h-4 w-4 text-gray-800"
@@ -564,68 +561,69 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                     d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
                   />
                 </svg> -->
-              </td>
-              <td class="w-60 px-4 py-2">{{ voucher.nm_trade }}</td>
-              <td class="w-45 px-4 py-2 text-right">
-                {{ voucher.mn_bungae1 == 0 ? '' : formatPrice(voucher.mn_bungae1) }}
-              </td>
-              <td class="w-45 px-4 py-2 text-right">
-                {{ voucher.mn_bungae2 == 0 ? '' : formatPrice(voucher.mn_bungae2) }}
-              </td>
-              <td class="px-4 py-2">{{ voucher.nm_remark }}</td>
-              <td
-                class="group relative px-4 py-2"
-                @mouseenter="handlePreviewPosition"
-                @mouseleave="resetPreviewPosition"
-              >
-                <div class="group relative inline-block w-full">
-                  <!-- 파일 이름 리스트 -->
-                  <div class="overflow-hidden text-ellipsis whitespace-nowrap">
-                    <template v-if="voucher.files && voucher.files.length">
-                      <a
-                        href="#"
-                        @click.prevent="downloadAllFiles(voucher.files, voucher.nm_remark)"
-                        class="block text-blue-500 hover:text-blue-600"
-                        :title="
-                          voucher.files.length === 1
-                            ? voucher.files[0].file_name
-                            : `${voucher.files[0].file_name} 외 ${voucher.files.length - 1}건`
-                        "
-                      >
-                        {{
-                          voucher.files.length === 1
-                            ? voucher.files[0].file_name
-                            : `${voucher.files[0].file_name} 외 ${voucher.files.length - 1}건`
-                        }}
-                      </a>
-                    </template>
-                  </div>
+                </td>
+                <td class="w-[10%] px-4 py-2">{{ voucher.nm_trade }}</td>
+                <td class="w-[9%] px-4 py-2 text-right">
+                  {{ voucher.mn_bungae1 == 0 ? '' : formatPrice(voucher.mn_bungae1) }}
+                </td>
+                <td class="w-[9%] px-4 py-2 text-right">
+                  {{ voucher.mn_bungae2 == 0 ? '' : formatPrice(voucher.mn_bungae2) }}
+                </td>
+                <td class="w-[17%] px-4 py-2">{{ voucher.nm_remark }}</td>
+                <td
+                  class="w-[30%] group relative px-4 py-2"
+                  @mouseenter="handlePreviewPosition"
+                  @mouseleave="resetPreviewPosition"
+                >
+                  <div class="group relative inline-block w-full">
+                    <!-- 파일 이름 리스트 -->
+                    <div class="overflow-hidden text-ellipsis whitespace-nowrap">
+                      <template v-if="voucher.files && voucher.files.length">
+                        <a
+                          href="#"
+                          @click.prevent="downloadAllFiles(voucher.files, voucher.nm_remark)"
+                          class="block text-blue-500 hover:text-blue-600"
+                          :title="
+                            voucher.files.length === 1
+                              ? voucher.files[0].file_name
+                              : `${voucher.files[0].file_name} 외 ${voucher.files.length - 1}건`
+                          "
+                        >
+                          {{
+                            voucher.files.length === 1
+                              ? voucher.files[0].file_name
+                              : `${voucher.files[0].file_name} 외 ${voucher.files.length - 1}건`
+                          }}
+                        </a>
+                      </template>
+                    </div>
 
-                  <!-- 하나의 병합된 PDF 미리보기 -->
-                  <div
-                    v-if="voucher.files && voucher.merged_pdf_url"
-                    class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
-                  >
-                    <embed
-                      :src="voucher.merged_pdf_url"
-                      type="application/pdf"
-                      class="h-full w-full"
-                    />
+                    <!-- 하나의 병합된 PDF 미리보기 -->
+                    <div
+                      v-if="voucher.files && voucher.merged_pdf_url"
+                      class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
+                    >
+                      <embed
+                        :src="voucher.merged_pdf_url"
+                        type="application/pdf"
+                        class="h-full w-full"
+                      />
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td class="mr-2 h-full w-21 py-2 text-base">
-                <input
-                  type="button"
-                  value="첨부"
-                  @click="openEditModal(voucher)"
-                  class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
-                />
-              </td>
-            </tr>
-            <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
-          </tbody>
-        </table>
+                </td>
+                <td class="w-[5%] mr-2 h-full py-2 text-base">
+                  <input
+                    type="button"
+                    value="첨부"
+                    @click="openEditModal(voucher)"
+                    class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
+                  />
+                </td>
+              </tr>
+              <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <EditModal
