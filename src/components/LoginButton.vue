@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { authFetch } from '@/utils/authFetch';
 
 const router = useRouter();
 const props = defineProps({
@@ -20,7 +21,8 @@ if (accessToken) {
 async function logout() {
   try {
     // ✅ 1. 서버에 refresh_token 쿠키 삭제 요청
-    await axios.post(`${userUrl}/logout`, {}, {
+    await authFetch(`${userUrl}/logout`, {
+      method: 'POST',
       withCredentials: true  // 쿠키 전송을 위해 꼭 필요
     });
   } catch (err) {
