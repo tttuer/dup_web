@@ -24,10 +24,6 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  authUsers: {
-    type: Array,
-    required: true,
-  },
   company: {
     type: String,
     required: true,

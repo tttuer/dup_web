@@ -7,6 +7,8 @@ const props = defineProps({
   buttonText: String,
 });
 
+const userUrl = `${import.meta.env.VITE_USER_API_URL}`;
+
 const buttonText = ref('로그인');
 
 const accessToken = localStorage.getItem('access_token');
@@ -15,7 +17,17 @@ if (accessToken) {
   buttonText.value = '로그아웃';
 }
 
-function logout() {
+async function logout() {
+  try {
+    // ✅ 1. 서버에 refresh_token 쿠키 삭제 요청
+    await axios.post(`${userUrl}/logout`, {}, {
+      withCredentials: true  // 쿠키 전송을 위해 꼭 필요
+    });
+  } catch (err) {
+    console.error('로그아웃 요청 실패:', err);
+  }
+
+  // ✅ 2. 클라이언트 토큰 제거 및 UI 업데이트
   localStorage.removeItem('access_token');
   buttonText.value = '로그인';
   router.push('/login');
