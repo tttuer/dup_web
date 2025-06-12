@@ -23,7 +23,7 @@ async function logout() {
     // ✅ 1. 서버에 refresh_token 쿠키 삭제 요청
     await authFetch(`${userUrl}/logout`, {
       method: 'POST',
-      withCredentials: true  // 쿠키 전송을 위해 꼭 필요
+      withCredentials: true, // 쿠키 전송을 위해 꼭 필요
     });
   } catch (err) {
     console.error('로그아웃 요청 실패:', err);
@@ -38,13 +38,12 @@ async function logout() {
 
 <template>
   <div class="col-span-1 flex items-center justify-end pr-8 text-center">
-    <router-link
+    <button
       @click="logout"
-      to="/login"
       class="rounded-md border border-gray-300 px-4 py-2 font-sans text-sm font-semibold text-gray-700 hover:bg-black hover:text-white dark:bg-black dark:text-white"
     >
       {{ buttonText }}
-    </router-link>
+    </button>
   </div>
 </template>
 
