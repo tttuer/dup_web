@@ -523,8 +523,8 @@ watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
                   @mouseenter="handlePreviewPosition"
                   @mouseleave="resetPreviewPosition"
                 >
-                  <div class="group relative inline-block">
-                    <div class="max-w-[16rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                  <div class="group relative inline-block w-full">
+                    <div class="w-full overflow-hidden text-ellipsis whitespace-nowrap">
                       <a
                         :href="`data:application/pdf;base64,${file.file_data}`"
                         :download="file.file_name"

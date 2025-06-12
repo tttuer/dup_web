@@ -3,16 +3,18 @@ import UserAuthModal from '@/components/extra/UserAuthModal.vue';
 import { useToast } from 'vue-toastification';
 import { authFetch } from '@/utils/authFetch';
 
-
 import { ref, watch } from 'vue';
-import { getRoleFromLocalStorage } from '@/utils/token';
+import { getRoleFromLocalStorage, getUserIdFromToken } from '@/utils/token';
 
 const roles = ref(getRoleFromLocalStorage());
+const userId = ref(getUserIdFromToken());
 
 const groupUrl = `${import.meta.env.VITE_GROUP_API_URL}`;
 const toast = useToast();
 const isEditModalOpen = ref(false);
 const editTargetFile = ref(null);
+const auth_users = ref([]);
+
 const props = defineProps({
   groupId: {
     type: String,
@@ -20,6 +22,10 @@ const props = defineProps({
   },
   groupName: {
     type: String,
+    required: true,
+  },
+  authUsers: {
+    type: Array,
     required: true,
   },
   company: {
@@ -59,38 +65,10 @@ async function grantGroup(payload) {
     toast.error('권한 부여 중 오류 발생');
   }
 }
-
-async function editFile(payload) {
-  // const formData = new FormData();
-  // formData.append('name', payload.name);
-  // formData.append('price', payload.price);
-  // formData.append('withdrawn_at', payload.withdrawn_at);
-  // formData.append('lock', payload.lock);
-  // formData.append('group_id', payload.group_id);
-  // if (payload.file) {
-  //   formData.append('file_data', payload.file);
-  // }
-  // try {
-  //   const response = await authFetch(`${fileUrl}/${payload.id}`, {
-  //     method: 'PUT',
-  //     body: formData,
-  //   });
-  //   if (response.ok) {
-  //     toast.success('수정 완료');
-  //     closeEditModal();
-  //     fetchFiles(true);
-  //   } else {
-  //     toast.error('수정 실패');
-  //   }
-  // } catch (e) {
-  //   toast.error('수정 중 오류 발생');
-  //   console.error(e);
-  // }
-}
 </script>
 
 <template>
-  <div class="group flex flex-row" v-if="roles.includes('ADMIN')">
+  <div class="group flex flex-row">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
