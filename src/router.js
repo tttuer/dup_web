@@ -5,6 +5,7 @@ import HomeView from './components/lists/App.vue';
 import ExtraView from './components/extra/App.vue';
 import LoginView from './components/login/App.vue';
 import { tryRefreshToken } from '@/utils/authFetch'; // 가정: 토큰 갱신 함수
+import { authFetch } from './utils/authFetch';
 
 const routes = [
   { path: '/', component: HomeView, meta: { requiresAuth: true } },
@@ -41,6 +42,10 @@ router.beforeEach(async (to) => {
         } else {
           // ✅ refresh 실패 → access_token 삭제 후 login 이동
           localStorage.removeItem('access_token');
+          await authFetch('/api/users/logout', {
+            method: 'POST',
+            credentials: 'include', // 쿠키 전송
+          });
           // refresh도 실패 → 로그인 페이지로
           return '/login';
         }
