@@ -38,7 +38,7 @@
                 'text-gray-400 line-through': !finalAuthUsers.includes(user.user_id),
               }"
             >
-              {{ user.user_id }}
+              {{ user.name }}
             </span>
             <span v-if="finalAuthUsers.includes(user.user_id)">✅</span>
           </label>
