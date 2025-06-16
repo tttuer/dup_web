@@ -131,20 +131,6 @@ watch([() => props.visible, () => props.groupId], ([visible, groupId]) => {
   }
 });
 
-// watch(
-//   () => props.visible,
-//   (val) => {
-//     if (val && props.file) {
-//       form.id = props.file.id;
-//       form.name = props.file.name;
-//       form.withdrawn_at = props.file.withdrawn_at;
-//       form.company = props.file.company;
-//       form.lock = props.file.lock;
-//       form.group_id = props.file.group_id;
-//     }
-//   },
-// );
-
 function handleFileChange(event) {
   newFile.value = event.target.files[0];
 }
