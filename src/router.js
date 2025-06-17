@@ -60,7 +60,7 @@ router.beforeEach(async (to) => {
     return '/login';
   }
 
-  if (to.path === '/' && !roles.includes('VOUCHER')) {
+  if (to.path === '/' && !(roles.includes('VOUCHER') || roles.includes('ADMIN'))) {
     return '/extra';
   }
 

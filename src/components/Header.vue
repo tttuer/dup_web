@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
     try {
       const decoded = jwtDecode(token);
       const roles = decoded.roles || [];
-      hasVoucherRole.value = roles.includes('VOUCHER');
+      hasVoucherRole.value = roles.includes('VOUCHER') || roles.includes('ADMIN');
     } catch (e) {
       console.error('토큰 디코딩 실패:', e);
     }
@@ -25,8 +25,13 @@ if (typeof window !== 'undefined') {
 }
 
 function goToVoucher() {
+  console.log('전표 증빙자료로 이동');
   typeStore.setType(TYPE.VOUCHER);
-  router.push('/');
+  console.log('현재 타입:', typeStore.currentType);
+  console.log('현재 경로:', route.path);
+    router.push('/')
+    .then(() => console.log('✅ router.push 성공!'))
+    .catch(err => console.error('⛔️ router.push 에러:', err));
 }
 
 function goToExtra() {
