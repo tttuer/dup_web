@@ -30,7 +30,7 @@ function emitSearch() {
     <input
       class="h-9 rounded-sm border border-gray-300 pl-2"
       type="text"
-      placeholder="검색"
+      placeholder="검색어 입력 후 Enter"
       v-model="search"
       @keyup.enter="emitSearch"
     />
