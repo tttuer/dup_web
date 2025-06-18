@@ -20,6 +20,12 @@ function emitSearch() {
   });
 }
 
+watch(selectedOption, (newValue) => {
+  if (newValue) {
+    emitSearch();
+  }
+});
+
 </script>
 
 <template>
