@@ -188,7 +188,7 @@ async function syncWhg(payload) {
     if (response.ok) {
       toast.success('파일 동기화 성공');
       fetchVouchers(true);
-    } else if (response.status === 401) {
+    } else if (response.status === 460) {
       toast.error('로그인 정보가 올바르지 않습니다. 다시 시도해주세요.');
     } else {
       toast.error('파일 동기화 실패');
