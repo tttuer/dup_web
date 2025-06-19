@@ -170,35 +170,31 @@ const isSyncing = computed(() => syncStore.syncing);
 async function syncWhg(payload) {
   if (isSyncing.value) return;
 
-  console.log('동기화 시작', payload);
+  try {
+    syncStore.setSyncing(true); // 로컬에서도 UX적으로 미리 처리
+    const response = await authFetch(`${voucherUrl}/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        company: selectedCompany.value,
+        wehago_id: payload.whgId,
+        wehago_password: payload.whgPassword,
+        year: payload.selectedYear,
+      }),
+    });
 
-  // params.append('start_at', start_at.value ? start_at.value : '');
-  // params.append('end_at', end_at.value ? end_at.value : '');
-
-  // try {
-  //   syncStore.setSyncing(true); // 로컬에서도 UX적으로 미리 처리
-  //   const response = await authFetch(`${voucherUrl}/sync`, {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //     },
-  //     body: JSON.stringify({
-  //       company: selectedCompany.value,
-  //       // start_at: startAt.value,
-  //       // end_at: endAt.value,
-  //     }),
-  //   });
-
-  //   if (response.ok) {
-  //     toast.success('파일 동기화 성공');
-  //     fetchVouchers(true);
-  //   } else {
-  //     toast.error('파일 동기화 실패');
-  //   }
-  // } catch (error) {
-  //   toast.error('파일 동기화 실패');
-  //   console.error(error);
-  // }
+    if (response.ok) {
+      toast.success('파일 동기화 성공');
+      fetchVouchers(true);
+    } else {
+      toast.error('파일 동기화 실패');
+    }
+  } catch (error) {
+    toast.error('파일 동기화 실패');
+    console.error(error);
+  }
 }
 
 // 전표 삭제는 안할거기 때문에 주석처리리
