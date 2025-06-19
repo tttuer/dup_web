@@ -97,6 +97,7 @@ import { useToast } from 'vue-toastification';
 const voucherUrl = `${import.meta.env.VITE_VOUCHER_API_URL}`;
 const toast = useToast();
 const isEditModalOpen = ref(false);
+const isLoginModalOpen = ref(false);
 const editTargetVoucher = ref(null);
 const lockFilter = ref(false);
 
@@ -108,6 +109,14 @@ function openEditModal(voucher) {
 function closeEditModal() {
   isEditModalOpen.value = false;
   editTargetVoucher.value = null;
+}
+
+function openWhgLoginModal() {
+  isLoginModalOpen.value = true;
+}
+
+function closeWhgLoginModal() {
+  isLoginModalOpen.value = false;
 }
 
 async function fetchVouchers(isReset = false) {
@@ -158,11 +167,8 @@ async function fetchVouchers(isReset = false) {
 
 const isSyncing = computed(() => syncStore.syncing);
 
-async function syncWhg() {
+async function syncWhg(payload) {
   if (isSyncing.value) return;
-
-  // params.append('start_at', start_at.value ? start_at.value : '');
-  // params.append('end_at', end_at.value ? end_at.value : '');
 
   try {
     syncStore.setSyncing(true); // 로컬에서도 UX적으로 미리 처리
@@ -173,8 +179,9 @@ async function syncWhg() {
       },
       body: JSON.stringify({
         company: selectedCompany.value,
-        // start_at: startAt.value,
-        // end_at: endAt.value,
+        wehago_id: payload.whgId,
+        wehago_password: payload.whgPassword,
+        year: payload.selectedYear,
       }),
     });
 
@@ -325,6 +332,7 @@ onUnmounted(() => {
 
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
 
 function downloadCheckedFiles() {
   const files = [...checkedIds.value].reduce((acc, id) => {
@@ -388,7 +396,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
                 ? 'cursor-not-allowed bg-gray-200 text-gray-500'
                 : 'cursor-pointer hover:bg-blue-500 hover:text-white',
             ]"
-            @click="syncWhg"
+            @click="openWhgLoginModal"
             :disabled="isSyncing"
           >
             <template v-if="isSyncing">
@@ -459,7 +467,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
       class="flex flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
     >
       <!-- 고정 헤더 테이블 -->
-      <div class="flex-1 flex flex-col overflow-y-hidden min-w-[1300px]">
+      <div class="flex min-w-[1300px] flex-1 flex-col overflow-y-hidden">
         <div class="block h-14">
           <table class="h-full w-full min-w-[1300px] table-fixed">
             <thead class="bg-gray-100 dark:bg-gray-700">
@@ -530,7 +538,7 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
           </table>
         </div>
 
-        <div class="no-scrollbar flex-1 overflow-y-scroll min-h-0">
+        <div class="no-scrollbar min-h-0 flex-1 overflow-y-scroll">
           <table class="w-full min-w-[1300px] table-fixed">
             <tbody>
               <!-- 반복 행 예시 -->
@@ -633,6 +641,12 @@ watch([selectedCompany, selectedDate, lockFilter], async () => {
       :voucher="editTargetVoucher"
       @close="closeEditModal"
       @save="editVoucher"
+    />
+    <WhgLoginModal
+      :visible="isLoginModalOpen"
+      :company="selectedCompany"
+      @close="closeWhgLoginModal"
+      @save="syncWhg"
     />
   </div>
 </template>
