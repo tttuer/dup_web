@@ -317,7 +317,7 @@ watch(selectedCompany, async (newCompany) => {
   }
 });
 
-watch([selectedCompany, selectedDate, lockFilter, selectedGroup], async () => {
+watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], async () => {
   if (selectedGroup.value) {
     await fetchFiles(true);
   }

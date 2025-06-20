@@ -366,7 +366,7 @@ function downloadAllFiles(files, id = '') {
   });
 }
 
-watch([selectedCompany, selectedDate, lockFilter], async () => {
+watch([selectedCompany, start_at, end_at, lockFilter], async () => {
   await fetchVouchers(true);
 });
 </script>
