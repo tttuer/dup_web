@@ -49,9 +49,7 @@ const checkedIds = ref(new Set()); // ✅ 체크된 파일의 id 저장
 const lastCheckedIndex = ref(null);
 const hasChecked = computed(() => checkedIds.value.size > 0);
 const isAllChecked = computed(() => {
-  return (
-    fileLists.value.length > 0 && fileLists.value.every((v) => checkedIds.value.has(v.id))
-  );
+  return fileLists.value.length > 0 && fileLists.value.every((v) => checkedIds.value.has(v.id));
 });
 
 function handleCheckAll(event) {
@@ -313,10 +311,7 @@ function downloadAllFiles(files, id = '') {
       const extIdx = name.lastIndexOf('.');
       if (extIdx > 0) {
         // 확장자 앞에 (1), (2) 등 추가
-        name =
-          name.slice(0, extIdx) +
-          `(${nameCount[name]})` +
-          name.slice(extIdx);
+        name = name.slice(0, extIdx) + `(${nameCount[name]})` + name.slice(extIdx);
       } else {
         name = name + `(${nameCount[name]})`;
       }
@@ -332,7 +327,6 @@ function downloadAllFiles(files, id = '') {
     saveAs(content, filename);
   });
 }
-
 
 // 메모리 누수 방지용 URL 저장소
 const objectUrls = new Map();

@@ -380,10 +380,7 @@ function downloadAllFiles(files, id = '') {
       const extIdx = name.lastIndexOf('.');
       if (extIdx > 0) {
         // 확장자 앞에 (1), (2) 등 추가
-        name =
-          name.slice(0, extIdx) +
-          `(${nameCount[name]})` +
-          name.slice(extIdx);
+        name = name.slice(0, extIdx) + `(${nameCount[name]})` + name.slice(extIdx);
       } else {
         name = name + `(${nameCount[name]})`;
       }
@@ -399,7 +396,6 @@ function downloadAllFiles(files, id = '') {
     saveAs(content, filename);
   });
 }
-
 
 watch([selectedCompany, start_at, end_at, lockFilter], async () => {
   await fetchVouchers(true);
