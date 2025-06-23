@@ -54,6 +54,22 @@ const searchbarOption = ref('');
 const checkedIds = ref(new Set()); // ✅ 체크된 파일의 id 저장
 const lastCheckedIndex = ref(null);
 const hasChecked = computed(() => checkedIds.value.size > 0);
+const isAllChecked = computed(() => {
+  return (
+    voucherLists.value.length > 0 && voucherLists.value.every((v) => checkedIds.value.has(v.id))
+  );
+});
+
+function handleCheckAll(event) {
+  if (event.target.checked) {
+    // 현재 화면에 보이는 모든 전표의 id를 체크!
+    voucherLists.value.forEach((v) => checkedIds.value.add(v.id));
+  } else {
+    // 현재 화면에 보이는 모든 전표의 id를 해제!
+    voucherLists.value.forEach((v) => checkedIds.value.delete(v.id));
+  }
+  checkedIds.value = new Set(checkedIds.value); // 반응성 유도
+}
 
 const handleCheckboxClick = (event, index) => {
   const voucher = voucherLists.value[index];
@@ -353,11 +369,29 @@ function downloadCheckedFiles() {
 
 function downloadAllFiles(files, id = '') {
   const zip = new JSZip();
+  const nameCount = {};
 
   files.forEach((file) => {
+    let name = file.file_name || `file-${Date.now()}.pdf`;
+    if (nameCount[name] === undefined) {
+      nameCount[name] = 0;
+    } else {
+      nameCount[name]++;
+      const extIdx = name.lastIndexOf('.');
+      if (extIdx > 0) {
+        // 확장자 앞에 (1), (2) 등 추가
+        name =
+          name.slice(0, extIdx) +
+          `(${nameCount[name]})` +
+          name.slice(extIdx);
+      } else {
+        name = name + `(${nameCount[name]})`;
+      }
+    }
+
     const binary = atob(file.file_data);
     const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)));
-    zip.file(file.file_name || `file-${Date.now()}.pdf`, byteArray);
+    zip.file(name, byteArray);
   });
 
   zip.generateAsync({ type: 'blob' }).then((content) => {
@@ -365,6 +399,7 @@ function downloadAllFiles(files, id = '') {
     saveAs(content, filename);
   });
 }
+
 
 watch([selectedCompany, start_at, end_at, lockFilter], async () => {
   await fetchVouchers(true);
@@ -475,7 +510,12 @@ watch([selectedCompany, start_at, end_at, lockFilter], async () => {
             <thead class="bg-gray-100 dark:bg-gray-700">
               <tr>
                 <th class="w-[2%] px-4 py-2 text-left">
-                  <input type="checkbox" id="check-all" />
+                  <input
+                    type="checkbox"
+                    id="check-all"
+                    :checked="isAllChecked"
+                    @change="handleCheckAll"
+                  />
                 </th>
                 <th class="w-[9%] px-4 py-2 text-left">날짜</th>
                 <th class="w-[9%] truncate px-4 py-2 text-left">계정과목</th>
