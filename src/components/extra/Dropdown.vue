@@ -4,6 +4,7 @@ import { authFetch } from '@/utils/authFetch'; // 백엔드 요청에 사용
 import { Plus } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
 import UserAuth from '@/components/extra/UserAuth.vue';
+import GroupDelete from './GroupDelete.vue';
 
 const selected = ref('선택');
 const isOpen = ref(false);
@@ -134,15 +135,25 @@ watch(
             @click="selectOption(option)"
           >
             <div class="flex items-center justify-between">
-              {{ option }}
-              <UserAuth
-                v-if="isGroupDropdown"
-                class="inline-block"
-                :groupId="nameToEnum[option]"
-                :groupName="option"
-                :company="props.company"
-                @click.stop="console.log('Auth clicked: ', option)"
-              />
+              <span>{{ option }} </span>
+              <div class="ml-auto flex items-center space-x-2">
+                <GroupDelete
+                  v-if="isGroupDropdown"
+                  class="inline-block"
+                  :groupId="nameToEnum[option]"
+                  :groupName="option"
+                  @click.stop="console.log('Delete clicked: ', option)"
+                  @group-deleted="emit('group-created')"
+                />
+                <UserAuth
+                  v-if="isGroupDropdown"
+                  class="inline-block"
+                  :groupId="nameToEnum[option]"
+                  :groupName="option"
+                  :company="props.company"
+                  @click.stop="console.log('Auth clicked: ', option)"
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -376,6 +376,7 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], async () =
             :isGroupDropdown="true"
             :company="selectedCompany"
             @group-created="() => loadGroupOptions(selectedCompany)"
+            @group-deleted="() => loadGroupOptions(selectedCompany)"
           />
         </div>
 
