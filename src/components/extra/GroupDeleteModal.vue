@@ -18,7 +18,7 @@
         <input
           v-model="userInputGroupName"
           type="text"
-          class="mt-1 w-full cursor-default rounded border border-gray-300 bg-gray-100 p-2 text-gray-600"
+          class="mt-1 w-full cursor-default rounded border border-black-300 p-2 text-gray-800"
           :placeholder="props.groupName"
         />
       </div>
@@ -47,14 +47,13 @@
       <div class="flex justify-end space-x-2">
         <button
           @click="$emit('close')"
-          class="cursor-pointer rounded bg-gray-100 px-4 py-2 hover:bg-gray-300"
+          class="cursor-pointer rounded border border-gray-300 px-4 py-2 hover:bg-gray-300"
         >
           취소
         </button>
         <button
           @click="save"
-          :disabled="normalize(userInputGroupName) !== normalize(props.groupName)"
-          class="cursor-pointer rounded bg-red-500 px-4 py-2 text-white hover:bg-red-700 disabled:bg-gray-100"
+          class="cursor-pointer rounded px-4 py-2 border border-gray-300 hover:bg-red-500 hover:text-white text-sm font-semibold"
         >
           삭제
         </button>
@@ -65,6 +64,8 @@
 
 <script setup>
 import { reactive, watch, ref, onMounted } from 'vue';
+import { useToast } from 'vue-toastification';
+const toast = useToast();
 
 const userInputGroupName = ref('');
 
@@ -111,7 +112,7 @@ function handleBackgroundClick(event) {
 
 function save() {
   if (userInputGroupName.value.trim() !== props.groupName) {
-    alert('입력한 그룹 이름이 일치하지 않습니다.');
+    toast.error('입력한 그룹 이름이 일치하지 않습니다.');
     return;
   }
   emit('save');
