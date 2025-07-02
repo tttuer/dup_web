@@ -96,7 +96,7 @@ import Flatpickr from 'vue-flatpickr-component';
 import { authFetch } from '../../utils/authFetch';
 import { useToast } from 'vue-toastification';
 import { useCurrencyFormatter } from '@/utils/currencyFormatter';
-import { useTypeStore } from '@/stores/typeStore';
+import { useTypeStore } from '@/stores/useTypeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
 
 const roles = ref(getRoleFromLocalStorage());

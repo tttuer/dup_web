@@ -1,5 +1,5 @@
 // src/utils/syncStatus.js
-import { useSyncStatusStore } from '@/stores/syncStatusStore';
+import { useSyncStatusStore } from '@/stores/useSyncStatusStore';
 
 let socket = null;
 let reconnectTimer = null;

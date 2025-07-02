@@ -4,9 +4,9 @@ import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
-import { useTypeStore } from '@/stores/typeStore';
+import { useTypeStore } from '@/stores/useTypeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
-import { groupOptions, groupNameToEnum, groupIdToName, loadGroupOptions } from '@/stores/group';
+import { groupOptions, groupNameToEnum, groupIdToName, loadGroupOptions } from '@/stores/useGroupStore';
 import BaseList from '@/components/base/BaseList.vue';
 import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
@@ -27,7 +27,7 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
-const { handlePreviewPosition, resetPreviewPosition, generatePdfPreview } = usePdfPreview(fileLists);
+const { handlePreviewPosition, resetPreviewPosition, generatePreview } = usePdfPreview(fileLists, 'single');
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
   백성운수: 'BAEKSUNG',
@@ -98,7 +98,7 @@ async function fetchFiles(isReset = false) {
     fileLists.value = [...fileLists.value, ...newFiles];
 
     newFiles.forEach((file) => {
-      generatePdfPreview(file);
+      generatePreview(file);
     });
   } finally {
     isLoading.value = false;

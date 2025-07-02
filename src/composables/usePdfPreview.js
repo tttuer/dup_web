@@ -1,18 +1,32 @@
-
 import { ref, onUnmounted } from 'vue';
 
-export function usePdfPreview(fileLists) {
+export function usePdfPreview(itemsRef, workerType) {
   const previewUrlCache = new Map();
-  const worker = new Worker(new URL('../components/extra/pdf-worker.js', import.meta.url), {
-    type: 'module',
-  });
+  let worker;
+
+  if (workerType === 'single') {
+    worker = new Worker(new URL('../workers/pdf.worker.js', import.meta.url), {
+      type: 'module',
+    });
+  } else if (workerType === 'merge') {
+    worker = new Worker(new URL('../workers/pdf-merge.worker.js', import.meta.url), {
+      type: 'module',
+    });
+  } else {
+    console.error('Invalid workerType provided to usePdfPreview');
+    return {};
+  }
 
   worker.onmessage = (e) => {
-    const { id, pdf_url } = e.data;
-    previewUrlCache.set(id, pdf_url);
-    const file = fileLists.value.find((f) => f.id === id);
-    if (file) {
-      file.pdf_url = pdf_url;
+    const { id, url } = e.data;
+    previewUrlCache.set(id, url);
+    const item = itemsRef.value.find((i) => i.id === id);
+    if (item) {
+      if (workerType === 'single') {
+        item.pdf_url = url;
+      } else if (workerType === 'merge') {
+        item.merged_pdf_url = url;
+      }
     }
   };
 
@@ -45,29 +59,31 @@ export function usePdfPreview(fileLists) {
     preview.classList.add('top-full', 'mt-2');
   }
 
-  function generatePdfPreview(file) {
-      if (!previewUrlCache.has(file.id)) {
-        worker.postMessage({ id: file.id, file_data: file.file_data });
-      } else {
-        file.pdf_url = previewUrlCache.get(file.id);
-      }
-  }
-  
-  function generateVoucherPdfPreview(voucher) {
-      if (!previewUrlCache.has(voucher.id)) {
-        const files = voucher.files || [];
+  function generatePreview(item) {
+    if (!previewUrlCache.has(item.id)) {
+      if (workerType === 'single') {
+        worker.postMessage({ id: item.id, file_data: item.file_data });
+      } else if (workerType === 'merge') {
+        const files = item.files || [];
         worker.postMessage({
-          id: voucher.id,
+          id: item.id,
           files: files.map(({ file_data }) => ({ file_data })),
         });
-      } else {
-        voucher.merged_pdf_url = previewUrlCache.get(voucher.id);
       }
+    } else {
+      if (workerType === 'single') {
+        item.pdf_url = previewUrlCache.get(item.id);
+      } else if (workerType === 'merge') {
+        item.merged_pdf_url = previewUrlCache.get(item.id);
+      }
+    }
   }
 
   onUnmounted(() => {
-    worker.terminate();
+    if (worker) {
+      worker.terminate();
+    }
   });
 
-  return { handlePreviewPosition, resetPreviewPosition, generatePdfPreview, generateVoucherPdfPreview };
+  return { handlePreviewPosition, resetPreviewPosition, generatePreview };
 }

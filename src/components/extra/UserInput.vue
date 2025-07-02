@@ -80,7 +80,7 @@ import Flatpickr from 'vue-flatpickr-component';
 import { authFetch } from '../../utils/authFetch';
 import { useToast } from 'vue-toastification';
 import { useCurrencyFormatter } from '@/utils/currencyFormatter';
-import { useTypeStore } from '@/stores/typeStore'
+import { useTypeStore } from '@/stores/useTypeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
 
 const roles = ref(getRoleFromLocalStorage());
@@ -105,14 +105,13 @@ const toast = useToast();
 const { formatted, price, formatCurrency } = useCurrencyFormatter();
 const isLocked = ref(false);
 
-
 function handleFileChange(e) {
   files.value = e.target.files;
 }
 
 async function saveFile(e) {
   const formData = new FormData();
-  formData.append('type', typeStroe.currentType)
+  formData.append('type', typeStroe.currentType);
   formData.append('company', props.selectedCompany);
   formData.append('withdrawn_at', date.value);
   formData.append('name', description.value);

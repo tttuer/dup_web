@@ -4,10 +4,10 @@ import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
-import { useTypeStore } from '@/stores/typeStore';
+import { useTypeStore } from '@/stores/useTypeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
 import { connectSyncStatusSocket, disconnectSyncStatusSocket } from '@/utils/syncStatus';
-import { useSyncStatusStore } from '@/stores/syncStatusStore';
+import { useSyncStatusStore } from '@/stores/useSyncStatusStore';
 import BaseList from '@/components/base/BaseList.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
@@ -33,8 +33,8 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
-const { handlePreviewPosition, resetPreviewPosition, generateVoucherPdfPreview } =
-  usePdfPreview(voucherLists);
+const { handlePreviewPosition, resetPreviewPosition, generatePreview } =
+  usePdfPreview(voucherLists, 'merge');
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
   백성운수: 'BAEKSUNG',
@@ -112,7 +112,7 @@ async function fetchVouchers(isReset = false) {
     voucherLists.value = [...voucherLists.value, ...vouchers];
 
     vouchers.forEach((voucher) => {
-      generateVoucherPdfPreview(voucher);
+      generatePreview(voucher);
     });
   } finally {
     isLoading.value = false;
