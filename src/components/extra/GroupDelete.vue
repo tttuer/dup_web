@@ -41,7 +41,7 @@ async function deleteGroup() {
 
     if (response.ok) {
       toast.success(`${props.groupName} 삭제 완료`);
-      emit('group-deleted');
+      emit('group-deleted', props.groupId);
       closeModal();
     } else {
       if (response.status === 403) {

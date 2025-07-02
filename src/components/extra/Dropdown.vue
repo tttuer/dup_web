@@ -39,7 +39,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue', 'select', 'group-created']);
+const emit = defineEmits(['update:modelValue', 'select', 'group-created', 'group-deleted']);
 
 const selectOption = (option) => {
   selected.value = option;
@@ -143,7 +143,7 @@ watch(
                   :groupId="nameToEnum[option]"
                   :groupName="option"
                   @click.stop="console.log('Delete clicked: ', option)"
-                  @group-deleted="emit('group-created')"
+                  @group-deleted="(deletedGroupId) => emit('group-deleted', deletedGroupId)"
                 />
                 <UserAuth
                   v-if="isGroupDropdown"
