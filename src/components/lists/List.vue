@@ -2,13 +2,19 @@
 import { ref, watch, onUnmounted, computed, onMounted, nextTick } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
-import Sentinel from './Sentinel.vue';
 import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
 import { useTypeStore } from '@/stores/typeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
 import { connectSyncStatusSocket, disconnectSyncStatusSocket } from '@/utils/syncStatus';
 import { useSyncStatusStore } from '@/stores/syncStatusStore';
+import BaseList from '@/components/base/BaseList.vue';
+import Searchbar from './Searchbar.vue';
+import { useToast } from 'vue-toastification';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
+
 const syncStore = useSyncStatusStore();
 
 onMounted(() => {
@@ -16,7 +22,6 @@ onMounted(() => {
 });
 
 const role = ref(getRoleFromLocalStorage());
-
 const typeStore = useTypeStore();
 
 const previewUrlCache = new Map();
@@ -39,7 +44,7 @@ const selectedDate = ref('');
 const voucherLists = ref([]);
 const totalPage = ref(0);
 const currentPage = ref(1);
-const isPdfConverting = ref(false); // PDF URL 생성 로딩 상태
+const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
@@ -50,65 +55,8 @@ const companyNameToEnum = {
 };
 const searchbar = ref('');
 const searchbarOption = ref('');
-
-const checkedIds = ref(new Set()); // ✅ 체크된 파일의 id 저장
-const lastCheckedIndex = ref(null);
+const checkedIds = ref(new Set());
 const hasChecked = computed(() => checkedIds.value.size > 0);
-const isAllChecked = computed(() => {
-  return (
-    voucherLists.value.length > 0 && voucherLists.value.every((v) => checkedIds.value.has(v.id))
-  );
-});
-
-function handleCheckAll(event) {
-  if (event.target.checked) {
-    // 현재 화면에 보이는 모든 전표의 id를 체크!
-    voucherLists.value.forEach((v) => checkedIds.value.add(v.id));
-  } else {
-    // 현재 화면에 보이는 모든 전표의 id를 해제!
-    voucherLists.value.forEach((v) => checkedIds.value.delete(v.id));
-  }
-  checkedIds.value = new Set(checkedIds.value); // 반응성 유도
-}
-
-const handleCheckboxClick = (event, index) => {
-  const voucher = voucherLists.value[index];
-  const id = voucher.id;
-
-  if (event.shiftKey && lastCheckedIndex.value !== null) {
-    const start = Math.min(lastCheckedIndex.value, index);
-    const end = Math.max(lastCheckedIndex.value, index);
-
-    const rangeVouchers = voucherLists.value.slice(start, end + 1);
-
-    const clickedWasChecked = checkedIds.value.has(id);
-
-    rangeVouchers.forEach((v) => {
-      if (clickedWasChecked) {
-        checkedIds.value.delete(v.id); // 전체 해제
-      } else {
-        checkedIds.value.add(v.id); // 전체 체크
-      }
-    });
-    checkedIds.value = new Set(checkedIds.value); // 반응 유도
-
-    // ✅ 기준점 갱신! ← 이게 핵심
-    lastCheckedIndex.value = index;
-  } else {
-    // 일반 클릭 (토글)
-    if (checkedIds.value.has(id)) {
-      checkedIds.value.delete(id);
-    } else {
-      checkedIds.value.add(id);
-    }
-
-    // 기준점 갱신
-    lastCheckedIndex.value = index;
-  }
-};
-
-import Searchbar from './Searchbar.vue';
-import { useToast } from 'vue-toastification';
 
 const voucherUrl = `${import.meta.env.VITE_VOUCHER_API_URL}`;
 const toast = useToast();
@@ -116,6 +64,18 @@ const isEditModalOpen = ref(false);
 const isLoginModalOpen = ref(false);
 const editTargetVoucher = ref(null);
 const lockFilter = ref(false);
+
+const headers = ref([
+    { text: '날짜', value: 'voucher_date', width: '9%' },
+    { text: '계정과목', value: 'nm_acctit', width: '9%' },
+    { text: '거래처', value: 'nm_trade', width: '10%' },
+    { text: '차변금액', value: 'mn_bungae1', width: '9%', align: 'right' },
+    { text: '대변금액', value: 'mn_bungae2', width: '9%', align: 'right' },
+    { text: '적요', value: 'nm_remark', width: '17%' },
+    { text: '첨부파일', value: 'files', width: '30%' },
+    { text: '', value: 'actions', width: '5%' },
+]);
+
 
 function openEditModal(voucher) {
   editTargetVoucher.value = voucher;
@@ -187,7 +147,7 @@ async function syncWhg(payload) {
   if (isSyncing.value) return;
 
   try {
-    syncStore.setSyncing(true); // 로컬에서도 UX적으로 미리 처리
+    syncStore.setSyncing(true);
     const response = await authFetch(`${voucherUrl}/sync`, {
       method: 'POST',
       headers: {
@@ -215,39 +175,15 @@ async function syncWhg(payload) {
   }
 }
 
-// 전표 삭제는 안할거기 때문에 주석처리리
-// async function deleteFiles() {
-//   const query = [...checkedIds.value].map((id) => `ids=${id}`).join('&');
-
-//   try {
-//     const response = await authFetch(`${voucherUrl}?${query}`, {
-//       method: 'DELETE',
-//     });
-
-//     if (response.ok) {
-//       toast.success('파일 삭제 성공');
-//       checkedIds.value.clear();
-//       fetchVouchers(true);
-//     } else {
-//       toast.error('파일 삭제 실패');
-//     }
-//   } catch (error) {
-//     toast.error('파일 삭제 실패');
-//     console.error(error);
-//   }
-// }
-
 async function editVoucher(payload) {
   const formData = new FormData();
 
-  // ✅ 새로 업로드할 파일들
   if (payload.files && payload.files.length > 0) {
     payload.files.forEach((file) => {
       formData.append('files', file);
     });
   }
 
-  // ✅ 삭제할 파일 ID 목록
   if (payload.deleteTargets && payload.deleteTargets.length > 0) {
     payload.deleteTargets.forEach((fileId) => {
       formData.append('file_ids', fileId);
@@ -262,7 +198,6 @@ async function editVoucher(payload) {
 
     if (response.ok) {
       toast.success('수정 완료');
-      // ✅ 기존 PDF URL 캐시 제거 (다시 생성되도록 유도)
       previewUrlCache.delete(payload.id);
       closeEditModal();
       fetchVouchers(true);
@@ -275,96 +210,72 @@ async function editVoucher(payload) {
   }
 }
 
-// 날짜 포맷 함수
 function formatDate(dateStr) {
-  // 입력값이 "20250320" 형식일 경우 처리
-  const year = dateStr.substring(0, 4); // "2025"
-  const month = dateStr.substring(4, 6); // "03"
-  const day = dateStr.substring(6, 8); // "20"
-
-  // YYYY/MM/DD 형식으로 반환
+  const year = dateStr.substring(0, 4);
+  const month = dateStr.substring(4, 6);
+  const day = dateStr.substring(6, 8);
   return `${year}/${month}/${day}`;
 }
 
-// 금액 포맷 함수 (세 자리 콤마 추가)
 function formatPrice(price) {
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-// *** 미리보기 위치 계산 및 조정 함수 ***
 function handlePreviewPosition(event) {
-  const container = event.currentTarget; // 이벤트가 부착된 요소 (div.group.relative.inline-block)
-  const preview = container.querySelector('.pdf-preview'); // 미리보기 div (클래스 추가 필요)
+  const container = event.currentTarget;
+  const preview = container.querySelector('.pdf-preview');
   if (!preview) return;
 
-  const containerRect = container.getBoundingClientRect(); // 컨테이너의 뷰포트 내 위치/크기
-  const previewHeight = preview.offsetHeight || 600; // 미리보기 높이 (h-80 = 20rem = 320px), 실제 측정값 사용 권장
-  const viewportHeight = window.innerHeight; // 뷰포트 높이
-  const spaceBelow = viewportHeight - containerRect.bottom; // 요소 아래 남은 공간
-  const spaceAbove = containerRect.top; // 요소 위 남은 공간 (뷰포트 상단 기준)
+  const containerRect = container.getBoundingClientRect();
+  const previewHeight = preview.offsetHeight || 600;
+  const viewportHeight = window.innerHeight;
+  const spaceBelow = viewportHeight - containerRect.bottom;
+  const spaceAbove = containerRect.top;
 
-  // 기본값: 아래로 표시
-  preview.classList.remove('bottom-full', 'mb-2'); // '위로' 스타일 제거
-  preview.classList.add('top-full', 'mt-2'); // '아래로' 스타일 추가 (기본)
+  preview.classList.remove('bottom-full', 'mb-2');
+  preview.classList.add('top-full', 'mt-2');
 
-  // 아래 공간이 부족하고 위 공간이 충분하면 위로 표시
   if (spaceBelow < previewHeight && spaceAbove > previewHeight) {
-    preview.classList.remove('top-full', 'mt-2'); // '아래로' 스타일 제거
-    preview.classList.add('bottom-full', 'mb-2'); // '위로' 스타일 추가 (mb-2는 위쪽 여백)
+    preview.classList.remove('top-full', 'mt-2');
+    preview.classList.add('bottom-full', 'mb-2');
   }
-  // 다른 경우는 기본값(아래로 표시) 유지
 }
 
-// *** 마우스 벗어날 때 스타일 초기화 함수 (선택적이지만 권장) ***
 function resetPreviewPosition(event) {
   const container = event.currentTarget;
   const preview = container.querySelector('.pdf-preview');
   if (!preview) return;
 
-  // 기본 '아래로' 스타일로 복원
   preview.classList.remove('bottom-full', 'mb-2');
   preview.classList.add('top-full', 'mt-2');
 }
 
 function handleIntersect() {
-  if (!isLoading.value && !isPdfConverting.value && currentPage.value < totalPage.value) {
     currentPage.value++;
     fetchVouchers();
-  }
 }
 
 function search() {
   fetchVouchers(true);
 }
 
-// 메모리 누수 방지용 URL 저장소
-const objectUrls = new Map();
-
-// 컴포넌트가 사라질 때 URL 정리
 onUnmounted(() => {
-  for (const url of objectUrls.values()) {
-    URL.revokeObjectURL(url);
-  }
+  worker.terminate();
   disconnectSyncStatusSocket();
 });
-
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
-import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
 
 function downloadCheckedFiles() {
   const files = [...checkedIds.value].reduce((acc, id) => {
     const voucher = voucherLists.value.find((v) => v.id === id);
     if (voucher?.files?.length) {
-      acc.push(...voucher.files); // => 파일들을 하나하나 분해해서 acc에 추가
+      acc.push(...voucher.files);
     }
     return acc;
   }, []);
 
   downloadAllFiles(files);
 
-  checkedIds.value.clear(); // 다운로드 후 체크박스 초기화
-  lastCheckedIndex.value = null; // 기준점 초기화
+  checkedIds.value.clear();
 }
 
 function downloadAllFiles(files, id = '') {
@@ -379,7 +290,6 @@ function downloadAllFiles(files, id = '') {
       nameCount[name]++;
       const extIdx = name.lastIndexOf('.');
       if (extIdx > 0) {
-        // 확장자 앞에 (1), (2) 등 추가
         name = name.slice(0, extIdx) + `(${nameCount[name]})` + name.slice(extIdx);
       } else {
         name = name + `(${nameCount[name]})`;
@@ -438,7 +348,6 @@ watch(voucherLists, () => {
               : 'cursor-pointer hover:bg-blue-500 hover:text-white',
           ]"
         >
-          <!-- 버튼 안쪽은 그대로 유지 -->
           <button
             :class="[
               'flex w-full items-center justify-center rounded-xl px-2 py-1 font-semibold transition-colors',
@@ -492,205 +401,106 @@ watch(voucherLists, () => {
             }
           "
         />
-        <!-- <div
-          class="ml-2 h-9 w-9 cursor-pointer rounded-sm hover:bg-black hover:text-white"
-          @click="search"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="size-9"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-            />
-          </svg>
-        </div> -->
       </div>
     </div>
-    <div
-      class="flex flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50"
+
+    <BaseList
+        :headers="headers"
+        :items="voucherLists"
+        :loading="isLoading || isPdfConverting"
+        :checkedIds="checkedIds"
+        @update:checkedIds="checkedIds = $event"
+        :currentPage="currentPage"
+        :totalPage="totalPage"
+        @intersect="handleIntersect"
     >
-      <!-- 고정 헤더 테이블 -->
-      <div class="flex min-w-[1300px] flex-1 flex-col overflow-y-hidden">
-        <div class="block h-14">
-          <table class="h-full w-full min-w-[1300px] table-fixed">
-            <thead class="bg-gray-100 dark:bg-gray-700">
-              <tr>
-                <th class="w-[2%] px-4 py-2 text-left">
-                  <input
-                    type="checkbox"
-                    id="check-all"
-                    :checked="isAllChecked"
-                    @change="handleCheckAll"
-                  />
-                </th>
-                <th class="w-[9%] px-4 py-2 text-left">날짜</th>
-                <th class="w-[9%] truncate px-4 py-2 text-left">계정과목</th>
-                <th class="w-[10%] truncate px-4 py-2 text-left">거래처</th>
-                <th class="w-[9%] truncate px-4 py-2 text-right">차변금액</th>
-                <th class="w-[9%] px-4 py-2 text-right">대변금액</th>
-                <th class="w-[17%] px-4 py-2 text-left">적요</th>
-                <th class="w-[30%] px-4 py-2 text-left">
-                  <div class="flex">
-                    <div class="flex items-center justify-center"><p>첨부파일</p></div>
-                    <div
-                      class="ml-2 flex h-7 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
-                      v-show="hasChecked"
-                    >
-                      <input
-                        class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
-                        type="button"
-                        value="일괄 저장"
-                        @click="downloadCheckedFiles"
-                      />
-                    </div>
-                    <!-- <div>
-                    <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
-                    <label
-                      v-show="role === 'ADMIN' && selectedCompany"
-                      for="lock-filter"
-                      class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gray-300 hover:bg-gray-200"
-                    >
-                      <svg
-                        v-if="lockFilter"
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-4 w-4 text-gray-800"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
-                        />
-                      </svg>
-                      <svg
-                        v-else
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="size-3"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-                        />
-                      </svg>
-                    </label>
-                  </div> -->
-                  </div>
-                </th>
-                <th class="w-[5%] px-4 py-2 text-left"></th>
-              </tr>
-            </thead>
-          </table>
-        </div>
-
-        <div class="no-scrollbar min-h-0 flex-1 overflow-y-scroll">
-          <table class="w-full min-w-[1300px] table-fixed">
-            <tbody>
-              <!-- 반복 행 예시 -->
-              <tr
-                v-for="(voucher, index) in voucherLists"
-                :key="voucher.id"
-                class="files border-b border-gray-200 dark:border-gray-700"
-              >
-                <td class="w-[2%] px-4 py-2">
-                  <input
-                    type="checkbox"
-                    class="row-check"
-                    :checked="checkedIds.has(voucher.id)"
-                    @click="handleCheckboxClick($event, index)"
-                  />
-                </td>
-                <td class="w-[9%] px-4 py-2">
-                  {{ formatDate(voucher.voucher_date) }}
-                </td>
-                <td class="w-[9%] truncate px-4 py-2">
-                  {{ voucher.nm_acctit }}
-                  <!-- <svg
-                  v-if="voucher.lock"
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="ml-1 h-4 w-4 text-gray-800"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
+        <template #header.files="{ header }">
+            <div class="flex">
+                <div class="flex items-center justify-center"><p>{{ header.text }}</p></div>
+                <div
+                    class="ml-2 flex h-7 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
+                    v-show="hasChecked"
                 >
-                  <path
-                    d="M12 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-3 0H9V9a3 3 0 1 1 6 0v2z"
-                  />
-                </svg> -->
-                </td>
-                <td class="w-[10%] px-4 py-2">{{ voucher.nm_trade }}</td>
-                <td class="w-[9%] px-4 py-2 text-right">
-                  {{ voucher.mn_bungae1 == 0 ? '' : formatPrice(voucher.mn_bungae1) }}
-                </td>
-                <td class="w-[9%] px-4 py-2 text-right">
-                  {{ voucher.mn_bungae2 == 0 ? '' : formatPrice(voucher.mn_bungae2) }}
-                </td>
-                <td class="w-[17%] px-4 py-2">{{ voucher.nm_remark }}</td>
-                <td
-                  class="group relative w-[30%] px-4 py-2"
-                  @mouseenter="handlePreviewPosition"
-                  @mouseleave="resetPreviewPosition"
-                >
-                  <div class="group relative inline-block w-full">
-                    <!-- 파일 이름 리스트 -->
-                    <div class="overflow-hidden text-ellipsis whitespace-nowrap">
-                      <template v-if="voucher.files && voucher.files.length">
-                        <a
-                          href="#"
-                          @click.prevent="downloadAllFiles(voucher.files, voucher.nm_remark)"
-                          class="block text-blue-500 hover:text-blue-600"
-                          :title="
-                            voucher.files.length === 1
-                              ? voucher.files[0].file_name
-                              : `${voucher.files[0].file_name} 외 ${voucher.files.length - 1}건`
-                          "
-                        >
-                          {{
-                            voucher.files.length === 1
-                              ? voucher.files[0].file_name
-                              : `${voucher.files[0].file_name} 외 ${voucher.files.length - 1}건`
-                          }}
-                        </a>
-                      </template>
-                    </div>
-
-                    <!-- 하나의 병합된 PDF 미리보기 -->
-                    <div
-                      v-if="voucher.files && voucher.merged_pdf_url"
-                      class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
-                    >
-                      <embed
-                        :src="voucher.merged_pdf_url"
-                        type="application/pdf"
-                        class="h-full w-full"
-                      />
-                    </div>
-                  </div>
-                </td>
-                <td class="mr-2 h-full w-[5%] py-2 text-base">
-                  <input
+                    <input
+                    class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
                     type="button"
-                    value="첨부"
-                    @click="openEditModal(voucher)"
-                    class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
-                  />
-                </td>
-              </tr>
-              <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+                    value="일괄 저장"
+                    @click="downloadCheckedFiles"
+                    />
+                </div>
+            </div>
+        </template>
+
+        <template #item.voucher_date="{ item }">
+            {{ formatDate(item.voucher_date) }}
+        </template>
+
+        <template #item.nm_acctit="{ item }">
+            {{ item.nm_acctit }}
+        </template>
+
+        <template #item.mn_bungae1="{ item }">
+            {{ item.mn_bungae1 == 0 ? '' : formatPrice(item.mn_bungae1) }}
+        </template>
+
+        <template #item.mn_bungae2="{ item }">
+            {{ item.mn_bungae2 == 0 ? '' : formatPrice(item.mn_bungae2) }}
+        </template>
+
+        <template #item.files="{ item }">
+            <div
+                class="group relative w-full"
+                @mouseenter="handlePreviewPosition"
+                @mouseleave="resetPreviewPosition"
+            >
+                <div class="group relative inline-block w-full">
+                <!-- 파일 이름 리스트 -->
+                <div class="overflow-hidden text-ellipsis whitespace-nowrap">
+                    <template v-if="item.files && item.files.length">
+                    <a
+                        href="#"
+                        @click.prevent="downloadAllFiles(item.files, item.nm_remark)"
+                        class="block text-blue-500 hover:text-blue-600"
+                        :title="
+                        item.files.length === 1
+                            ? item.files[0].file_name
+                            : `${item.files[0].file_name} 외 ${item.files.length - 1}건`
+                        "
+                    >
+                        {{
+                        item.files.length === 1
+                            ? item.files[0].file_name
+                            : `${item.files[0].file_name} 외 ${item.files.length - 1}건`
+                        }}
+                    </a>
+                    </template>
+                </div>
+
+                <!-- 하나의 병합된 PDF 미리보기 -->
+                <div
+                    v-if="item.files && item.merged_pdf_url"
+                    class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
+                >
+                    <embed
+                    :src="item.merged_pdf_url"
+                    type="application/pdf"
+                    class="h-full w-full"
+                    />
+                </div>
+                </div>
+            </div>
+        </template>
+
+        <template #item.actions="{ item }">
+            <input
+                type="button"
+                value="첨부"
+                @click="openEditModal(item)"
+                class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
+            />
+        </template>
+    </BaseList>
+
     <EditModal
       :visible="isEditModalOpen"
       :voucher="editTargetVoucher"
