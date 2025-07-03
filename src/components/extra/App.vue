@@ -1,15 +1,10 @@
 <script setup>
-import Main from './Main.vue';
-import Header from '../Header.vue';
-import Footer from '../Footer.vue';
+import SharedApp from '@/components/shared/App.vue';
+import ExtraList from '@/components/extra/List.vue';
 </script>
 
 <template>
-  <div class="flex h-screen flex-col">
-    <Header />
-    <Main />
-    <Footer />
-  </div>
+  <SharedApp :ListComponent="ExtraList" />
 </template>
 
 <style scoped></style>

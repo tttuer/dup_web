@@ -3,7 +3,7 @@ import { ref, watchEffect } from 'vue';
 import LoginButton from './LoginButton.vue';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
-import { useTypeStore, TYPE } from '@/stores/typeStore';
+import { useTypeStore, TYPE } from '@/stores/useTypeStore';
 import { jwtDecode } from 'jwt-decode';
 
 const router = useRouter();
@@ -25,12 +25,11 @@ if (typeof window !== 'undefined') {
 }
 
 function goToVoucher() {
-  console.log('전표 증빙자료로 이동');
   typeStore.setType(TYPE.VOUCHER);
-  console.log('현재 타입:', typeStore.currentType);
-  console.log('현재 경로:', route.path);
     router.push('/')
-    .then(() => console.log('✅ router.push 성공!'))
+    .then(() => {
+      // 성공적으로 라우팅된 후 추가 작업이 필요하면 여기에 작성
+    })
     .catch(err => console.error('⛔️ router.push 에러:', err));
 }
 

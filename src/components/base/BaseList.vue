@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import Sentinel from '@/components/extra/Sentinel.vue'; // 경로 확인 필요
+import Sentinel from '@/components/shared/Sentinel.vue';
 
 const props = defineProps({
   headers: {
@@ -92,68 +92,56 @@ function handleIntersect() {
 <template>
   <div class="flex flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50">
     <!-- 고정 헤더 테이블 -->
-    <div class="flex min-w-[1300px] flex-1 flex-col overflow-y-hidden">
-      <div class="block h-14">
-        <table class="h-full w-full min-w-[1300px] table-fixed">
-          <thead class="bg-gray-100 dark:bg-gray-700">
-            <tr>
-              <th v-if="showCheckboxes" class="w-[2%] px-4 py-2 text-left">
-                <input type="checkbox" :checked="isAllChecked" @change="handleCheckAll" />
-              </th>
-              <th
-                v-for="header in headers"
-                :key="header.value"
-                :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left', `w-[${header.width}]`]"
-              >
-                <slot :name="`header.${header.value}`" :header="header">
-                  {{ header.text }}
-                </slot>
-              </th>
-            </tr>
-          </thead>
-        </table>
-      </div>
-
-      <div>
-        <table class="w-full min-w-[1300px] table-fixed">
-            <slot name="fixed-body"></slot>
-        </table>
-      </div>
-
-      <div class="no-scrollbar min-h-0 flex-1 overflow-y-scroll">
-        <table class="w-full min-w-[1300px] table-fixed">
-          <tbody>
-            <tr
-              v-for="(item, index) in items"
-              :key="item.id"
-              class="border-b border-gray-200 dark:border-gray-700"
+    <div class="min-w-[1300px] flex-1 overflow-x-hidden overflow-y-auto no-scrollbar">
+      <table class="w-full min-w-[1300px] table-fixed">
+        <thead class="bg-gray-100 dark:bg-gray-700 sticky top-0 z-10">
+          <tr>
+            <th v-if="showCheckboxes" class="w-[2%] px-4 py-2 text-left">
+              <input type="checkbox" :checked="isAllChecked" @change="handleCheckAll" />
+            </th>
+            <th
+              v-for="header in headers"
+              :key="header.value"
+              :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left', `w-[${header.width}]`]"
             >
-              <td v-if="showCheckboxes" class="w-[2%] px-4 py-2">
-                <input
-                  type="checkbox"
-                  :checked="checkedIds.has(item.id)"
-                  @click="handleCheckboxClick($event, index)"
-                />
-              </td>
-              <td
-                v-for="header in headers"
-                :key="header.value"
-                :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left', `w-[${header.width}]`]"
-              >
-                <slot :name="`item.${header.value}`" :item="item" :index="index">
-                  {{ item[header.value] }}
-                </slot>
-              </td>
-            </tr>
-            <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
-          </tbody>
-        </table>
-         <div v-if="loading" class="flex justify-center items-center p-4">
-            <p>로딩 중...</p>
-          </div>
-          <div v-if="!loading && items.length === 0" class="flex justify-center items-center p-4">
-            <p>데이터가 없습니다.</p>
-          </div>
+              <slot :name="`header.${header.value}`" :header="header">
+                {{ header.text }}
+              </slot>
+            </th>
+          </tr>
+        </thead>
+        <slot name="fixed-body"></slot>
+        <tbody>
+          <tr
+            v-for="(item, index) in items"
+            :key="item.id"
+            class="border-b border-gray-200 dark:border-gray-700"
+          >
+            <td v-if="showCheckboxes" class="w-[2%] px-4 py-2">
+              <input
+                type="checkbox"
+                :checked="checkedIds.has(item.id)"
+                @click="handleCheckboxClick($event, index)"
+              />
+            </td>
+            <td
+              v-for="header in headers"
+              :key="header.value"
+              :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left', `w-[${header.width}]`]"
+            >
+              <slot :name="`item.${header.value}`" :item="item" :index="index">
+                {{ item[header.value] }}
+              </slot>
+            </td>
+          </tr>
+          <Sentinel v-if="currentPage < totalPage" :onIntersect="handleIntersect" />
+        </tbody>
+      </table>
+      <div v-if="loading" class="flex justify-center items-center p-4">
+        <p>로딩 중...</p>
+      </div>
+      <div v-if="!loading && items.length === 0" class="flex justify-center items-center p-4">
+        <p>데이터가 없습니다.</p>
       </div>
     </div>
   </div>

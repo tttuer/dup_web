@@ -8,8 +8,8 @@ self.onmessage = (e) => {
     const blob = new Blob([byteArray], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
 
-    self.postMessage({ id, pdf_url: url });
+    self.postMessage({ id, url: url });
   } catch (err) {
-    self.postMessage({ id, pdf_url: null, error: err.message });
+    self.postMessage({ id, url: null, error: err.message });
   }
 };

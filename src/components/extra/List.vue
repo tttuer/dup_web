@@ -4,34 +4,20 @@ import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
-import { useTypeStore } from '@/stores/typeStore';
+import { useTypeStore } from '@/stores/useTypeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
-import { groupOptions, groupNameToEnum, groupIdToName, loadGroupOptions } from '@/stores/group';
+import { groupOptions, groupNameToEnum, groupIdToName, loadGroupOptions } from '@/stores/useGroupStore';
 import BaseList from '@/components/base/BaseList.vue';
 import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
+import { useFileDownloader } from '@/composables/useFileDownloader';
+import { usePdfPreview } from '@/composables/usePdfPreview';
 
 const selectedGroup = ref('');
 const roles = ref(getRoleFromLocalStorage());
 
 const typeStore = useTypeStore();
-
-const previewUrlCache = new Map();
-const worker = new Worker(new URL('./pdf-worker.js', import.meta.url), {
-  type: 'module',
-});
-
-worker.onmessage = (e) => {
-  const { id, pdf_url } = e.data;
-  previewUrlCache.set(id, pdf_url);
-  const file = fileLists.value.find((f) => f.id === id);
-  if (file) {
-    file.pdf_url = pdf_url;
-  }
-};
 
 const isLoading = ref(false);
 const selectedCompany = ref('');
@@ -41,6 +27,7 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
+const { handlePreviewPosition, resetPreviewPosition, generatePreview } = usePdfPreview(fileLists, 'single');
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
   백성운수: 'BAEKSUNG',
@@ -111,11 +98,7 @@ async function fetchFiles(isReset = false) {
     fileLists.value = [...fileLists.value, ...newFiles];
 
     newFiles.forEach((file) => {
-      if (!previewUrlCache.has(file.id)) {
-        worker.postMessage({ id: file.id, file_data: file.file_data });
-      } else {
-        file.pdf_url = previewUrlCache.get(file.id);
-      }
+      generatePreview(file);
     });
   } finally {
     isLoading.value = false;
@@ -182,35 +165,6 @@ function formatDate(dateStr) {
   return `${year}/${month}/${day}`;
 }
 
-function handlePreviewPosition(event) {
-  const container = event.currentTarget;
-  const preview = container.querySelector('.pdf-preview');
-  if (!preview) return;
-
-  const containerRect = container.getBoundingClientRect();
-  const previewHeight = preview.offsetHeight || 600;
-  const viewportHeight = window.innerHeight;
-  const spaceBelow = viewportHeight - containerRect.bottom;
-  const spaceAbove = containerRect.top;
-
-  preview.classList.remove('bottom-full', 'mb-2');
-  preview.classList.add('top-full', 'mt-2');
-
-  if (spaceBelow < previewHeight && spaceAbove > previewHeight) {
-    preview.classList.remove('top-full', 'mt-2');
-    preview.classList.add('bottom-full', 'mb-2');
-  }
-}
-
-function resetPreviewPosition(event) {
-  const container = event.currentTarget;
-  const preview = container.querySelector('.pdf-preview');
-  if (!preview) return;
-
-  preview.classList.remove('bottom-full', 'mb-2');
-  preview.classList.add('top-full', 'mt-2');
-}
-
 function handleIntersect() {
     currentPage.value++;
     fetchFiles();
@@ -219,6 +173,8 @@ function handleIntersect() {
 function search() {
   fetchFiles(true);
 }
+
+const { downloadAllFiles } = useFileDownloader();
 
 function downloadCheckedFiles() {
   const files = [...checkedIds.value].reduce((acc, id) => {
@@ -233,39 +189,6 @@ function downloadCheckedFiles() {
 
   checkedIds.value.clear();
 }
-
-function downloadAllFiles(files, id = '') {
-  const zip = new JSZip();
-  const nameCount = {};
-
-  files.forEach((file) => {
-    let name = file.file_name || `file-${Date.now()}.pdf`;
-    if (nameCount[name] === undefined) {
-      nameCount[name] = 0;
-    } else {
-      nameCount[name]++;
-      const extIdx = name.lastIndexOf('.');
-      if (extIdx > 0) {
-        name = name.slice(0, extIdx) + `(${nameCount[name]})` + name.slice(extIdx);
-      } else {
-        name = name + `(${nameCount[name]})`;
-      }
-    }
-
-    const binary = atob(file.file_data);
-    const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)));
-    zip.file(name, byteArray);
-  });
-
-  zip.generateAsync({ type: 'blob' }).then((content) => {
-    const filename = id ? `${id}.zip` : '첨부파일.zip';
-    saveAs(content, filename);
-  });
-}
-
-onUnmounted(() => {
-  worker.terminate();
-});
 
 watch(selectedCompany, async (newCompany) => {
   selectedGroup.value = '';
@@ -303,7 +226,12 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], async () =
             :isGroupDropdown="true"
             :company="selectedCompany"
             @group-created="() => loadGroupOptions(selectedCompany)"
-            @group-deleted="() => loadGroupOptions(selectedCompany)"
+            @group-deleted="(deletedGroupId) => {
+              if (selectedGroup === deletedGroupId) {
+                selectedGroup = '';
+              }
+              loadGroupOptions(selectedCompany);
+            }"
           />
         </div>
 

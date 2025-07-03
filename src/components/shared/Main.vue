@@ -1,10 +1,15 @@
 <script setup>
-import List from './List.vue';
+const props = defineProps({
+  ListComponent: {
+    type: Object,
+    required: true
+  }
+});
 </script>
 
 <template>
   <main class="flex flex-col grow overflow-hidden">
-    <List />
+    <component :is="ListComponent" />
   </main>
 </template>
 

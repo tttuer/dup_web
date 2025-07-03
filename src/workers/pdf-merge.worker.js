@@ -31,9 +31,9 @@ self.onmessage = async (e) => {
     const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
 
-    self.postMessage({ id, merged_pdf_url: url });
+    self.postMessage({ id, url: url });
   } catch (err) {
     console.error('PDF 병합 실패:', err);
-    self.postMessage({ id, merged_pdf_url: null, error: err.message });
+    self.postMessage({ id, url: null, error: err.message });
   }
 };

@@ -67,7 +67,7 @@
 import { reactive, watch, ref, onMounted } from 'vue';
 import { useCurrencyFormatter } from '@/utils/currencyFormatter';
 import { getRoleFromLocalStorage } from '@/utils/token';
-import { groupNameToEnum, loadGroupOptions } from '@/stores/group';
+import { groupNameToEnum, loadGroupOptions } from '@/stores/useGroupStore';
 import { authFetch } from '@/utils/authFetch';
 
 const groupUrl = `${import.meta.env.VITE_GROUP_API_URL}`;

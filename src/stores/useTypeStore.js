@@ -1,4 +1,4 @@
-// src/stores/typeStore.js
+// src/stores/useTypeStore.js
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
