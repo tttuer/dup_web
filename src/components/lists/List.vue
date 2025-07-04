@@ -33,7 +33,7 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
-const { handlePreviewPosition, resetPreviewPosition, generatePreview } =
+const { handlePreviewPosition, resetPreviewPosition, generatePreview, clearPreviewCache } =
   usePdfPreview(voucherLists, 'merge');
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
@@ -177,7 +177,7 @@ async function editVoucher(payload) {
 
     if (response.ok) {
       toast.success('수정 완료');
-      previewUrlCache.delete(payload.id);
+      clearPreviewCache(payload.id);
       closeEditModal();
       fetchVouchers(true);
     } else {

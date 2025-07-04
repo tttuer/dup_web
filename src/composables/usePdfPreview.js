@@ -79,11 +79,15 @@ export function usePdfPreview(itemsRef, workerType) {
     }
   }
 
+  function clearPreviewCache(id) {
+    previewUrlCache.delete(id);
+  }
+
   onUnmounted(() => {
     if (worker) {
       worker.terminate();
     }
   });
 
-  return { handlePreviewPosition, resetPreviewPosition, generatePreview };
+  return { handlePreviewPosition, resetPreviewPosition, generatePreview, clearPreviewCache };
 }
