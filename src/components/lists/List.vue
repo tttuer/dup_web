@@ -337,15 +337,17 @@ watch(voucherLists, () => {
               value="일괄 저장"
               @click="
                 () => {
-                  const files = [...checkedIds.value].reduce((acc, id) => {
-                    const voucher = voucherLists.value.find((v) => v.id === id);
+                  const files = Array.from(checkedIds || []).reduce((acc, id) => {
+                    const voucher = voucherLists.find((v) => v.id === id);
                     if (voucher?.files?.length) {
                       acc.push(...voucher.files);
                     }
                     return acc;
                   }, []);
                   downloadAllFiles(files);
-                  checkedIds.value.clear();
+                  if (checkedIds && checkedIds.clear) {
+                    checkedIds.clear();
+                  }
                 }
               "
             />
