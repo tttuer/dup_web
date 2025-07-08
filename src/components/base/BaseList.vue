@@ -102,7 +102,8 @@ function handleIntersect() {
             <th
               v-for="header in headers"
               :key="header.value"
-              :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left', `w-[${header.width}]`]"
+              :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left']"
+              :style="{ width: header.width }"
             >
               <slot :name="`header.${header.value}`" :header="header">
                 {{ header.text }}
@@ -127,7 +128,8 @@ function handleIntersect() {
             <td
               v-for="header in headers"
               :key="header.value"
-              :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left', `w-[${header.width}]`]"
+              :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left']"
+              :style="{ width: header.width }"
             >
               <slot :name="`item.${header.value}`" :item="item" :index="index">
                 {{ item[header.value] }}

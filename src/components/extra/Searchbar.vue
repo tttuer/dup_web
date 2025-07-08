@@ -22,7 +22,7 @@ function emitSearch() {
 <template>
   <div class="flex">
     <Dropdown
-      class="mr-2 z-10"
+      class="mr-2"
       :options="searchOptions"
       :nameToEnum="searchToEnum"
       @select="(select) => (selectedOption = select)"

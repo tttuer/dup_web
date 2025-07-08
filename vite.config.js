@@ -15,5 +15,5 @@ export default defineConfig({
     port: 4173,
     host: true,
     allowedHosts: ['arc.baeksung.kr'], // ✅ 여기에 추가
-  },
+  }, 
 });
