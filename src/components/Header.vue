@@ -1,15 +1,22 @@
 <script setup>
-import { ref, watchEffect } from 'vue';
+import { onMounted, onUnmounted, ref, watchEffect } from 'vue';
 import LoginButton from './LoginButton.vue';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
 import { useTypeStore, TYPE } from '@/stores/useTypeStore';
+import { usePendingUsersStore } from '@/stores/usePendingUsersStore';
 import { jwtDecode } from 'jwt-decode';
 
 const router = useRouter();
 const route = useRoute();
 const typeStore = useTypeStore();
+const pendingUsersStore = usePendingUsersStore();
+
 const hasVoucherRole = ref(false);
+const hasAdminRole = ref(false);
+
+// 스토어에서 pendingUsersCount 가져오기
+const { pendingUsersCount } = pendingUsersStore;
 
 if (typeof window !== 'undefined') {
   const token = localStorage.getItem('access_token');
@@ -18,11 +25,17 @@ if (typeof window !== 'undefined') {
       const decoded = jwtDecode(token);
       const roles = decoded.roles || [];
       hasVoucherRole.value = roles.includes('VOUCHER') || roles.includes('ADMIN');
+      hasAdminRole.value = roles.includes('ADMIN');
     } catch (e) {
       console.error('토큰 디코딩 실패:', e);
     }
   }
 }
+
+// 컴포넌트 마운트 시 웹소켓 연결
+onMounted(() => {
+  pendingUsersStore.connectWebSocket();
+});
 
 function goToVoucher() {
   typeStore.setType(TYPE.VOUCHER);
@@ -36,6 +49,10 @@ function goToVoucher() {
 function goToExtra() {
   typeStore.setType(TYPE.EXTRA);
   router.push('/extra');
+}
+
+function goToUserApproval() {
+  router.push('/user-approval');
 }
 
 watchEffect(() => {
@@ -76,7 +93,7 @@ watchEffect(() => {
         </div>
       </div>
       <div class="col-span-2 content-center">
-        <div class="flex h-full content-center" v-show="route.path !== '/login'">
+        <div class="flex h-full content-center" v-show="route.path !== '/login' && route.path !== '/signup'">
           <div
             class="content-center"
             v-if="hasVoucherRole"
@@ -101,6 +118,24 @@ watchEffect(() => {
               value="업무 파일"
               @click="goToExtra"
             />
+          </div>
+          <div
+            class="ml-5 content-center relative"
+            v-if="hasAdminRole"
+            :class="route.path === '/user-approval' ? 'border-b-2 border-black font-bold' : ''"
+          >
+            <input
+              class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
+              type="button"
+              value="회원 승인"
+              @click="goToUserApproval"
+            />
+            <span
+              v-if="pendingUsersCount > 0"
+              class="absolute top-1.5 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full"
+            >
+              {{ pendingUsersCount }}
+            </span>
           </div>
         </div>
       </div>
