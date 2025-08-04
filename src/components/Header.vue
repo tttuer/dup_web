@@ -10,6 +10,10 @@ const router = useRouter();
 const route = useRoute();
 const typeStore = useTypeStore();
 const hasVoucherRole = ref(false);
+const hasAdminRole = ref(false);
+const pendingUsersCount = ref(0);
+
+let pendingUsersSocket = null;
 
 if (typeof window !== 'undefined') {
   const token = localStorage.getItem('access_token');
@@ -18,9 +22,51 @@ if (typeof window !== 'undefined') {
       const decoded = jwtDecode(token);
       const roles = decoded.roles || [];
       hasVoucherRole.value = roles.includes('VOUCHER') || roles.includes('ADMIN');
+      hasAdminRole.value = roles.includes('ADMIN');
+      
+      // 관리자인 경우 웹소켓 연결
+      if (hasAdminRole.value) {
+        connectPendingUsersWebSocket();
+      }
     } catch (e) {
       console.error('토큰 디코딩 실패:', e);
     }
+  }
+}
+
+function connectPendingUsersWebSocket() {
+  const token = localStorage.getItem('access_token');
+  const wsUrl = `${import.meta.env.VITE_WS_URL_PENDING_USERS}?token=${token}`;
+  
+  pendingUsersSocket = new WebSocket(wsUrl);
+  
+  pendingUsersSocket.onopen = () => {
+  };
+  
+  pendingUsersSocket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.pending_users_count !== undefined) {
+        pendingUsersCount.value = data.pending_users_count;
+      }
+    } catch (error) {
+      console.error('웹소켓 메시지 파싱 오류:', error);
+    }
+  };
+  
+  pendingUsersSocket.onerror = (error) => {
+    console.error('📡 Pending users WebSocket error:', error);
+  };
+  
+  pendingUsersSocket.onclose = () => {
+    console.log('📡 Pending users WebSocket disconnected');
+  };
+}
+
+// 컴포넌트 언마운트 시 웹소켓 정리
+function cleanup() {
+  if (pendingUsersSocket && pendingUsersSocket.readyState === WebSocket.OPEN) {
+    pendingUsersSocket.close();
   }
 }
 
@@ -36,6 +82,10 @@ function goToVoucher() {
 function goToExtra() {
   typeStore.setType(TYPE.EXTRA);
   router.push('/extra');
+}
+
+function goToUserApproval() {
+  router.push('/user-approval');
 }
 
 watchEffect(() => {
@@ -76,7 +126,7 @@ watchEffect(() => {
         </div>
       </div>
       <div class="col-span-2 content-center">
-        <div class="flex h-full content-center" v-show="route.path !== '/login'">
+        <div class="flex h-full content-center" v-show="route.path !== '/login' && route.path !== '/signup'">
           <div
             class="content-center"
             v-if="hasVoucherRole"
@@ -101,6 +151,24 @@ watchEffect(() => {
               value="업무 파일"
               @click="goToExtra"
             />
+          </div>
+          <div
+            class="ml-5 content-center relative"
+            v-if="hasAdminRole"
+            :class="route.path === '/user-approval' ? 'border-b-2 border-black font-bold' : ''"
+          >
+            <input
+              class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
+              type="button"
+              value="회원 승인"
+              @click="goToUserApproval"
+            />
+            <span
+              v-if="pendingUsersCount > 0"
+              class="absolute top-1.5 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full"
+            >
+              {{ pendingUsersCount }}
+            </span>
           </div>
         </div>
       </div>

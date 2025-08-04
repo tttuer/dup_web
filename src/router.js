@@ -4,13 +4,17 @@ import { jwtDecode } from 'jwt-decode';
 import HomeView from './components/lists/App.vue';
 import ExtraView from './components/extra/App.vue';
 import LoginView from './components/login/App.vue';
+import SignUpView from './components/login/SignUp.vue';
+import UserApprovalView from './components/admin/UserApproval.vue';
 import { tryRefreshToken } from '@/utils/authFetch'; // 가정: 토큰 갱신 함수
 import { authFetch } from './utils/authFetch';
 
 const routes = [
   { path: '/', component: HomeView, meta: { requiresAuth: true } },
   { path: '/extra', component: ExtraView, meta: { requiresAuth: true } },
+  { path: '/user-approval', component: UserApprovalView, meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/login', component: LoginView },
+  { path: '/signup', component: SignUpView },
 ];
 
 const router = createRouter({
@@ -62,6 +66,10 @@ router.beforeEach(async (to) => {
 
   if (to.path === '/' && !(roles.includes('VOUCHER') || roles.includes('ADMIN'))) {
     return '/extra';
+  }
+
+  if (to.meta.requiresAdmin && !roles.includes('ADMIN')) {
+    return '/';
   }
 
   return true;

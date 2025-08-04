@@ -77,6 +77,15 @@ async function login() {
           @click="login"
         />
       </div>
+      
+      <div class="mt-4 text-center">
+        <button
+          @click="router.push('/signup')"
+          class="text-blue-600 hover:text-blue-800 underline"
+        >
+          회원가입하기
+        </button>
+      </div>
     </div>
   </main>
 </template>
