@@ -1,19 +1,22 @@
 <script setup>
-import { ref, watchEffect } from 'vue';
+import { onMounted, onUnmounted, ref, watchEffect } from 'vue';
 import LoginButton from './LoginButton.vue';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
 import { useTypeStore, TYPE } from '@/stores/useTypeStore';
+import { usePendingUsersStore } from '@/stores/usePendingUsersStore';
 import { jwtDecode } from 'jwt-decode';
 
 const router = useRouter();
 const route = useRoute();
 const typeStore = useTypeStore();
+const pendingUsersStore = usePendingUsersStore();
+
 const hasVoucherRole = ref(false);
 const hasAdminRole = ref(false);
-const pendingUsersCount = ref(0);
 
-let pendingUsersSocket = null;
+// 스토어에서 pendingUsersCount 가져오기
+const { pendingUsersCount } = pendingUsersStore;
 
 if (typeof window !== 'undefined') {
   const token = localStorage.getItem('access_token');
@@ -23,52 +26,16 @@ if (typeof window !== 'undefined') {
       const roles = decoded.roles || [];
       hasVoucherRole.value = roles.includes('VOUCHER') || roles.includes('ADMIN');
       hasAdminRole.value = roles.includes('ADMIN');
-      
-      // 관리자인 경우 웹소켓 연결
-      if (hasAdminRole.value) {
-        connectPendingUsersWebSocket();
-      }
     } catch (e) {
       console.error('토큰 디코딩 실패:', e);
     }
   }
 }
 
-function connectPendingUsersWebSocket() {
-  const token = localStorage.getItem('access_token');
-  const wsUrl = `${import.meta.env.VITE_WS_URL_PENDING_USERS}?token=${token}`;
-  
-  pendingUsersSocket = new WebSocket(wsUrl);
-  
-  pendingUsersSocket.onopen = () => {
-  };
-  
-  pendingUsersSocket.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      if (data.pending_users_count !== undefined) {
-        pendingUsersCount.value = data.pending_users_count;
-      }
-    } catch (error) {
-      console.error('웹소켓 메시지 파싱 오류:', error);
-    }
-  };
-  
-  pendingUsersSocket.onerror = (error) => {
-    console.error('📡 Pending users WebSocket error:', error);
-  };
-  
-  pendingUsersSocket.onclose = () => {
-    console.log('📡 Pending users WebSocket disconnected');
-  };
-}
-
-// 컴포넌트 언마운트 시 웹소켓 정리
-function cleanup() {
-  if (pendingUsersSocket && pendingUsersSocket.readyState === WebSocket.OPEN) {
-    pendingUsersSocket.close();
-  }
-}
+// 컴포넌트 마운트 시 웹소켓 연결
+onMounted(() => {
+  pendingUsersStore.connectWebSocket();
+});
 
 function goToVoucher() {
   typeStore.setType(TYPE.VOUCHER);
