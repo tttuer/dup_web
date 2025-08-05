@@ -128,6 +128,7 @@ watch(
 );
 
 function checkAndRequestMoreItems() {
+  console.log(container.value, props.loading, props.currentPage, props.totalPage, requestingMore.value);
   if (!container.value || props.loading || props.currentPage >= props.totalPage || requestingMore.value) {
     return;
   }
