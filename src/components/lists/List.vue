@@ -94,6 +94,7 @@ async function fetchVouchers(isReset = false) {
   params.append('company', selectedCompany.value);
   params.append('start_at', start_at.value ? start_at.value : '');
   params.append('end_at', end_at.value ? end_at.value : '');
+  console.log('currentPage:', currentPage.value);
   params.append('page', currentPage.value);
   params.append('search', searchbar.value);
   params.append('search_option', searchbarOption.value);
