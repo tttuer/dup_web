@@ -215,6 +215,30 @@ onUnmounted(() => {
 
 const { downloadAllFiles } = useFileDownloader();
 
+function getBadgeClassByCode(code) {
+  if (!code) {
+    return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  }
+  const codeStr = code.toString();
+  if (codeStr.startsWith('103')) {
+    return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'; // 103 코드
+  }
+
+  const firstDigit = codeStr[0];
+  const colorMap = {
+    '1': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+    '2': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+    '3': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
+    '4': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+    '5': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300', // 차량
+    '6': 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
+    '8': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300', // 사무실
+  };
+  return (
+    colorMap[firstDigit] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+  );
+}
+
 watch([selectedCompany, start_at, end_at, lockFilter], async () => {
   await fetchVouchers(true);
 });
@@ -356,11 +380,29 @@ watch(voucherLists, () => {
       </template>
 
       <template #item.voucher_date="{ item }">
-        {{ formatDate(item.voucher_date) }}
+        <div class="text-center">{{ formatDate(item.voucher_date) }}</div>
       </template>
 
       <template #item.nm_acctit="{ item }">
-        {{ item.nm_acctit }}
+        <div class="flex items-center justify-center">
+          <span
+            :class="[
+              'rounded-full px-2.5 py-1 text-sm font-semibold',
+              getBadgeClassByCode(item.cd_acctit),
+            ]"
+          >
+            {{ item.nm_acctit }}
+          </span>
+        </div>
+      </template>
+
+      <template #item.nm_trade="{ item }">
+        <div
+          class="truncate whitespace-nowrap"
+          :title="item.nm_trade"
+        >
+          {{ item.nm_trade }}
+        </div>
       </template>
 
       <template #item.mn_bungae1="{ item }">
@@ -369,6 +411,15 @@ watch(voucherLists, () => {
 
       <template #item.mn_bungae2="{ item }">
         {{ item.mn_bungae2 == 0 ? '' : formatPrice(item.mn_bungae2) }}
+      </template>
+
+      <template #item.nm_remark="{ item }">
+        <div
+          class="truncate whitespace-nowrap"
+          :title="item.nm_remark"
+        >
+          {{ item.nm_remark }}
+        </div>
       </template>
 
       <template #item.files="{ item }">

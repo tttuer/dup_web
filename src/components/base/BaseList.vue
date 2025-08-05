@@ -96,13 +96,19 @@ function handleIntersect() {
       <table class="w-full min-w-[1300px] table-fixed">
         <thead class="bg-gray-100 dark:bg-gray-700 sticky top-0 z-10">
           <tr>
-            <th v-if="showCheckboxes" class="w-[2%] px-4 py-2 text-left">
+            <th
+              v-if="showCheckboxes"
+              class="w-[2%] border-r border-gray-200 px-4 py-2 text-center dark:border-gray-600"
+            >
               <input type="checkbox" :checked="isAllChecked" @change="handleCheckAll" />
             </th>
             <th
               v-for="header in headers"
               :key="header.value"
-              :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left']"
+              :class="[
+                'border-r border-gray-200 px-4 py-2 last:border-r-0 dark:border-gray-600',
+                header.align === 'right' ? 'text-right' : 'text-center',
+              ]"
               :style="{ width: header.width }"
             >
               <slot :name="`header.${header.value}`" :header="header">
@@ -117,8 +123,12 @@ function handleIntersect() {
             v-for="(item, index) in items"
             :key="item.id"
             class="border-b border-gray-200 dark:border-gray-700"
+            :class="{ 'bg-gray-50 dark:bg-gray-800/50': index % 2 !== 0 }"
           >
-            <td v-if="showCheckboxes" class="w-[2%] px-4 py-2">
+            <td
+              v-if="showCheckboxes"
+              class="w-[2%] border-r border-gray-200 px-4 py-2 dark:border-gray-600"
+            >
               <input
                 type="checkbox"
                 :checked="checkedIds.has(item.id)"
@@ -128,7 +138,10 @@ function handleIntersect() {
             <td
               v-for="header in headers"
               :key="header.value"
-              :class="['px-4 py-2', header.align === 'right' ? 'text-right' : 'text-left']"
+              :class="[
+                'border-r border-gray-200 px-4 py-2 last:border-r-0 dark:border-gray-600',
+                header.align === 'right' ? 'text-right' : 'text-left',
+              ]"
               :style="{ width: header.width }"
             >
               <slot :name="`item.${header.value}`" :item="item" :index="index">
