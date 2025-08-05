@@ -33,6 +33,21 @@ const props = defineProps({
   },
 });
 
+const itemsWithGroupInfo = computed(() => {
+  if (!props.items || props.items.length === 0) return [];
+
+  let groupIndex = 0;
+  return props.items.map((item, index) => {
+    if (index > 0) {
+      const prevItem = props.items[index - 1];
+      if (item.voucher_date !== prevItem.voucher_date || item.no_acct !== prevItem.no_acct) {
+        groupIndex++;
+      }
+    }
+    return { ...item, groupIndex };
+  });
+});
+
 const emit = defineEmits(['update:checkedIds', 'intersect', 'check-all']);
 
 const lastCheckedIndex = ref(null);
@@ -120,10 +135,14 @@ function handleIntersect() {
         <slot name="fixed-body"></slot>
         <tbody>
           <tr
-            v-for="(item, index) in items"
+            v-for="(item, index) in itemsWithGroupInfo"
             :key="item.id"
             class="border-b border-gray-200 dark:border-gray-700"
-            :class="{ 'bg-gray-50 dark:bg-gray-800/50': index % 2 !== 0 }"
+            :class="
+              item.groupIndex % 2 === 0
+                ? 'bg-white dark:bg-gray-900'
+                : 'bg-blue-50 dark:bg-gray-800'
+            "
           >
             <td
               v-if="showCheckboxes"
