@@ -239,25 +239,15 @@ function getBadgeClassByCode(code) {
   );
 }
 
+function handleRequestMoreItems() {
+  if (currentPage.value < totalPage.value && !isLoading.value && !isPdfConverting.value) {
+    currentPage.value++;
+    fetchVouchers();
+  }
+}
+
 watch([selectedCompany, start_at, end_at, lockFilter], async () => {
   await fetchVouchers(true);
-});
-
-watch(voucherLists, () => {
-  nextTick(() => {
-    const container = document.querySelector('.overflow-y-scroll');
-
-    if (
-      container &&
-      container.scrollHeight <= container.clientHeight &&
-      currentPage.value < totalPage.value &&
-      !isLoading.value &&
-      !isPdfConverting.value
-    ) {
-      currentPage.value++;
-      fetchVouchers();
-    }
-  });
 });
 </script>
 
@@ -345,6 +335,7 @@ watch(voucherLists, () => {
       :currentPage="currentPage"
       :totalPage="totalPage"
       @intersect="handleIntersect"
+      @request-more-items="handleRequestMoreItems"
     >
       <template #header.files="{ header }">
         <div class="flex">
