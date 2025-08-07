@@ -94,8 +94,8 @@ async function fetchVouchers(isReset = false) {
   params.append('company', selectedCompany.value);
   params.append('start_at', start_at.value ? start_at.value : '');
   params.append('end_at', end_at.value ? end_at.value : '');
-  console.log('currentPage:', currentPage.value);
   params.append('page', currentPage.value);
+  params.append('items_per_page', '30'); // 임시로 50개로 테스트
   params.append('search', searchbar.value);
   params.append('search_option', searchbarOption.value);
 
@@ -115,11 +115,14 @@ async function fetchVouchers(isReset = false) {
     vouchers.forEach((voucher) => {
       generatePreview(voucher);
     });
+    
   } finally {
     isLoading.value = false;
     isPdfConverting.value = false;
   }
 }
+
+// 기존 복잡한 로직 제거 - 백엔드에서 한 번에 처리
 
 const isSyncing = computed(() => syncStore.syncing);
 
@@ -202,8 +205,10 @@ function formatPrice(price) {
 }
 
 function handleIntersect() {
-  currentPage.value++;
-  fetchVouchers();
+  if (currentPage.value < totalPage.value && !isLoading.value && !isPdfConverting.value) {
+    currentPage.value++;
+    fetchVouchers();
+  }
 }
 
 function search() {
@@ -240,12 +245,7 @@ function getBadgeClassByCode(code) {
   );
 }
 
-function handleRequestMoreItems() {
-  if (currentPage.value < totalPage.value && !isLoading.value && !isPdfConverting.value) {
-    currentPage.value++;
-    fetchVouchers();
-  }
-}
+// 그룹 자동 로딩 함수 제거
 
 watch([selectedCompany, start_at, end_at, lockFilter], async () => {
   await fetchVouchers(true);
@@ -336,7 +336,6 @@ watch([selectedCompany, start_at, end_at, lockFilter], async () => {
       :currentPage="currentPage"
       :totalPage="totalPage"
       @intersect="handleIntersect"
-      @request-more-items="handleRequestMoreItems"
     >
       <template #header.files="{ header }">
         <div class="flex">
