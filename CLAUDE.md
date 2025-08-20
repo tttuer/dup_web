@@ -140,3 +140,225 @@ UserInput.vue - 필드 구성 props로 제어
 - [x] 중복 코드 식별
 - [x] 리팩토링 계획 수립
 - [ ] 리팩토링 실행 (대기 중)
+
+---
+
+# 전자결재 시스템 도입 계획 (2025-08-20)
+
+## 📋 시스템 분석 결과
+
+### 현재 프로젝트 구조
+- **기술스택**: Vue 3 + Pinia + TailwindCSS + Vite
+- **주요 기능**: 바우처 관리, 파일 첨부, PDF 생성/병합, 사용자 권한 관리
+- **인증 시스템**: JWT 기반, RBAC (ADMIN, VOUCHER 역할)
+- **데이터 흐름**: authFetch를 통한 백엔드 API 통신
+
+## 🎯 전자결재 기능 요구사항
+
+### 1. 결재 상태 관리
+- **결재 대기**: 상신 후 첫 번째 결재자 승인 대기
+- **결재 진행중**: 일부 결재자 승인, 다음 결재자 대기  
+- **결재 완료**: 모든 결재선 승인 완료
+- **결재 반려**: 결재자가 반려 처리
+- **결재 회수**: 상신자가 직접 회수
+
+### 2. 결재선 구조
+- **순차 결재**: 1차 → 2차 → 3차 순서대로 진행
+- **병렬 결재**: 동일 단계에서 여러 결재자 동시 승인
+- **필수/선택**: 필수 결재자와 참조자 구분
+- **대결**: 부재 시 대리 결재자 지정
+
+### 3. 권한별 기능
+- **상신자**: 결재 요청, 진행 상황 조회, 회수
+- **결재자**: 승인/반려, 의견 작성, 위임
+- **관리자**: 결재선 템플릿 관리, 강제 완료/취소
+
+## 🏗️ 구현 계획
+
+### Phase 1: 데이터 모델 및 상태 관리 (1-2일)
+
+#### 1.1 타입 정의 확장
+```javascript
+// src/stores/useTypeStore.js 확장
+export const APPROVAL_STATUS = {
+  DRAFT: 'DRAFT',           // 임시저장
+  PENDING: 'PENDING',       // 결재 대기  
+  IN_PROGRESS: 'IN_PROGRESS', // 결재 진행중
+  APPROVED: 'APPROVED',     // 결재 완료
+  REJECTED: 'REJECTED',     // 결재 반려
+  RECALLED: 'RECALLED'      // 결재 회수
+};
+
+export const APPROVAL_ACTION = {
+  SUBMIT: 'SUBMIT',         // 상신
+  APPROVE: 'APPROVE',       // 승인
+  REJECT: 'REJECT',         // 반려
+  RECALL: 'RECALL',         // 회수
+  DELEGATE: 'DELEGATE'      // 위임
+};
+```
+
+#### 1.2 결재 관련 Pinia Store 생성
+```javascript
+// src/stores/useApprovalStore.js
+- 결재선 관리 (approvalLines)
+- 결재 히스토리 (approvalHistory) 
+- 현재 결재 상태 (currentApprovalStatus)
+- 결재 권한 확인 (canApprove, canRecall)
+```
+
+#### 1.3 사용자 관리 Store 확장
+```javascript
+// src/stores/useUserStore.js (신규)
+- 조직도 데이터 (departments, users)
+- 결재자 검색 및 선택
+- 부재/대결 설정
+```
+
+### Phase 2: UI 컴포넌트 개발 (2-3일)
+
+#### 2.1 결재선 설정 컴포넌트
+```
+src/components/approval/
+├── ApprovalLineModal.vue      # 결재선 설정 모달
+├── ApprovalUserSearch.vue     # 결재자 검색/선택
+├── ApprovalLinePreview.vue    # 결재선 미리보기
+└── ApprovalTemplateSelect.vue # 결재선 템플릿 선택
+```
+
+#### 2.2 결재 진행 상황 컴포넌트  
+```
+src/components/approval/
+├── ApprovalStatus.vue         # 결재 상태 표시
+├── ApprovalHistory.vue        # 결재 히스토리
+├── ApprovalActionButtons.vue  # 승인/반려 버튼
+└── ApprovalComments.vue       # 결재 의견
+```
+
+#### 2.3 결재 관리 페이지
+```
+src/components/approval/
+├── ApprovalDashboard.vue      # 결재 대시보드
+├── MyApprovalList.vue         # 내가 올린 결재
+├── PendingApprovalList.vue    # 결재 대기 목록
+└── CompletedApprovalList.vue  # 완료된 결재
+```
+
+### Phase 3: 기존 시스템 통합 (2-3일)
+
+#### 3.1 바우처 시스템 통합
+- `src/components/lists/List.vue`에 결재 상태 컬럼 추가
+- 결재 완료된 바우처만 수정 가능하도록 제한
+- 결재 진행중인 항목 시각적 구분
+
+#### 3.2 파일 시스템 통합  
+- `src/components/extra/List.vue`에 결재 플로우 적용
+- 파일 업로드 시 자동 결재선 적용 옵션
+- 결재 완료 후 파일 잠금 처리
+
+#### 3.3 권한 시스템 확장
+```javascript
+// 새로운 역할 추가
+export const USER_ROLES = {
+  ADMIN: 'ADMIN',
+  VOUCHER: 'VOUCHER', 
+  APPROVER: 'APPROVER',     // 결재자
+  SUBMITTER: 'SUBMITTER'    // 상신자
+};
+```
+
+### Phase 4: API 연동 및 최적화 (1-2일)
+
+#### 4.1 백엔드 API 연동
+```javascript
+// src/utils/approvalApi.js
+- submitApproval()      // 결재 상신
+- approveItem()         // 승인 처리  
+- rejectItem()          // 반려 처리
+- recallApproval()      // 회수 처리
+- getApprovalHistory()  // 결재 히스토리 조회
+```
+
+#### 4.2 실시간 알림 시스템
+- WebSocket 또는 SSE를 통한 결재 상태 실시간 업데이트
+- 결재 요청/완료 시 관련자에게 알림
+
+#### 4.3 성능 최적화
+- 결재 히스토리 무한 스크롤
+- 결재선 설정 캐싱
+- 대용량 파일 결재 시 진행률 표시
+
+## 📱 UI/UX 설계 원칙
+
+### 1. 기존 디자인 시스템 활용
+- TailwindCSS 컬러 팔레트 유지
+- 기존 버튼/모달 스타일 일관성 유지
+- Lucide 아이콘 활용
+
+### 2. 사용성 우선 설계
+- 결재선 설정: 드래그 앤 드롭으로 직관적 순서 변경
+- 상태 표시: 컬러 코딩으로 한눈에 파악 가능
+- 모바일 반응형: 스마트폰에서도 결재 가능
+
+### 3. 접근성 고려
+- 키보드 네비게이션 지원
+- 스크린 리더 호환성
+- 고대비 모드 지원
+
+## 🚀 개발 일정
+
+### Week 1 (1-3일차)
+- [x] 요구사항 분석 및 설계
+- [ ] 데이터 모델 및 Store 구현
+- [ ] 기본 컴포넌트 구조 설계
+
+### Week 2 (4-6일차)  
+- [ ] 결재선 설정 UI 구현
+- [ ] 결재 상태 표시 컴포넌트
+- [ ] 승인/반려 기능 구현
+
+### Week 3 (7-9일차)
+- [ ] 기존 바우처/파일 시스템 통합
+- [ ] API 연동 및 테스트
+- [ ] 사용자 권한 시스템 확장
+
+### Week 4 (10-12일차)
+- [ ] 실시간 알림 시스템
+- [ ] 성능 최적화 및 버그 수정
+- [ ] 사용자 테스트 및 피드백 반영
+
+## 🎯 다음 작업 재개 방법
+
+### 즉시 시작 가능한 작업
+1. **데이터 모델 구현**: `src/stores/useTypeStore.js`에 결재 상태 타입 추가
+2. **결재 Store 생성**: `src/stores/useApprovalStore.js` 파일 생성
+3. **사용자 Store 생성**: `src/stores/useUserStore.js` 파일 생성
+
+### 재개 명령어 예시
+```
+전자결재 시스템 개발을 이어서 진행해줘. CLAUDE.md의 Phase 1부터 시작해줘.
+```
+
+## 📝 중요 참고사항
+
+### 기존 코드와의 호환성
+- 기존 `authFetch` 패턴 유지
+- BaseList.vue의 무한 스크롤 로직 재활용
+- 기존 모달 스타일과 일관성 유지
+
+### 보안 고려사항
+- 결재 권한 서버사이드 검증 필수
+- 결재 히스토리 위변조 방지
+- 민감한 결재 정보 암호화 전송
+
+### 성능 고려사항
+- 대용량 결재 목록 가상 스크롤링
+- 결재선 설정 템플릿 캐싱
+- 실시간 알림 최적화
+
+---
+
+## 프로젝트 현재 상태 (2025-08-20)
+- **무한 스크롤 최적화**: 완료 (BaseList.vue)
+- **리팩토링 계획**: 수립 완료, 실행 대기
+- **전자결재 시스템**: 계획 수립 완료, 구현 시작 대기
