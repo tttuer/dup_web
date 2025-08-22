@@ -5,12 +5,14 @@ import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
 import { useTypeStore, TYPE } from '@/stores/useTypeStore';
 import { usePendingUsersStore } from '@/stores/usePendingUsersStore';
+import { useApprovalNotificationStore } from '@/stores/useApprovalNotificationStore';
 import { jwtDecode } from 'jwt-decode';
 
 const router = useRouter();
 const route = useRoute();
 const typeStore = useTypeStore();
 const pendingUsersStore = usePendingUsersStore();
+const approvalNotificationStore = useApprovalNotificationStore();
 
 const hasVoucherRole = ref(false);
 const hasAdminRole = ref(false);
@@ -35,6 +37,7 @@ if (typeof window !== 'undefined') {
 // 컴포넌트 마운트 시 웹소켓 연결
 onMounted(() => {
   pendingUsersStore.connectWebSocket();
+  approvalNotificationStore.connectWebSocket();
 });
 
 function goToVoucher() {
@@ -53,6 +56,10 @@ function goToExtra() {
 
 function goToUserApproval() {
   router.push('/user-approval');
+}
+
+function goToApproval() {
+  router.push('/approval');
 }
 
 watchEffect(() => {
@@ -118,6 +125,23 @@ watchEffect(() => {
               value="업무 파일"
               @click="goToExtra"
             />
+          </div>
+          <div
+            class="ml-5 content-center relative"
+            :class="route.path === '/approval' ? 'border-b-2 border-black font-bold' : ''"
+          >
+            <input
+              class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
+              type="button"
+              value="전자결재"
+              @click="goToApproval"
+            />
+            <span
+              v-if="approvalNotificationStore.pendingApprovalCount > 0"
+              class="absolute top-1.5 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full"
+            >
+              {{ approvalNotificationStore.pendingApprovalCount }}
+            </span>
           </div>
           <div
             class="ml-5 content-center relative"
