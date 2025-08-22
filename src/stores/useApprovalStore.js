@@ -62,7 +62,7 @@ export const useApprovalStore = defineStore('approval', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/approvals/${id}`);
+      const response = await authFetch(`${APPROVAL_API_URL}/${id}`);
       if (response.ok) {
         const data = await response.json();
         approvalDetail.value = data;
@@ -82,7 +82,7 @@ export const useApprovalStore = defineStore('approval', () => {
   // 결재선 조회
   async function fetchApprovalLines(requestId) {
     try {
-      const response = await authFetch(`/api/approvals/${requestId}/lines`);
+      const response = await authFetch(`${APPROVAL_API_URL}/${requestId}/lines`);
       if (response.ok) {
         const data = await response.json();
         approvalLines.value = data;
@@ -102,7 +102,7 @@ export const useApprovalStore = defineStore('approval', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch('/api/approvals', {
+      const response = await authFetch(APPROVAL_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ export const useApprovalStore = defineStore('approval', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/approvals/${requestId}/submit`, {
+      const response = await authFetch(`${APPROVAL_API_URL}/${requestId}/submit`, {
         method: 'POST',
       });
       
@@ -157,7 +157,7 @@ export const useApprovalStore = defineStore('approval', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/approvals/${requestId}/approve`, {
+      const response = await authFetch(`${APPROVAL_API_URL}/${requestId}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ export const useApprovalStore = defineStore('approval', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/approvals/${requestId}/reject`, {
+      const response = await authFetch(`${APPROVAL_API_URL}/${requestId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ export const useApprovalStore = defineStore('approval', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/approvals/${requestId}/cancel`, {
+      const response = await authFetch(`${APPROVAL_API_URL}/${requestId}/cancel`, {
         method: 'POST',
       });
       
@@ -240,7 +240,7 @@ export const useApprovalStore = defineStore('approval', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/approvals/${requestId}/lines`, {
+      const response = await authFetch(`${APPROVAL_API_URL}/${requestId}/lines`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

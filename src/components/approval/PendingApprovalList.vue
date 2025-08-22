@@ -81,14 +81,6 @@
             <!-- 우측 액션 영역 -->
             <div class="flex flex-col items-end space-y-3">
               <!-- 현재 결재 단계 -->
-              <div class="text-right">
-                <div class="text-sm font-medium text-blue-600">
-                  {{ request.current_step }}단계 결재
-                </div>
-                <div class="text-xs text-gray-500">
-                  {{ getTotalSteps(request) }}단계 중
-                </div>
-              </div>
               
               <!-- 액션 버튼 -->
               <div class="flex items-center space-x-2">

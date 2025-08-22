@@ -39,7 +39,7 @@ export const useTemplateStore = defineStore('template', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/templates/${id}`);
+      const response = await authFetch(`${TEMPLATE_API_URL}/${id}`);
       if (response.ok) {
         const data = await response.json();
         templateDetail.value = data;
@@ -61,7 +61,7 @@ export const useTemplateStore = defineStore('template', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch('/api/templates', {
+      const response = await authFetch(TEMPLATE_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export const useTemplateStore = defineStore('template', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/templates/${id}`, {
+      const response = await authFetch(`${TEMPLATE_API_URL}/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ export const useTemplateStore = defineStore('template', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(`/api/templates/${id}`, {
+      const response = await authFetch(`${TEMPLATE_API_URL}/${id}`, {
         method: 'DELETE',
       });
       

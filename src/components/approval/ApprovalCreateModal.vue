@@ -2,7 +2,9 @@
   <div 
     v-if="isVisible" 
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    @click.self="closeModal"
+    @click.self="handleBackdropClick"
+    @mousedown="handleMouseDown"
+    @mouseup="handleMouseUp"
   >
     <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
       <!-- 헤더 -->
@@ -27,7 +29,7 @@
                  :class="step >= 1 ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300'">
               1
             </div>
-            <span class="ml-2">기본 정보</span>
+            <span class="ml-2">기본 정보 & 첨부파일</span>
           </div>
           <div class="flex-1 h-0.5" :class="step >= 2 ? 'bg-blue-600' : 'bg-gray-300'"></div>
           <div 
@@ -49,7 +51,7 @@
                  :class="step >= 3 ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300'">
               3
             </div>
-            <span class="ml-2">첨부파일</span>
+            <span class="ml-2">최종 확인</span>
           </div>
         </div>
       </div>
@@ -172,56 +174,8 @@
             </select>
           </div>
         </div>
-      </div>
 
-      <!-- Step 2: 결재선 설정 -->
-      <div v-if="step === 2" class="space-y-6">
-        <div class="text-center py-8">
-          <Users class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h4 class="text-lg font-medium text-gray-900 mb-2">결재선 설정</h4>
-          <p class="text-gray-500 mb-6">결재자를 선택하고 순서를 정해주세요.</p>
-          
-          <button
-            @click="showApprovalLineModal = true"
-            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            <Plus class="w-4 h-4 mr-2" />
-            결재선 설정
-          </button>
-        </div>
-
-        <!-- 설정된 결재선 미리보기 -->
-        <div v-if="approvalLines.length > 0" class="mt-6">
-          <h5 class="font-medium text-gray-900 mb-3">설정된 결재선</h5>
-          <div class="flex items-center space-x-2 overflow-x-auto pb-2">
-            <div
-              v-for="(line, index) in approvalLines"
-              :key="`preview-${index}`"
-              class="flex items-center space-x-2 flex-shrink-0"
-            >
-              <!-- 결재자 카드 -->
-              <div class="flex items-center space-x-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                <div class="w-6 h-6 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium">
-                  {{ index + 1 }}
-                </div>
-                <div class="text-sm">
-                  <div class="font-medium">{{ line.approver_name }}</div>
-                  <div class="text-xs text-gray-500">{{ line.approver_department }}</div>
-                </div>
-                <span v-if="!line.is_required" class="px-1 py-0.5 text-xs bg-gray-200 text-gray-600 rounded">
-                  선택
-                </span>
-              </div>
-              
-              <!-- 화살표 (마지막이 아닌 경우) -->
-              <ArrowRight v-if="index < approvalLines.length - 1" class="w-4 h-4 text-gray-400 flex-shrink-0" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 3: 첨부파일 -->
-      <div v-if="step === 3" class="space-y-6">
+        <!-- 첨부파일 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
             첨부파일 (선택사항)
@@ -274,6 +228,122 @@
             >
               <Trash2 class="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: 결재선 설정 -->
+      <div v-if="step === 2" class="space-y-6">
+        <div class="text-center py-8">
+          <Users class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h4 class="text-lg font-medium text-gray-900 mb-2">결재선 설정</h4>
+          <p class="text-gray-500 mb-6">결재자를 선택하고 순서를 정해주세요.</p>
+          
+          <button
+            @click="showApprovalLineModal = true"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            <Plus class="w-4 h-4 mr-2" />
+            결재선 설정
+          </button>
+        </div>
+
+        <!-- 설정된 결재선 미리보기 -->
+        <div v-if="approvalLines.length > 0" class="mt-6">
+          <h5 class="font-medium text-gray-900 mb-3">설정된 결재선</h5>
+          <div class="flex items-center space-x-2 overflow-x-auto pb-2">
+            <div
+              v-for="(line, index) in approvalLines"
+              :key="`preview-${index}`"
+              class="flex items-center space-x-2 flex-shrink-0"
+            >
+              <!-- 결재자 카드 -->
+              <div class="flex items-center space-x-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                <div class="w-6 h-6 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium">
+                  {{ index + 1 }}
+                </div>
+                <div class="text-sm">
+                  <div class="font-medium">{{ line.approver_name }}</div>
+                </div>
+                <span v-if="!line.is_required" class="px-1 py-0.5 text-xs bg-gray-200 text-gray-600 rounded">
+                  선택
+                </span>
+              </div>
+              
+              <!-- 화살표 (마지막이 아닌 경우) -->
+              <ArrowRight v-if="index < approvalLines.length - 1" class="w-4 h-4 text-gray-400 flex-shrink-0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: 최종 확인 -->
+      <div v-if="step === 3" class="space-y-6">
+        <!-- 작성 내용 요약 -->
+        <div class="bg-gray-50 rounded-lg p-6">
+          <h4 class="font-semibold text-gray-900 mb-4">결재 요청 내용 확인</h4>
+          
+          <div class="space-y-4">
+            <!-- 기본 정보 -->
+            <div>
+              <h5 class="font-medium text-gray-700 mb-2">기본 정보</h5>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-500">양식:</span>
+                  <span class="ml-2">{{ selectedTemplate?.name || '자유 작성' }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500">제목:</span>
+                  <span class="ml-2">{{ formData.title }}</span>
+                </div>
+              </div>
+              <div class="mt-2">
+                <span class="text-gray-500">내용:</span>
+                <div class="ml-2 mt-1 p-2 bg-white border rounded text-sm">
+                  {{ formData.content }}
+                </div>
+              </div>
+            </div>
+
+            <!-- 결재선 -->
+            <div>
+              <h5 class="font-medium text-gray-700 mb-2">결재선 ({{ approvalLines.length }}명)</h5>
+              <div class="flex items-center space-x-2 overflow-x-auto pb-2">
+                <div
+                  v-for="(line, index) in approvalLines"
+                  :key="`final-${index}`"
+                  class="flex items-center space-x-2 flex-shrink-0"
+                >
+                  <div class="flex items-center space-x-2 p-2 bg-white border border-gray-200 rounded-md">
+                    <div class="w-6 h-6 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium">
+                      {{ index + 1 }}
+                    </div>
+                    <div class="text-sm">
+                      <div class="font-medium">{{ line.approver_name }}</div>
+                    </div>
+                  </div>
+                  <ArrowRight v-if="index < approvalLines.length - 1" class="w-4 h-4 text-gray-400 flex-shrink-0" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 첨부파일 -->
+            <div v-if="selectedFiles.length > 0">
+              <h5 class="font-medium text-gray-700 mb-2">첨부파일 ({{ selectedFiles.length }}개)</h5>
+              <div class="space-y-2">
+                <div
+                  v-for="(file, index) in selectedFiles"
+                  :key="`final-file-${index}`"
+                  class="flex items-center space-x-3 p-2 bg-white border border-gray-200 rounded-md"
+                >
+                  <component :is="getFileIcon(file.name)" class="w-4 h-4 text-gray-400" />
+                  <div class="text-sm">
+                    <div>{{ file.name }}</div>
+                    <div class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -362,6 +432,7 @@ const showApprovalLineModal = ref(false);
 const selectedFiles = ref([]);
 const fileInput = ref(null);
 const isDragOver = ref(false);
+const isTextSelecting = ref(false);
 
 // 폼 데이터
 const formData = ref({
@@ -405,21 +476,30 @@ const loadTemplates = async () => {
 };
 
 // 템플릿 선택 시 기본 결재선 적용
-watch(selectedTemplate, (newTemplate) => {
+watch(selectedTemplate, async (newTemplate) => {
   if (newTemplate) {
     formData.value.template_id = newTemplate.id;
     // 기본 결재선이 있으면 적용
     if (newTemplate.default_approval_steps?.length > 0) {
-      approvalLines.value = newTemplate.default_approval_steps.map(step => ({
-        approver_id: step.approver_id,
-        step_order: step.step_order,
-        is_required: step.is_required,
-        is_parallel: step.is_parallel,
-        // 실제 사용자 정보는 별도로 조회 필요
-        approver_name: '기본 결재자',
-        approver_department: '',
-        approver_position: '',
-      }));
+      const lines = [];
+      
+      // 각 단계의 실제 사용자 정보를 조회
+      for (const step of newTemplate.default_approval_steps) {
+        const lineData = {
+          approver_id: step.approver_id,
+          approver_user_id: step.approver_user_id,
+          step_order: step.step_order,
+          is_required: step.is_required,
+          is_parallel: step.is_parallel,
+          approver_name: step.approver_name || '결재자',
+          approver_department: step.approver_department || '',
+          approver_position: step.approver_position || '',
+        };
+        
+        lines.push(lineData);
+      }
+      
+      approvalLines.value = lines;
     }
     
     // 템플릿 필드 초기화
@@ -550,6 +630,7 @@ const saveDraft = async () => {
     };
     
     const result = await approvalStore.createApprovalRequest(requestData);
+    
     alert('임시저장되었습니다.');
     emit('created', result);
     closeModal();
@@ -600,6 +681,31 @@ const createRequest = async () => {
 // 모달 닫기
 const closeModal = () => {
   emit('close');
+};
+
+// 텍스트 선택 상태 추적
+const handleMouseDown = (event) => {
+  // 입력 필드나 텍스트 영역에서 마우스 다운이 시작된 경우
+  const target = event.target;
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+    isTextSelecting.value = true;
+  }
+};
+
+const handleMouseUp = () => {
+  // 마우스 업 시 텍스트 선택 상태 해제
+  setTimeout(() => {
+    isTextSelecting.value = false;
+  }, 50); // 짧은 지연으로 클릭 이벤트 완료 후 상태 초기화
+};
+
+// 배경 클릭 핸들러
+const handleBackdropClick = (event) => {
+  // 텍스트 선택 중이거나 현재 선택된 텍스트가 있는 경우 모달 닫기 방지
+  if (isTextSelecting.value || window.getSelection().toString().length > 0) {
+    return;
+  }
+  closeModal();
 };
 
 onMounted(() => {

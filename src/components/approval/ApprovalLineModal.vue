@@ -83,8 +83,7 @@
               <!-- 결재자 정보 -->
               <div class="text-center">
                 <div class="font-medium text-gray-900">{{ line.approver_name }}</div>
-                <div class="text-xs text-gray-500 mt-1">{{ line.approver_id }}</div>
-                <div class="text-xs text-gray-400">{{ line.approver_department }}</div>
+                <div class="font-medium text-gray-900">{{ line.approver_user_id }}</div>
               </div>
               
               <!-- 필수/선택 토글 -->
@@ -165,9 +164,36 @@ const loading = ref(false);
 const validationMessage = ref('');
 
 // 초기화
-watch(() => props.isVisible, (newValue) => {
+watch(() => props.isVisible, async (newValue) => {
   if (newValue) {
-    approvalLines.value = [...props.initialLines];
+    // 초기 결재선을 복사하고 사용자 정보를 조회
+    const initialLines = [...props.initialLines];
+    
+    // 각 결재선의 사용자 정보를 조회하여 이름 등을 업데이트
+    for (const line of initialLines) {
+      if ((line.approver_id || line.approver_user_id) && !line.approver_name) {
+        try {
+          // 사용자 정보 조회 (ID로 검색)
+          const searchId = line.approver_user_id || line.approver_id;
+          const userData = await userStore.searchUsers(searchId);
+          if (userData && userData.length > 0) {
+            const user = userData[0];
+            line.approver_name = user.name;
+            line.approver_department = user.department || '';
+            line.approver_position = user.position || '';
+            // ID 정보 보완
+            if (!line.approver_id) line.approver_id = user.id;
+            if (!line.approver_user_id) line.approver_user_id = user.user_id;
+          }
+        } catch (error) {
+          console.warn('사용자 정보 조회 실패:', error);
+          // 실패 시 ID를 이름으로 사용
+          line.approver_name = line.approver_name || line.approver_user_id || line.approver_id;
+        }
+      }
+    }
+    
+    approvalLines.value = initialLines;
     searchQuery.value = '';
     searchResults.value = [];
     validationMessage.value = '';
@@ -183,9 +209,12 @@ const searchUsers = async () => {
   
   try {
     const results = await userStore.searchUsers(searchQuery.value);
-    // 이미 추가된 결재자 제외
+    // 이미 추가된 결재자 제외 (id와 user_id 둘 다 확인)
     const existingIds = new Set(approvalLines.value.map(line => line.approver_id));
-    searchResults.value = results.filter(user => !existingIds.has(user.user_id || user.id));
+    const existingUserIds = new Set(approvalLines.value.map(line => line.approver_user_id));
+    searchResults.value = results.filter(user => 
+      !existingIds.has(user.id) && !existingUserIds.has(user.user_id)
+    );
   } catch (error) {
     console.error('사용자 검색 오류:', error);
   }
@@ -194,7 +223,8 @@ const searchUsers = async () => {
 // 결재자 추가
 const addApprover = (user) => {
   const newLine = {
-    approver_id: user.user_id || user.id,
+    approver_id: user.id,
+    approver_user_id: user.user_id,
     approver_name: user.name,
     approver_department: user.department || '',
     approver_position: user.position || '',
@@ -239,6 +269,10 @@ const saveApprovalLines = async () => {
   try {
     const linesToSave = approvalLines.value.map(line => ({
       approver_id: line.approver_id,
+      approver_user_id: line.approver_user_id,
+      approver_name: line.approver_name,
+      approver_department: line.approver_department,
+      approver_position: line.approver_position,
       step_order: line.step_order,
       is_required: line.is_required,
       is_parallel: line.is_parallel,

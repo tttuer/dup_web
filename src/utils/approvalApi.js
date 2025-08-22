@@ -1,6 +1,8 @@
 // src/utils/approvalApi.js
 import { authFetch } from '@/utils/authFetch';
 
+const FILE_API_URL = import.meta.env.VITE_FILE_API_URL;
+
 // API 에러 처리 래퍼
 const handleApiError = async (response) => {
   if (!response.ok) {
@@ -17,7 +19,7 @@ export const fileApi = {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await authFetch(`/api/files/approvals/${requestId}`, {
+    const response = await authFetch(`${FILE_API_URL}/approvals/${requestId}`, {
       method: 'POST',
       body: formData,
     });
@@ -28,7 +30,7 @@ export const fileApi = {
 
   // 첨부파일 목록 조회
   async getFiles(requestId) {
-    const response = await authFetch(`/api/files/approvals/${requestId}`);
+    const response = await authFetch(`${FILE_API_URL}/approvals/${requestId}`);
     
     if (!response.ok) {
       throw new Error('파일 목록 조회 실패');
@@ -39,7 +41,7 @@ export const fileApi = {
 
   // 파일 다운로드
   async downloadFile(fileId, fileName) {
-    const response = await authFetch(`/api/files/${fileId}/download`);
+    const response = await authFetch(`${FILE_API_URL}/approvals/${fileId}/download`);
     
     if (!response.ok) {
       throw new Error('파일 다운로드 실패');
@@ -60,7 +62,7 @@ export const fileApi = {
 
   // 첨부파일 삭제
   async deleteFile(fileId) {
-    const response = await authFetch(`/api/files/${fileId}`, {
+    const response = await authFetch(`${FILE_API_URL}/approvals/${fileId}`, {
       method: 'DELETE',
     });
     
