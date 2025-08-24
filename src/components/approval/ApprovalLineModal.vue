@@ -24,7 +24,6 @@
         <div class="relative">
           <input
             v-model="searchQuery"
-            @input="searchUsers"
             type="text"
             placeholder="이름이나 부서명으로 검색..."
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -209,12 +208,37 @@ const searchUsers = async () => {
   
   try {
     const results = await userStore.searchUsers(searchQuery.value);
-    // 이미 추가된 결재자 제외 (id와 user_id 둘 다 확인)
+    
+    // JWT 토큰에서 현재 사용자 정보 추출
+    const getCurrentUserFromToken = () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return null;
+      
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload;
+      } catch (error) {
+        console.error('토큰 파싱 오류:', error);
+        return null;
+      }
+    };
+    
+    const currentUser = getCurrentUserFromToken();
+    
+    
     const existingIds = new Set(approvalLines.value.map(line => line.approver_id));
     const existingUserIds = new Set(approvalLines.value.map(line => line.approver_user_id));
-    searchResults.value = results.filter(user => 
-      !existingIds.has(user.id) && !existingUserIds.has(user.user_id)
-    );
+    
+    searchResults.value = results.filter(user => {
+      // 본인 제외 (user_id로만 비교)
+      const isCurrentUser = currentUser && user.user_id === currentUser.user_id;
+      
+      // 이미 추가된 결재자 제외
+      const isAlreadyAdded = existingIds.has(user.id) || existingUserIds.has(user.user_id);
+      
+      
+      return !isCurrentUser && !isAlreadyAdded;
+    });
   } catch (error) {
     console.error('사용자 검색 오류:', error);
   }
@@ -285,6 +309,26 @@ const saveApprovalLines = async () => {
     loading.value = false;
   }
 };
+
+// 검색어 변경 시 자동 검색 (debounce 적용)
+let searchTimeout = null;
+watch(searchQuery, (newQuery) => {
+  // 기존 타이머 취소
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+  
+  // 검색어가 비어있으면 즉시 결과 초기화
+  if (!newQuery || newQuery.length < 2) {
+    searchResults.value = [];
+    return;
+  }
+  
+  // 300ms 후에 검색 실행
+  searchTimeout = setTimeout(() => {
+    searchUsers();
+  }, 300);
+});
 
 // 모달 닫기
 const closeModal = () => {

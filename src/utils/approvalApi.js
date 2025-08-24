@@ -2,6 +2,7 @@
 import { authFetch } from '@/utils/authFetch';
 
 const FILE_API_URL = import.meta.env.VITE_FILE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 // API 에러 처리 래퍼
 const handleApiError = async (response) => {
@@ -97,7 +98,7 @@ export const documentNumberApi = {
 export const historyApi = {
   // 결재 이력 조회
   async getApprovalHistory(requestId) {
-    const response = await authFetch(`/api/approvals/${requestId}/history`);
+    const response = await authFetch(`${API_URL}/approvals/${requestId}`);
     
     if (!response.ok) {
       throw new Error('결재 이력 조회 실패');

@@ -109,7 +109,7 @@ const createApprovalRequest = async () => {
       related_item_type: props.itemType,
     };
     
-    const result = await approvalStore.createApprovalRequest(requestData);
+    const result = await approvalStore.createApprovalRequest(requestData, []);
     
     if (result) {
       alert('결재 요청이 생성되었습니다.');

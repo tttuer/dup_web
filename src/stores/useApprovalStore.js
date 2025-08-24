@@ -97,17 +97,39 @@ export const useApprovalStore = defineStore('approval', () => {
     }
   }
 
-  // 결재 요청 생성
-  async function createApprovalRequest(requestData) {
+  // 결재 요청 생성 (파일 포함)
+  async function createApprovalRequest(requestData, files = []) {
     loading.value = true;
     error.value = null;
     try {
+      // FormData로 변환하여 파일과 함께 전송
+      const formData = new FormData();
+      
+      // 기본 필드들 추가
+      formData.append('title', requestData.title);
+      formData.append('content', requestData.content);
+      
+      if (requestData.template_id) {
+        formData.append('template_id', requestData.template_id);
+      }
+      if (requestData.form_data) {
+        formData.append('form_data', JSON.stringify(requestData.form_data));
+      }
+      if (requestData.department_id) {
+        formData.append('department_id', requestData.department_id);
+      }
+      if (requestData.approval_lines) {
+        formData.append('approval_lines', JSON.stringify(requestData.approval_lines));
+      }
+      
+      // 파일들 추가
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+      
       const response = await authFetch(APPROVAL_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
+        body: formData, // multipart/form-data로 전송
       });
       
       if (response.ok) {

@@ -361,14 +361,6 @@
         <div v-else></div>
 
         <div class="flex space-x-3">
-          <!-- 임시저장 버튼 -->
-          <button
-            @click="saveDraft"
-            :disabled="loading || !formData.title.trim()"
-            class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
-          >
-            임시저장
-          </button>
 
           <!-- 다음/완료 버튼 -->
           <button
@@ -383,12 +375,12 @@
           
           <button
             v-else
-            @click="createRequest"
+            @click="submitApproval"
             :disabled="loading || !canComplete"
             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
           >
             <Loader v-if="loading" class="w-4 h-4 animate-spin mr-2" />
-            결재 요청 생성
+            결재 상신
           </button>
         </div>
       </div>
@@ -409,7 +401,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { X, Users, Plus, Upload, ChevronLeft, ChevronRight, Trash2, FileText, File, Loader, ArrowRight } from 'lucide-vue-next';
 import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
-import { approvalUtils, fileApi } from '@/utils/approvalApi';
+import { approvalUtils } from '@/utils/approvalApi';
 import ApprovalLineModal from './ApprovalLineModal.vue';
 
 const props = defineProps({
@@ -615,34 +607,9 @@ const handleApprovalLineSave = (lines) => {
   showApprovalLineModal.value = false;
 };
 
-// 임시저장
-const saveDraft = async () => {
-  if (!formData.value.title.trim()) {
-    alert('제목을 입력해주세요.');
-    return;
-  }
-  
-  loading.value = true;
-  try {
-    const requestData = {
-      ...formData.value,
-      approval_lines: approvalLines.value,
-    };
-    
-    const result = await approvalStore.createApprovalRequest(requestData);
-    
-    alert('임시저장되었습니다.');
-    emit('created', result);
-    closeModal();
-  } catch (error) {
-    alert('임시저장 중 오류가 발생했습니다: ' + error.message);
-  } finally {
-    loading.value = false;
-  }
-};
 
-// 결재 요청 생성
-const createRequest = async () => {
+// 결재 상신
+const submitApproval = async () => {
   if (!canComplete.value) {
     alert('필수 정보를 모두 입력해주세요.');
     return;
@@ -655,24 +622,13 @@ const createRequest = async () => {
       approval_lines: approvalLines.value,
     };
     
-    const result = await approvalStore.createApprovalRequest(requestData);
+    const result = await approvalStore.createApprovalRequest(requestData, selectedFiles.value);
     
-    // 파일 업로드 (있는 경우)
-    if (selectedFiles.value.length > 0) {
-      for (const file of selectedFiles.value) {
-        try {
-          await fileApi.uploadFile(result.id, file);
-        } catch (fileError) {
-          console.error('파일 업로드 오류:', fileError);
-        }
-      }
-    }
-    
-    alert('결재 요청이 생성되었습니다.');
+    alert('결재가 상신되었습니다.');
     emit('created', result);
     closeModal();
   } catch (error) {
-    alert('결재 요청 생성 중 오류가 발생했습니다: ' + error.message);
+    alert('결재 상신 중 오류가 발생했습니다: ' + error.message);
   } finally {
     loading.value = false;
   }

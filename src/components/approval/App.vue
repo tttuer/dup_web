@@ -35,6 +35,28 @@
                 </span>
               </button>
               <button
+                @click="activeTab = 'completed'"
+                :class="[
+                  'px-3 py-2 text-sm font-medium rounded-md',
+                  activeTab === 'completed' 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'text-gray-500 hover:text-gray-700'
+                ]"
+              >
+                결재 완료
+              </button>
+              <button
+                @click="activeTab = 'search-all'"
+                :class="[
+                  'px-3 py-2 text-sm font-medium rounded-md',
+                  activeTab === 'search-all' 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'text-gray-500 hover:text-gray-700'
+                ]"
+              >
+                전체 목록
+              </button>
+              <button
                 @click="activeTab = 'templates'"
                 v-if="userStore.isAdmin"
                 :class="[
@@ -69,6 +91,16 @@
               <Plus class="w-4 h-4 mr-2" />
               새 결재
             </button>
+            
+            <!-- 로그아웃 버튼 -->
+            <button
+              @click="logout"
+              class="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+              title="로그아웃"
+            >
+              <LogOut class="w-4 h-4 mr-1" />
+              로그아웃
+            </button>
           </div>
         </div>
       </div>
@@ -86,6 +118,16 @@
         <PendingApprovalList />
       </div>
 
+      <!-- 결재 완료 -->
+      <div v-if="activeTab === 'completed'">
+        <CompletedApprovalList @view-detail="handleViewDetail" />
+      </div>
+
+      <!-- 전체 검색 -->
+      <div v-if="activeTab === 'search-all'">
+        <AllApprovalSearch @view-detail="handleViewDetail" />
+      </div>
+
       <!-- 양식 관리 (관리자만) -->
       <div v-if="activeTab === 'templates' && userStore.isAdmin">
         <TemplateManagement />
@@ -98,18 +140,29 @@
       @close="showCreateModal = false"
       @created="handleRequestCreated"
     />
+
+    <!-- 결재 상세보기 모달 -->
+    <ApprovalDetailModal
+      :is-visible="showDetailModal"
+      :request-id="selectedApproval?.id"
+      @close="showDetailModal = false"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, Archive } from 'lucide-vue-next';
+import { Plus, Archive, LogOut } from 'lucide-vue-next';
 import { useUserStore } from '@/stores/useUserStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
+import { authFetch } from '@/utils/authFetch';
 import ApprovalCreateModal from './ApprovalCreateModal.vue';
+import ApprovalDetailModal from './ApprovalDetailModal.vue';
 import MyApprovalList from './MyApprovalList.vue';
 import PendingApprovalList from './PendingApprovalList.vue';
+import CompletedApprovalList from './CompletedApprovalList.vue';
+import AllApprovalSearch from './AllApprovalSearch.vue';
 import TemplateManagement from './TemplateManagement.vue';
 
 const router = useRouter();
@@ -119,6 +172,8 @@ const approvalStore = useApprovalStore();
 // 상태 관리
 const activeTab = ref('my-requests');
 const showCreateModal = ref(false);
+const showDetailModal = ref(false);
+const selectedApproval = ref(null);
 
 // 권한 체크
 const hasVoucherAccess = computed(() => {
@@ -134,6 +189,30 @@ const goToArchive = () => {
   } else {
     router.push('/extra');
   }
+};
+
+// 로그아웃
+const logout = async () => {
+  try {
+    // 서버에 refresh_token 쿠키 삭제 요청
+    const userUrl = import.meta.env.VITE_USER_API_URL;
+    await authFetch(`${userUrl}/logout`, {
+      method: 'POST',
+      withCredentials: true,
+    });
+  } catch (err) {
+    console.error('로그아웃 요청 실패:', err);
+  }
+
+  // 클라이언트 토큰 제거 및 로그인 페이지로 이동
+  localStorage.removeItem('access_token');
+  router.push('/login');
+};
+
+// 상세보기 핸들러
+const handleViewDetail = (approval) => {
+  selectedApproval.value = approval;
+  showDetailModal.value = true;
 };
 
 // 결재 대기 개수

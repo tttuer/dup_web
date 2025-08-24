@@ -15,7 +15,6 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
   // WebSocket 연결
   const connectWebSocket = () => {
     if (websocket.value?.readyState === WebSocket.OPEN) {
-      console.log('🔗 전자결재 WebSocket이 이미 연결되어 있습니다.');
       return;
     }
 
@@ -27,12 +26,10 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
 
     try {
       const url = `${wsUrl}?token=${encodeURIComponent(token)}`;
-      console.log('🔌 전자결재 WebSocket 연결 시도:', url);
       
       websocket.value = new WebSocket(url);
 
       websocket.value.onopen = () => {
-        console.log('✅ 전자결재 WebSocket 연결 성공');
         isConnected.value = true;
         
         // 연결 즉시 현재 대기 건수 요청
@@ -42,12 +39,10 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
       websocket.value.onmessage = (event) => {
         try {
           if (event.data === 'pong') {
-            console.log('🏓 전자결재 WebSocket pong 수신');
             return;
           }
 
           const data = JSON.parse(event.data);
-          console.log('📨 전자결재 WebSocket 메시지:', data);
           
           handleWebSocketMessage(data);
         } catch (error) {
@@ -56,13 +51,11 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
       };
 
       websocket.value.onclose = (event) => {
-        console.log('🛑 전자결재 WebSocket 연결 종료:', event.code, event.reason);
         isConnected.value = false;
         
         // 재연결 시도 (3초 후)
         if (event.code !== 1000) { // 정상 종료가 아닌 경우
           setTimeout(() => {
-            console.log('🔄 전자결재 WebSocket 재연결 시도...');
             connectWebSocket();
           }, 3000);
         }
@@ -91,7 +84,6 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
       case 'pending_count':
         // 대기 결재 건수 업데이트
         pendingApprovalCount.value = data.count || 0;
-        console.log(`📊 대기 결재 건수: ${pendingApprovalCount.value}개`);
         break;
         
       case 'new_approval_request':
@@ -140,7 +132,6 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
         break;
         
       default:
-        console.log('🤷 알 수 없는 전자결재 메시지 타입:', data.type);
     }
   };
 
@@ -159,7 +150,6 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
   const requestNotificationPermission = async () => {
     if ('Notification' in window && Notification.permission === 'default') {
       const permission = await Notification.requestPermission();
-      console.log('🔔 알림 권한:', permission);
       return permission === 'granted';
     }
     return Notification.permission === 'granted';
@@ -191,7 +181,6 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
       websocket.value.close(1000, 'User disconnected');
       websocket.value = null;
       isConnected.value = false;
-      console.log('🛑 전자결재 WebSocket 연결 해제');
     }
   };
 

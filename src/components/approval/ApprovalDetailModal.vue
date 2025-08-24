@@ -24,7 +24,7 @@
       <!-- 콘텐츠 -->
       <div v-else-if="request" class="p-6 space-y-6">
         <!-- 기본 정보 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 gap-6">
           <div>
             <h4 class="font-semibold text-gray-900 mb-3">기본 정보</h4>
             <div class="space-y-2 text-sm">
@@ -51,15 +51,6 @@
             </div>
           </div>
           
-          <div>
-            <h4 class="font-semibold text-gray-900 mb-3">추가 정보</h4>
-            <div class="space-y-2 text-sm">
-              <div v-if="request.template_name" class="flex justify-between">
-                <span class="text-gray-600">양식:</span>
-                <span>{{ request.template_name }}</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 제목 -->
@@ -150,7 +141,8 @@ const props = defineProps({
   },
   requestId: {
     type: String,
-    required: true,
+    required: false,
+    default: null,
   },
 });
 
