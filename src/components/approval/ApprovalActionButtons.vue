@@ -143,6 +143,7 @@ import { Send, Check, X, RotateCcw, Users, Loader } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { DOCUMENT_STATUS } from '@/stores/useTypeStore';
+import { useToast } from 'vue-toastification';
 
 const props = defineProps({
   request: {
@@ -159,6 +160,7 @@ const emit = defineEmits(['action-completed', 'edit-approval-line']);
 
 const approvalStore = useApprovalStore();
 const userStore = useUserStore();
+const toast = useToast();
 
 // 상태 관리
 const loading = ref(false);
@@ -209,9 +211,10 @@ const handleSubmit = async () => {
   loading.value = true;
   try {
     await approvalStore.submitApproval(props.request.id);
+    toast.success('결재가 상신되었습니다.');
     emit('action-completed', 'submit');
   } catch (error) {
-    alert('상신 중 오류가 발생했습니다: ' + error.message);
+    toast.error('상신 중 오류가 발생했습니다: ' + error.message);
   } finally {
     loading.value = false;
   }
@@ -223,9 +226,10 @@ const handleApprove = async () => {
     await approvalStore.approveRequest(props.request.id, approveComment.value);
     showApproveModal.value = false;
     approveComment.value = '';
+    toast.success('승인 처리되었습니다.');
     emit('action-completed', 'approve');
   } catch (error) {
-    alert('승인 중 오류가 발생했습니다: ' + error.message);
+    toast.error('승인 중 오류가 발생했습니다: ' + error.message);
   } finally {
     loading.value = false;
   }
@@ -233,7 +237,7 @@ const handleApprove = async () => {
 
 const handleReject = async () => {
   if (!rejectComment.value.trim()) {
-    alert('반려 사유를 입력해주세요.');
+    toast.warning('반려 사유를 입력해주세요.');
     return;
   }
   
@@ -242,9 +246,10 @@ const handleReject = async () => {
     await approvalStore.rejectRequest(props.request.id, rejectComment.value);
     showRejectModal.value = false;
     rejectComment.value = '';
+    toast.success('반려 처리되었습니다.');
     emit('action-completed', 'reject');
   } catch (error) {
-    alert('반려 중 오류가 발생했습니다: ' + error.message);
+    toast.error('반려 중 오류가 발생했습니다: ' + error.message);
   } finally {
     loading.value = false;
   }
@@ -256,9 +261,10 @@ const handleRecall = async () => {
   loading.value = true;
   try {
     await approvalStore.recallRequest(props.request.id);
+    toast.success('결재가 회수되었습니다.');
     emit('action-completed', 'recall');
   } catch (error) {
-    alert('회수 중 오류가 발생했습니다: ' + error.message);
+    toast.error('회수 중 오류가 발생했습니다: ' + error.message);
   } finally {
     loading.value = false;
   }

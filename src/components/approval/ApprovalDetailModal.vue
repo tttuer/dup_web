@@ -53,6 +53,59 @@
           
         </div>
 
+        <!-- 결재선 및 진행 현황 -->
+        <div>
+          <h4 class="font-semibold text-gray-900 mb-3">결재 진행 현황</h4>
+          <div v-if="approvalLines.length === 0" class="text-gray-500 text-center py-4">
+            결재선이 설정되지 않았습니다.
+          </div>
+          <div v-else class="flex items-center space-x-3 overflow-x-auto pb-2 pt-3 px-3">
+            <div
+              v-for="(line, index) in approvalLines"
+              :key="`${line.approver_id}-${index}`"
+              class="flex items-center space-x-3 flex-shrink-0"
+            >
+              <!-- 결재자 카드 -->
+              <div class="relative group bg-white rounded-lg p-3 min-w-[160px] border-2" :class="getCardBorderClass(line)">
+                <!-- 순서 배지 -->
+                <div class="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" :class="getStepCircleClass(line)">
+                  <component 
+                    :is="getStepIcon(line)" 
+                    class="w-3 h-3"
+                    v-if="getStepIcon(line)"
+                  />
+                  <span v-else>{{ index + 1 }}</span>
+                </div>
+                
+                <!-- 결재자 정보 -->
+                <div class="text-center">
+                  <div class="font-medium text-gray-900">{{ line.approver_name || '알 수 없음' }}</div>
+                  <div class="text-xs text-gray-500 mt-1">{{ line.approver_id }}</div>
+                  <div class="text-xs text-gray-400">{{ line.approver_department }}</div>
+                </div>
+                
+                <!-- 상태 표시 -->
+                <div class="mt-2 text-center">
+                  <div class="text-xs font-medium" :class="getStatusTextClass(line.status)">
+                    {{ getStatusLabel(line.status) }}
+                  </div>
+                  <div v-if="line.approved_at" class="text-xs text-gray-400 mt-1">
+                    {{ formatDate(line.approved_at) }}
+                  </div>
+                </div>
+                
+                <!-- 필수/선택 표시 -->
+                <div v-if="!line.is_required" class="absolute top-1 right-1">
+                  <span class="px-1 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">선택</span>
+                </div>
+              </div>
+              
+              <!-- 화살표 (마지막이 아닌 경우) -->
+              <ArrowRight v-if="index < approvalLines.length - 1" class="w-5 h-5 text-gray-400 flex-shrink-0" />
+            </div>
+          </div>
+        </div>
+
         <!-- 제목 -->
         <div>
           <h4 class="font-semibold text-gray-900 mb-2">제목</h4>
@@ -67,17 +120,22 @@
           </div>
         </div>
 
-        <!-- 결재선 및 진행 현황 -->
-        <ApprovalHistory
-          :request-id="requestId"
-          :approval-lines="approvalLines"
-          :current-step="request.current_step"
-        />
-
         <!-- 첨부파일 -->
-        <div v-if="attachedFiles.length > 0">
-          <h4 class="font-semibold text-gray-900 mb-3">첨부파일</h4>
-          <div class="space-y-2">
+        <div>
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="font-semibold text-gray-900">첨부파일</h4>
+            <button
+              v-if="attachedFiles.length > 1"
+              @click="downloadAllFiles"
+              :disabled="downloadingAll"
+              class="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50"
+            >
+              <Loader v-if="downloadingAll" class="w-4 h-4 mr-1 animate-spin" />
+              <Download v-else class="w-4 h-4 mr-1" />
+              전체 다운로드 (ZIP)
+            </button>
+          </div>
+          <div v-if="attachedFiles.length > 0" class="space-y-2">
             <div
               v-for="file in attachedFiles"
               :key="file.id"
@@ -98,6 +156,61 @@
                 다운로드
               </button>
             </div>
+          </div>
+          <div v-else class="text-gray-500 text-sm">
+            첨부파일이 없습니다.
+          </div>
+        </div>
+
+        <!-- 결재 의견 -->
+        <div v-if="(request.histories && request.histories.length > 0)" class="border-t pt-6">
+          <h4 class="font-semibold text-gray-900 mb-3">결재 의견</h4>
+          <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/6">
+                    결재자
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/6">
+                    결재 상태
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/6">
+                    일시
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/2">
+                    결재 의견
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr
+                  v-for="item in request.histories"
+                  :key="item.id"
+                  class="hover:bg-gray-50"
+                >
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="font-medium text-gray-900">{{ item.approver_name }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full" :class="getActionBadgeClass(item.action)">
+                      {{ getActionLabel(item.action) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ formatDate(item.created_at) }}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-700">
+                    <div v-if="item.comment" class="break-words">
+                      {{ item.comment }}
+                    </div>
+                    <div v-else class="text-gray-400 italic">
+                      -
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -126,9 +239,10 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { X, Loader, Download, FileText, File } from 'lucide-vue-next';
+import { X, Loader, Download, FileText, File, Clock, Check, ArrowRight } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { fileApi, approvalUtils } from '@/utils/approvalApi';
+import { APPROVAL_STATUS, APPROVAL_ACTION } from '@/stores/useTypeStore';
 import ApprovalStatus from './ApprovalStatus.vue';
 import ApprovalHistory from './ApprovalHistory.vue';
 import ApprovalActionButtons from './ApprovalActionButtons.vue';
@@ -154,6 +268,7 @@ const approvalStore = useApprovalStore();
 const loading = ref(false);
 const showApprovalLineModal = ref(false);
 const attachedFiles = ref([]);
+const downloadingAll = ref(false);
 
 // 데이터
 const request = computed(() => approvalStore.approvalDetail);
@@ -197,6 +312,20 @@ const downloadFile = async (file) => {
   }
 };
 
+// 전체 파일 다운로드 (ZIP)
+const downloadAllFiles = async () => {
+  if (attachedFiles.value.length === 0) return;
+  
+  downloadingAll.value = true;
+  try {
+    await fileApi.downloadAllFiles(props.requestId, `결재첨부파일_${request.value.document_number}`);
+  } catch (error) {
+    alert('파일 일괄 다운로드 중 오류가 발생했습니다: ' + error.message);
+  } finally {
+    downloadingAll.value = false;
+  }
+};
+
 // 액션 완료 핸들러
 const handleActionCompleted = (action) => {
   loadDetail();
@@ -233,22 +362,117 @@ const formatFileSize = (bytes) => {
   return approvalUtils.formatFileSize(bytes);
 };
 
+// 결재선 스타일링 함수들
+const getCardBorderClass = (line) => {
+  switch (line.status) {
+    case APPROVAL_STATUS.APPROVED:
+      return 'border-green-200';
+    case APPROVAL_STATUS.REJECTED:
+      return 'border-red-200';
+    case APPROVAL_STATUS.IN_PROGRESS:
+      return 'border-blue-200';
+    default:
+      return 'border-gray-200';
+  }
+};
+
+const getStepCircleClass = (line) => {
+  switch (line.status) {
+    case APPROVAL_STATUS.APPROVED:
+      return 'bg-green-100 text-green-800';
+    case APPROVAL_STATUS.REJECTED:
+      return 'bg-red-100 text-red-800';
+    case APPROVAL_STATUS.IN_PROGRESS:
+      return 'bg-blue-100 text-blue-800';
+    default:
+      return 'bg-gray-100 text-gray-600';
+  }
+};
+
+const getStepIcon = (line) => {
+  switch (line.status) {
+    case APPROVAL_STATUS.APPROVED:
+      return Check;
+    case APPROVAL_STATUS.REJECTED:
+      return X;
+    case APPROVAL_STATUS.IN_PROGRESS:
+      return Clock;
+    default:
+      return null;
+  }
+};
+
+const getStatusTextClass = (status) => {
+  switch (status) {
+    case APPROVAL_STATUS.APPROVED:
+      return 'text-green-600';
+    case APPROVAL_STATUS.REJECTED:
+      return 'text-red-600';
+    case APPROVAL_STATUS.IN_PROGRESS:
+      return 'text-blue-600';
+    default:
+      return 'text-gray-600';
+  }
+};
+
+const getStatusLabel = (status) => {
+  switch (status) {
+    case APPROVAL_STATUS.PENDING:
+      return '대기';
+    case APPROVAL_STATUS.IN_PROGRESS:
+      return '진행중';
+    case APPROVAL_STATUS.APPROVED:
+      return '승인';
+    case APPROVAL_STATUS.REJECTED:
+      return '반려';
+    default:
+      return '알 수 없음';
+  }
+};
+
+const getActionLabel = (action) => {
+  switch (action) {
+    case APPROVAL_ACTION.APPROVE:
+      return '승인';
+    case APPROVAL_ACTION.REJECT:
+      return '반려';
+    case APPROVAL_ACTION.SUBMIT:
+      return '상신';
+    case APPROVAL_ACTION.RECALL:
+      return '회수';
+    default:
+      return action;
+  }
+};
+
+const getActionBadgeClass = (action) => {
+  switch (action) {
+    case APPROVAL_ACTION.APPROVE:
+      return 'bg-green-100 text-green-800';
+    case APPROVAL_ACTION.REJECT:
+      return 'bg-red-100 text-red-800';
+    case APPROVAL_ACTION.SUBMIT:
+      return 'bg-blue-100 text-blue-800';
+    case APPROVAL_ACTION.RECALL:
+      return 'bg-gray-100 text-gray-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
 // 모달 닫기
 const closeModal = () => {
   approvalStore.clearState();
   emit('close');
 };
 
-// 감시자
-watch(() => props.isVisible, (newValue) => {
-  if (newValue && props.requestId) {
-    loadDetail();
+// 감시자 - 중복 호출 방지를 위해 조건부 통합
+watch(
+  () => [props.isVisible, props.requestId],
+  ([isVisible, requestId]) => {
+    if (isVisible && requestId) {
+      loadDetail();
+    }
   }
-});
-
-watch(() => props.requestId, (newValue) => {
-  if (newValue && props.isVisible) {
-    loadDetail();
-  }
-});
+);
 </script>

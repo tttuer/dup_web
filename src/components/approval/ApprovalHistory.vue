@@ -87,9 +87,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Clock, Check, X, Pause, Loader, ArrowRight } from 'lucide-vue-next';
-import { historyApi } from '@/utils/approvalApi';
 import { APPROVAL_STATUS, APPROVAL_ACTION } from '@/stores/useTypeStore';
 
 const props = defineProps({
@@ -105,26 +104,17 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  histories: {
+    type: Array,
+    default: () => [],
+  },
 });
 
-// 상태 관리
-const history = ref([]);
+// 상태 관리 - props에서 직접 histories 사용
 const loading = ref(false);
 
-// 결재 이력 조회
-const fetchHistory = async () => {
-  if (!props.requestId) return;
-  
-  loading.value = true;
-  try {
-    const data = await historyApi.getApprovalHistory(props.requestId);
-    history.value = data;
-  } catch (error) {
-    console.error('결재 이력 조회 오류:', error);
-  } finally {
-    loading.value = false;
-  }
-};
+// 결재 이력은 props에서 직접 받아옴 (상세조회 API의 histories 필드)
+const history = computed(() => props.histories || []);
 
 // 단계별 스타일링
 const getLineStatusClass = (line) => {
@@ -247,10 +237,5 @@ const formatDate = (dateString) => {
   }
 };
 
-// 감시자
-watch(() => props.requestId, fetchHistory, { immediate: true });
-
-onMounted(() => {
-  fetchHistory();
-});
+// 별도의 API 호출이 필요 없음 - props에서 histories 직접 사용
 </script>

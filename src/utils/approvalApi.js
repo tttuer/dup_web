@@ -74,6 +74,27 @@ export const fileApi = {
     
     return true;
   },
+
+  // 전체 파일 ZIP 다운로드
+  async downloadAllFiles(requestId, zipFileName = 'approval_files') {
+    const response = await authFetch(`${FILE_API_URL}/approvals/${requestId}/download-all`);
+    
+    if (!response.ok) {
+      throw new Error('파일 일괄 다운로드 실패');
+    }
+    
+    const blob = await response.blob();
+    
+    // ZIP 파일 다운로드 처리
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${zipFileName}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
 };
 
 // 문서번호 관련 API
@@ -94,18 +115,10 @@ export const documentNumberApi = {
   },
 };
 
-// 결재 이력 관련 API
+// 결재 이력 관련 API (상세조회에서 histories로 반환되므로 별도 API 불필요)
 export const historyApi = {
-  // 결재 이력 조회
-  async getApprovalHistory(requestId) {
-    const response = await authFetch(`${API_URL}/approvals/${requestId}`);
-    
-    if (!response.ok) {
-      throw new Error('결재 이력 조회 실패');
-    }
-    
-    return await response.json();
-  },
+  // 결재 이력은 상세조회에서 histories 필드로 제공됨
+  // 별도 API 호출하지 않음
 };
 
 // 결재선 관련 API
