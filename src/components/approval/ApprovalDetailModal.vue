@@ -202,7 +202,23 @@
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-700">
                     <div v-if="item.comment" class="break-words">
-                      {{ item.comment }}
+                      <div 
+                        v-if="item.comment && item.comment.length > 100"
+                        :class="expandedComments[item.id] ? '' : 'line-clamp-3'"
+                      >
+                        {{ item.comment }}
+                      </div>
+                      <div v-else>
+                        {{ item.comment }}
+                      </div>
+                      <!-- 더보기/접기 버튼 -->
+                      <button
+                        v-if="item.comment && item.comment.length > 100"
+                        @click="toggleComment(item.id)"
+                        class="text-blue-600 hover:text-blue-800 text-xs mt-1 underline"
+                      >
+                        {{ expandedComments[item.id] ? '접기' : '더보기' }}
+                      </button>
                     </div>
                     <div v-else class="text-gray-400 italic">
                       -
@@ -269,6 +285,7 @@ const loading = ref(false);
 const showApprovalLineModal = ref(false);
 const attachedFiles = ref([]);
 const downloadingAll = ref(false);
+const expandedComments = ref({}); // 펼쳐진 댓글들 추적
 
 // 데이터
 const request = computed(() => approvalStore.approvalDetail);
@@ -460,9 +477,15 @@ const getActionBadgeClass = (action) => {
   }
 };
 
+// 코멘트 펼치기/접기
+const toggleComment = (commentId) => {
+  expandedComments.value[commentId] = !expandedComments.value[commentId];
+};
+
 // 모달 닫기
 const closeModal = () => {
   approvalStore.clearState();
+  expandedComments.value = {}; // 펼쳐진 상태 초기화
   emit('close');
 };
 
@@ -476,3 +499,12 @@ watch(
   }
 );
 </script>
+
+<style scoped>
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

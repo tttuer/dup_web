@@ -6,6 +6,7 @@ import { useRoute } from 'vue-router';
 import { useTypeStore, TYPE } from '@/stores/useTypeStore';
 import { usePendingUsersStore } from '@/stores/usePendingUsersStore';
 import { useApprovalNotificationStore } from '@/stores/useApprovalNotificationStore';
+import { useApprovalStore } from '@/stores/useApprovalStore';
 import { jwtDecode } from 'jwt-decode';
 
 const router = useRouter();
@@ -13,6 +14,7 @@ const route = useRoute();
 const typeStore = useTypeStore();
 const pendingUsersStore = usePendingUsersStore();
 const approvalNotificationStore = useApprovalNotificationStore();
+const approvalStore = useApprovalStore();
 
 const hasVoucherRole = ref(false);
 const hasAdminRole = ref(false);
@@ -34,10 +36,23 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// 컴포넌트 마운트 시 웹소켓 연결
+// 컴포넌트 마운트 시 웹소켓 연결 및 초기 데이터 로드
 onMounted(() => {
   pendingUsersStore.connectWebSocket();
   approvalNotificationStore.connectWebSocket();
+  
+  // 웹소켓 연결 확인 후 카운트 새로고침
+  const checkAndRefresh = () => {
+    if (approvalNotificationStore.isConnected) {
+      approvalNotificationStore.refreshPendingCount();
+    } else {
+      // 연결이 안되었다면 잠시 후 다시 시도
+      setTimeout(checkAndRefresh, 500);
+    }
+  };
+  
+  // 초기 연결 확인 시작 (1초 후)
+  setTimeout(checkAndRefresh, 1000);
 });
 
 function goToVoucher() {
@@ -67,6 +82,21 @@ watchEffect(() => {
     typeStore.setType(TYPE.VOUCHER);
   } else if (route.path === '/extra') {
     typeStore.setType(TYPE.EXTRA);
+    
+    // 아카이브 페이지 진입 시 결재 데이터 로드
+    setTimeout(async () => {
+      // approvalStore에서 결재 대기 데이터 로드
+      try {
+        await approvalStore.fetchPendingApprovals();
+      } catch (error) {
+        console.error('결재 데이터 로드 실패:', error);
+      }
+      
+      // 웹소켓도 새로고침
+      if (approvalNotificationStore.isConnected) {
+        approvalNotificationStore.refreshPendingCount();
+      }
+    }, 300);
   } else {
     typeStore.setType('');
   }
@@ -137,10 +167,10 @@ watchEffect(() => {
               @click="goToApproval"
             />
             <span
-              v-if="approvalNotificationStore.pendingApprovalCount > 0"
+              v-if="Math.max(approvalNotificationStore.pendingApprovalCount, approvalStore.pendingApprovals?.length || 0) > 0"
               class="absolute top-1.5 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full"
             >
-              {{ approvalNotificationStore.pendingApprovalCount }}
+              {{ Math.max(approvalNotificationStore.pendingApprovalCount, approvalStore.pendingApprovals?.length || 0) }}
             </span>
           </div>
           <div
