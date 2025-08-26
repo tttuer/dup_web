@@ -2,11 +2,13 @@
   <div 
     v-if="isVisible" 
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    @click.self="handleBackdropClick"
-    @mousedown="handleMouseDown"
-    @mouseup="handleMouseUp"
+    @click="handleBackdropClick"
   >
-    <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div 
+      class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+      @mousedown="dragProtection.handleMouseDown"
+      @mouseup="dragProtection.handleMouseUp"
+    >
       <!-- 헤더 -->
       <div class="flex justify-between items-center mb-6">
         <h3 class="text-xl font-semibold">결재 요청 작성</h3>
@@ -181,6 +183,7 @@
             첨부파일 (선택사항)
           </label>
           <div 
+            data-draggable="true"
             class="border-2 border-dashed rounded-lg p-6 text-center transition-colors"
             :class="isDragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300'"
             @drop="handleDrop"
@@ -402,6 +405,7 @@ import { X, Users, Plus, Upload, ChevronLeft, ChevronRight, Trash2, FileText, Fi
 import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { approvalUtils } from '@/utils/approvalApi';
+import { useModalDragProtection } from '@/composables/useModalDragProtection';
 import ApprovalLineModal from './ApprovalLineModal.vue';
 
 const props = defineProps({
@@ -424,7 +428,9 @@ const showApprovalLineModal = ref(false);
 const selectedFiles = ref([]);
 const fileInput = ref(null);
 const isDragOver = ref(false);
-const isTextSelecting = ref(false);
+
+// 모달 드래그 보호 기능
+const dragProtection = useModalDragProtection();
 
 // 폼 데이터
 const formData = ref({
@@ -442,6 +448,9 @@ watch(() => props.isVisible, (newValue) => {
   if (newValue) {
     resetForm();
     loadTemplates();
+    dragProtection.addGlobalDragListeners(); // 전역 드래그 리스너 추가
+  } else {
+    dragProtection.removeGlobalDragListeners(); // 전역 드래그 리스너 제거
   }
 });
 
@@ -636,32 +645,14 @@ const submitApproval = async () => {
 
 // 모달 닫기
 const closeModal = () => {
+  dragProtection.removeGlobalDragListeners();
   emit('close');
 };
 
-// 텍스트 선택 상태 추적
-const handleMouseDown = (event) => {
-  // 입력 필드나 텍스트 영역에서 마우스 다운이 시작된 경우
-  const target = event.target;
-  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-    isTextSelecting.value = true;
-  }
-};
-
-const handleMouseUp = () => {
-  // 마우스 업 시 텍스트 선택 상태 해제
-  setTimeout(() => {
-    isTextSelecting.value = false;
-  }, 50); // 짧은 지연으로 클릭 이벤트 완료 후 상태 초기화
-};
 
 // 배경 클릭 핸들러
 const handleBackdropClick = (event) => {
-  // 텍스트 선택 중이거나 현재 선택된 텍스트가 있는 경우 모달 닫기 방지
-  if (isTextSelecting.value || window.getSelection().toString().length > 0) {
-    return;
-  }
-  closeModal();
+  dragProtection.handleBackdropClick(event, closeModal);
 };
 
 onMounted(() => {

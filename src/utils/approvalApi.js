@@ -234,3 +234,60 @@ export const approvalUtils = {
     return { valid: true, message: '유효한 결재선입니다.' };
   },
 };
+
+// 즐겨찾기 그룹 관련 API
+export const favoriteApi = {
+  // 즐겨찾기 그룹 생성
+  async createFavoriteGroup(name, approverIds) {
+    const response = await authFetch(`${API_URL}/approval-lines/favorite-groups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        approver_ids: approverIds,
+      }),
+    });
+    return response.json();
+  },
+
+  // 내 즐겨찾기 그룹 목록 조회
+  async getMyFavoriteGroups() {
+    const response = await authFetch(`${API_URL}/approval-lines/favorite-groups`);
+    return response.json();
+  },
+
+  // 즐겨찾기 그룹 상세 조회
+  async getFavoriteGroup(groupId) {
+    const response = await authFetch(`${API_URL}/approval-lines/favorite-groups/${groupId}`);
+    return response.json();
+  },
+
+  // 즐겨찾기 그룹 수정
+  async updateFavoriteGroup(groupId, updates) {
+    const response = await authFetch(`${API_URL}/approval-lines/favorite-groups/${groupId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: updates.name,
+        approver_ids: updates.approverIds,
+      }),
+    });
+    return response.json();
+  },
+
+  // 즐겨찾기 그룹 삭제
+  async deleteFavoriteGroup(groupId) {
+    const response = await authFetch(`${API_URL}/approval-lines/favorite-groups/${groupId}`, {
+      method: 'DELETE',
+    });
+    return response.ok;
+  },
+
+  // 즐겨찾기 그룹을 결재선에 적용
+  async applyFavoriteGroupToRequest(groupId, requestId) {
+    const response = await authFetch(`${API_URL}/approval-lines/favorite-groups/${groupId}/apply-to-request?request_id=${requestId}`, {
+      method: 'POST',
+    });
+    return response.json();
+  },
+};

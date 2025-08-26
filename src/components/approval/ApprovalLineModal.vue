@@ -16,6 +16,41 @@
         </button>
       </div>
 
+      <!-- 즐겨찾기 그룹 -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-3">
+          <label class="block text-sm font-medium text-gray-700">
+            즐겨찾기 그룹
+          </label>
+          <button
+            @click="showFavoriteManagement = true"
+            class="text-sm text-blue-600 hover:text-blue-800"
+          >
+            <Star class="w-4 h-4 inline mr-1" />
+            관리
+          </button>
+        </div>
+        
+        <div v-if="favoriteStore.hasFavoriteGroups" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            v-for="group in favoriteStore.favoriteGroups"
+            :key="group.id"
+            @click="applyFavoriteGroup(group)"
+            class="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:border-blue-300 hover:bg-blue-50 text-left"
+          >
+            <div>
+              <div class="font-medium text-gray-900">{{ group.name }}</div>
+              <div class="text-xs text-gray-500">{{ group.approver_ids.length }}명</div>
+            </div>
+            <Plus class="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
+        
+        <div v-else class="text-center py-4 text-gray-500 text-sm">
+          저장된 즐겨찾기 그룹이 없습니다.
+        </div>
+      </div>
+
       <!-- 결재자 검색 -->
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -110,19 +145,89 @@
       </div>
 
       <!-- 버튼 -->
+      <div class="flex justify-between items-center">
+        <!-- 즐겨찾기 저장 버튼 -->
+        <button
+          v-if="approvalLines.length > 0"
+          @click="showSaveFavoriteModal = true"
+          class="inline-flex items-center px-3 py-2 text-sm bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200"
+        >
+          <Star class="w-4 h-4 mr-1" />
+          즐겨찾기로 저장
+        </button>
+        <div v-else></div>
+
+        <div class="flex space-x-3">
+          <button
+            @click="closeModal"
+            class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+          >
+            취소
+          </button>
+          <button
+            @click="saveApprovalLines"
+            :disabled="!isValid || loading"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Loader v-if="loading" class="w-4 h-4 animate-spin mr-2" />
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 즐겨찾기 관리 모달 -->
+  <div
+    v-if="showFavoriteManagement"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60"
+  >
+    <div class="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">즐겨찾기 그룹 관리</h3>
+          <button
+            @click="showFavoriteManagement = false"
+            class="text-gray-400 hover:text-gray-600"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+        <FavoriteGroupManagement />
+      </div>
+    </div>
+  </div>
+
+  <!-- 즐겨찾기 저장 모달 -->
+  <div
+    v-if="showSaveFavoriteModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60"
+    @click.self="showSaveFavoriteModal = false"
+  >
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+      <h3 class="text-lg font-semibold mb-4">즐겨찾기로 저장</h3>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">그룹명</label>
+        <input
+          v-model="favoriteGroupName"
+          type="text"
+          placeholder="예: 팀장 승인선"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
       <div class="flex justify-end space-x-3">
         <button
-          @click="closeModal"
-          class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+          @click="showSaveFavoriteModal = false"
+          class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
         >
           취소
         </button>
         <button
-          @click="saveApprovalLines"
-          :disabled="!isValid || loading"
-          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          @click="saveFavoriteGroup"
+          :disabled="!favoriteGroupName.trim() || favoriteStore.loading"
+          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          <Loader v-if="loading" class="w-4 h-4 animate-spin mr-2" />
+          <Loader v-if="favoriteStore.loading" class="w-4 h-4 animate-spin mr-2" />
           저장
         </button>
       </div>
@@ -131,10 +236,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { X, Search, Loader, ArrowRight } from 'lucide-vue-next';
+import { ref, computed, watch, onMounted } from 'vue';
+import { X, Search, Loader, ArrowRight, Star, Plus } from 'lucide-vue-next';
 import { useUserStore } from '@/stores/useUserStore';
+import { useFavoriteApprovalStore } from '@/stores/useFavoriteApprovalStore';
 import { approvalUtils } from '@/utils/approvalApi';
+import FavoriteGroupManagement from './FavoriteGroupManagement.vue';
 
 const props = defineProps({
   isVisible: {
@@ -154,6 +261,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save']);
 
 const userStore = useUserStore();
+const favoriteStore = useFavoriteApprovalStore();
 
 // 상태 관리
 const searchQuery = ref('');
@@ -161,6 +269,9 @@ const searchResults = ref([]);
 const approvalLines = ref([]);
 const loading = ref(false);
 const validationMessage = ref('');
+const showFavoriteManagement = ref(false);
+const showSaveFavoriteModal = ref(false);
+const favoriteGroupName = ref('');
 
 // 초기화
 watch(() => props.isVisible, async (newValue) => {
@@ -330,8 +441,71 @@ watch(searchQuery, (newQuery) => {
   }, 300);
 });
 
+// 즐겨찾기 그룹 적용
+const applyFavoriteGroup = async (group) => {
+  try {
+    // 현재 결재선에 즐겨찾기 그룹의 결재자들을 추가
+    const startOrder = approvalLines.value.length;
+    
+    for (let i = 0; i < group.approver_ids.length; i++) {
+      const approverId = group.approver_ids[i];
+      const user = userStore.users.find(u => u.id === approverId);
+      
+      if (user && !approvalLines.value.some(line => line.approver_id === user.id)) {
+        const newLine = {
+          approver_id: user.id,
+          approver_user_id: user.user_id,
+          approver_name: user.name,
+          approver_department: user.department || '',
+          approver_position: user.position || '',
+          step_order: startOrder + i + 1,
+          is_required: true,
+          is_parallel: false,
+        };
+        approvalLines.value.push(newLine);
+      }
+    }
+    
+    validateLines();
+  } catch (error) {
+    console.error('즐겨찾기 그룹 적용 실패:', error);
+  }
+};
+
+// 즐겨찾기로 저장
+const saveFavoriteGroup = async () => {
+  try {
+    const approverIds = approvalLines.value.map(line => line.approver_id);
+    await favoriteStore.createFavoriteGroup(favoriteGroupName.value.trim(), approverIds);
+    
+    showSaveFavoriteModal.value = false;
+    favoriteGroupName.value = '';
+    
+    // 성공 메시지 표시 (선택사항)
+    alert('즐겨찾기 그룹이 저장되었습니다.');
+  } catch (error) {
+    console.error('즐겨찾기 그룹 저장 실패:', error);
+  }
+};
+
 // 모달 닫기
 const closeModal = () => {
+  searchQuery.value = '';
+  searchResults.value = [];
+  approvalLines.value = [];
+  validationMessage.value = '';
+  showFavoriteManagement.value = false;
+  showSaveFavoriteModal.value = false;
+  favoriteGroupName.value = '';
   emit('close');
 };
+
+// 컴포넌트 마운트 시 즐겨찾기 데이터 로드
+onMounted(async () => {
+  try {
+    await favoriteStore.fetchFavoriteGroups();
+  } catch (error) {
+    console.error('즐겨찾기 그룹 로드 실패:', error);
+  }
+});
 </script>
