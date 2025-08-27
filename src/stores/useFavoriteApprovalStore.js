@@ -18,7 +18,11 @@ export const useFavoriteApprovalStore = defineStore('favoriteApproval', () => {
     error.value = null;
     try {
       const groups = await favoriteApi.getMyFavoriteGroups();
-      favoriteGroups.value = groups;
+      // 데이터 정규화: approver_ids가 없는 경우 빈 배열로 초기화
+      favoriteGroups.value = (groups || []).map(group => ({
+        ...group,
+        approver_ids: group.approver_ids || []
+      }));
     } catch (err) {
       error.value = err.message;
       console.error('즐겨찾기 그룹 조회 실패:', err);
@@ -33,8 +37,13 @@ export const useFavoriteApprovalStore = defineStore('favoriteApproval', () => {
     error.value = null;
     try {
       const newGroup = await favoriteApi.createFavoriteGroup(name, approverIds);
-      favoriteGroups.value.unshift(newGroup);
-      return newGroup;
+      // 데이터 정규화
+      const normalizedGroup = {
+        ...newGroup,
+        approver_ids: newGroup.approver_ids || []
+      };
+      favoriteGroups.value.unshift(normalizedGroup);
+      return normalizedGroup;
     } catch (err) {
       error.value = err.message;
       console.error('즐겨찾기 그룹 생성 실패:', err);
@@ -50,11 +59,16 @@ export const useFavoriteApprovalStore = defineStore('favoriteApproval', () => {
     error.value = null;
     try {
       const updatedGroup = await favoriteApi.updateFavoriteGroup(groupId, updates);
+      // 데이터 정규화
+      const normalizedGroup = {
+        ...updatedGroup,
+        approver_ids: updatedGroup.approver_ids || []
+      };
       const index = favoriteGroups.value.findIndex(g => g.id === groupId);
       if (index > -1) {
-        favoriteGroups.value[index] = updatedGroup;
+        favoriteGroups.value[index] = normalizedGroup;
       }
-      return updatedGroup;
+      return normalizedGroup;
     } catch (err) {
       error.value = err.message;
       console.error('즐겨찾기 그룹 수정 실패:', err);
@@ -102,8 +116,9 @@ export const useFavoriteApprovalStore = defineStore('favoriteApproval', () => {
   // 특정 결재자들로 즐겨찾기 그룹 검색
   const findGroupByApprovers = (approverIds) => {
     return favoriteGroups.value.find(group => {
-      if (group.approver_ids.length !== approverIds.length) return false;
-      return group.approver_ids.every(id => approverIds.includes(id));
+      const groupApproverIds = group.approver_ids || [];
+      if (groupApproverIds.length !== approverIds.length) return false;
+      return groupApproverIds.every(id => approverIds.includes(id));
     });
   };
 

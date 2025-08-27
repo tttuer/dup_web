@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- 헤더 -->
     <div class="flex justify-between items-center">
-      <h3 class="text-lg font-semibold text-gray-900">즐겨찾기 그룹 관리</h3>
+      <h3 class="text-lg font-semibold text-gray-900">결재선 그룹 관리</h3>
       <button
         @click="showCreateModal = true"
         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
@@ -17,49 +17,81 @@
       <Loader class="w-6 h-6 animate-spin text-blue-600" />
     </div>
 
-    <!-- 즐겨찾기 그룹 목록 -->
-    <div v-else-if="favoriteStore.hasFavoriteGroups" class="grid gap-4">
+    <!-- 결재선 그룹 목록 (카드 형식) -->
+    <div v-else-if="favoriteStore.hasFavoriteGroups" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <div
         v-for="group in favoriteStore.favoriteGroups"
         :key="group.id"
-        class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+        class="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-blue-200 transition-all duration-200"
       >
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
-            <h4 class="font-semibold text-gray-900 mb-2">{{ group.name }}</h4>
-            <div class="flex items-center space-x-2 mb-3">
-              <Users class="w-4 h-4 text-gray-400" />
-              <span class="text-sm text-gray-600">{{ group.approver_ids.length }}명</span>
+        <!-- 카드 헤더 -->
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Star class="w-5 h-5 text-blue-600" />
             </div>
-            
-            <!-- 결재자 목록 -->
-            <div class="flex flex-wrap gap-2">
-              <div
-                v-for="approverId in group.approver_ids"
-                :key="approverId"
-                class="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded"
-              >
-                {{ getUserName(approverId) }}
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-900 text-lg">{{ group.name }}</h4>
+              <div class="flex items-center space-x-1 mt-1">
+                <Users class="w-4 h-4 text-gray-400" />
+                <span class="text-sm text-gray-500">{{ (group.approver_names || []).length }}명의 결재자</span>
               </div>
             </div>
           </div>
-
+          
           <!-- 액션 버튼 -->
-          <div class="flex items-center space-x-2 ml-4">
+          <div class="flex items-center space-x-1">
             <button
               @click="handleEdit(group)"
-              class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+              class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               title="편집"
             >
               <Edit class="w-4 h-4" />
             </button>
             <button
               @click="handleDelete(group)"
-              class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+              class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="삭제"
             >
               <Trash2 class="w-4 h-4" />
             </button>
+          </div>
+        </div>
+        
+        <!-- 결재선 (결재선 설정과 동일한 UI) -->
+        <div class="space-y-3">
+          <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">결재 순서</div>
+          <div class="flex items-center space-x-3 overflow-x-auto pb-2 pt-3 px-3 min-h-[80px]">
+            <div
+              v-for="(approverName, index) in (group.approver_names || [])"
+              :key="`${approverName}-${index}`"
+              class="flex items-center space-x-3 flex-shrink-0"
+            >
+              <!-- 결재자 카드 -->
+              <div class="relative bg-white border-2 border-blue-200 rounded-lg p-3 min-w-[140px]">
+                <!-- 순서 배지 -->
+                <div class="absolute -top-2 -left-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  {{ index + 1 }}
+                </div>
+                
+                <!-- 결재자 정보 -->
+                <div class="text-center">
+                  <div class="font-medium text-gray-900 text-sm">{{ approverName }}</div>
+                </div>
+              </div>
+              
+              <!-- 화살표 (마지막이 아닌 경우) -->
+              <ArrowRight v-if="index < (group.approver_names || []).length - 1" class="w-4 h-4 text-gray-400 flex-shrink-0" />
+            </div>
+          </div>
+        </div>
+        
+        <!-- 카드 푸터 -->
+        <div class="mt-4 pt-4 border-t border-gray-100">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-400">
+              {{ formatDate(group.created_at) }}
+            </span>
           </div>
         </div>
       </div>
@@ -68,7 +100,7 @@
     <!-- 비어있는 상태 -->
     <div v-else class="text-center py-12">
       <Star class="w-12 h-12 text-gray-300 mx-auto mb-4" />
-      <h3 class="text-lg font-medium text-gray-900 mb-2">즐겨찾기 그룹이 없습니다</h3>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">결재선 그룹이 없습니다</h3>
       <p class="text-gray-500 mb-4">자주 사용하는 결재선을 그룹으로 저장해보세요.</p>
       <button
         @click="showCreateModal = true"
@@ -134,13 +166,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Plus, Users, Edit, Trash2, Star, Loader, AlertCircle } from 'lucide-vue-next';
+import { Plus, Users, Edit, Trash2, Star, Loader, AlertCircle, ArrowRight } from 'lucide-vue-next';
+import { useToast } from 'vue-toastification';
 import { useFavoriteApprovalStore } from '@/stores/useFavoriteApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
 import FavoriteGroupFormModal from './FavoriteGroupFormModal.vue';
 
 const favoriteStore = useFavoriteApprovalStore();
 const userStore = useUserStore();
+const toast = useToast();
 
 // 상태 관리
 const showCreateModal = ref(false);
@@ -148,10 +182,20 @@ const showDeleteModal = ref(false);
 const editingGroup = ref(null);
 const deletingGroup = ref(null);
 
-// 사용자 이름 조회
-const getUserName = (userId) => {
-  const user = userStore.approvers.find(u => u.id === userId);
-  return user ? user.name : userId;
+
+// 날짜 포맷 함수
+const formatDate = (dateString) => {
+  if (!dateString) return '알 수 없음';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    return '알 수 없음';
+  }
 };
 
 // 편집 핸들러
@@ -170,10 +214,11 @@ const handleDelete = (group) => {
 const confirmDelete = async () => {
   try {
     await favoriteStore.deleteFavoriteGroup(deletingGroup.value.id);
+    toast.success(`"${deletingGroup.value.name}" 그룹이 삭제되었습니다.`);
     showDeleteModal.value = false;
     deletingGroup.value = null;
   } catch (error) {
-    // 에러는 스토어에서 처리됨
+    toast.error('그룹 삭제에 실패했습니다.');
   }
 };
 
@@ -190,13 +235,15 @@ const handleSaveGroup = async (groupData) => {
     if (editingGroup.value) {
       // 편집 모드
       await favoriteStore.updateFavoriteGroup(editingGroup.value.id, groupData);
+      toast.success(`"${groupData.name}" 그룹이 수정되었습니다.`);
     } else {
       // 생성 모드
       await favoriteStore.createFavoriteGroup(groupData.name, groupData.approverIds);
+      toast.success(`"${groupData.name}" 그룹이 생성되었습니다.`);
     }
     handleCloseModal();
   } catch (error) {
-    // 에러는 스토어에서 처리되고 모달에 표시됨
+    toast.error(editingGroup.value ? '그룹 수정에 실패했습니다.' : '그룹 생성에 실패했습니다.');
   }
 };
 

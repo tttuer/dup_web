@@ -12,7 +12,7 @@
       <!-- 헤더 -->
       <div class="flex justify-between items-center p-6 border-b">
         <h3 class="text-xl font-semibold">
-          {{ editGroup ? '즐겨찾기 그룹 편집' : '새 즐겨찾기 그룹' }}
+          {{ editGroup ? '결재선 그룹 편집' : '새 결재선 그룹' }}
         </h3>
         <button 
           @click="closeModal"
@@ -32,7 +32,7 @@
           <input
             v-model="formData.name"
             type="text"
-            placeholder="예: 팀장 승인선, 임원 결재선"
+            placeholder="예: 구매팀 결재선"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             :class="{ 'border-red-300': errors.name }"
           />
@@ -56,54 +56,58 @@
             <Search class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           </div>
 
-          <!-- 선택된 결재자 목록 -->
-          <div v-if="selectedApprovers.length > 0" class="mb-4">
-            <h4 class="text-sm font-medium text-gray-700 mb-2">선택된 결재자 ({{ selectedApprovers.length }}명)</h4>
-            <div class="bg-gray-50 rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+          <!-- 선택된 결재자 목록 (카드형 UI) -->
+          <div v-if="formData.approverIds.length > 0" class="mb-4">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">선택된 결재자 ({{ formData.approverIds.length }}명)</h4>
+            <div class="flex items-center space-x-3 overflow-x-auto pb-2 pt-3 px-3 bg-gray-50 rounded-md min-h-[100px]">
               <div
-                v-for="(approver, index) in selectedApprovers"
-                :key="approver.id"
-                data-draggable="true"
-                class="flex items-center justify-between bg-white p-2 rounded border"
+                v-for="(approverName, index) in formData.approverNames"
+                :key="`${formData.approverIds[index]}-${index}`"
+                class="flex items-center space-x-3 flex-shrink-0"
               >
-                <div class="flex items-center space-x-3">
-                  <span class="w-6 h-6 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center justify-center">
+                <!-- 결재자 카드 -->
+                <div class="relative group bg-white border-2 border-blue-200 rounded-lg p-3 min-w-[140px]">
+                  <!-- 순서 배지 -->
+                  <div class="absolute -top-2 -left-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                     {{ index + 1 }}
-                  </span>
-                  <div>
-                    <div class="font-medium text-gray-900">{{ approver.name }}</div>
-                    <div class="text-sm text-gray-500">{{ approver.department }}</div>
+                  </div>
+                  
+                  <!-- 삭제 버튼 -->
+                  <button
+                    @click="removeApprover(formData.approverIds[index])"
+                    class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X class="w-3 h-3 mx-auto" />
+                  </button>
+                  
+                  <!-- 결재자 정보 -->
+                  <div class="text-center">
+                    <div class="font-medium text-gray-900 text-sm">{{ approverName }}</div>
+                  </div>
+                  
+                  <!-- 순서 변경 버튼 -->
+                  <div class="mt-2 flex justify-center space-x-1">
+                    <button
+                      v-if="index > 0"
+                      @click="moveApprover(index, index - 1)"
+                      class="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="왼쪽으로 이동"
+                    >
+                      <ChevronLeft class="w-3 h-3" />
+                    </button>
+                    <button
+                      v-if="index < formData.approverIds.length - 1"
+                      @click="moveApprover(index, index + 1)"
+                      class="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="오른쪽으로 이동"
+                    >
+                      <ChevronRight class="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
-                <div class="flex items-center space-x-1">
-                  <!-- 순서 조정 버튼 -->
-                  <button
-                    v-if="index > 0"
-                    @click="moveApprover(index, index - 1)"
-                    data-draggable="true"
-                    class="p-1 text-gray-400 hover:text-blue-600"
-                    title="위로"
-                  >
-                    <ChevronUp class="w-4 h-4" />
-                  </button>
-                  <button
-                    v-if="index < selectedApprovers.length - 1"
-                    @click="moveApprover(index, index + 1)"
-                    data-draggable="true"
-                    class="p-1 text-gray-400 hover:text-blue-600"
-                    title="아래로"
-                  >
-                    <ChevronDown class="w-4 h-4" />
-                  </button>
-                  <!-- 제거 버튼 -->
-                  <button
-                    @click="removeApprover(approver.id)"
-                    class="p-1 text-gray-400 hover:text-red-600"
-                    title="제거"
-                  >
-                    <X class="w-4 h-4" />
-                  </button>
-                </div>
+                
+                <!-- 화살표 (마지막이 아닌 경우) -->
+                <ArrowRight v-if="index < formData.approverNames.length - 1" class="w-5 h-5 text-gray-400 flex-shrink-0" />
               </div>
             </div>
           </div>
@@ -167,7 +171,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { X, Search, User, Check, ChevronUp, ChevronDown, Loader, AlertCircle } from 'lucide-vue-next';
+import { X, Search, User, Check, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ArrowRight, Loader, AlertCircle } from 'lucide-vue-next';
 import { useFavoriteApprovalStore } from '@/stores/useFavoriteApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { useModalDragProtection } from '@/composables/useModalDragProtection';
@@ -196,13 +200,12 @@ const searchTerm = ref('');
 const formData = ref({
   name: '',
   approverIds: [],
+  approverNames: [],
 });
 const errors = ref({});
 
-// 검색 결과 상태 (ApprovalLineModal과 동일)
+// 검색 결과 상태
 const searchResults = ref([]);
-// 선택된 사용자들의 전체 정보를 저장
-const selectedUsersData = ref([]);
 
 // 사용자 검색 함수 (ApprovalLineModal과 동일)
 const searchUsers = async () => {
@@ -238,7 +241,7 @@ const searchUsers = async () => {
       const isCurrentUser = currentUser && user.user_id === currentUser.user_id;
       
       // 이미 추가된 결재자 제외
-      const isAlreadyAdded = existingIds.has(user.id);
+      const isAlreadyAdded = existingIds.has(user.user_id);
       
       return !isCurrentUser && !isAlreadyAdded;
     });
@@ -248,21 +251,21 @@ const searchUsers = async () => {
   }
 };
 
-// ApprovalLineModal의 addApprover 방식 그대로 적용
+// 결재자 추가
 const addApprover = (user) => {
   // 중복 체크
-  if (formData.value.approverIds.includes(user.id)) {
+  if (formData.value.approverIds.includes(user.user_id)) {
     return;
   }
 
-  // 사용자 ID와 전체 정보 저장
-  formData.value.approverIds.push(user.id);
-  selectedUsersData.value.push(user);
+  // 사용자 ID와 이름 함께 저장
+  formData.value.approverIds.push(user.user_id);
+  formData.value.approverNames.push(user.name);
   
-  // 검색 결과에서 해당 사용자 제거 (ApprovalLineModal과 동일)
-  searchResults.value = searchResults.value.filter(u => u.id !== user.id);
+  // 검색 결과에서 해당 사용자 제거
+  searchResults.value = searchResults.value.filter(u => u.user_id !== user.user_id);
   
-  // 검색어는 유지하되, 만약 더 이상 검색 결과가 없으면 초기화
+  // 검색어 초기화
   if (searchResults.value.length === 0) {
     searchTerm.value = '';
   }
@@ -275,9 +278,6 @@ const filteredUsers = computed(() => {
   return searchResults.value;
 });
 
-const selectedApprovers = computed(() => {
-  return selectedUsersData.value;
-});
 
 const canSave = computed(() => {
   return formData.value.name.trim() && 
@@ -285,12 +285,12 @@ const canSave = computed(() => {
          !Object.keys(errors.value).length;
 });
 
-// 결재자 제거 (ApprovalLineModal의 removeApprover 방식 적용)
+// 결재자 제거
 const removeApprover = (userId) => {
   const index = formData.value.approverIds.indexOf(userId);
   if (index > -1) {
     formData.value.approverIds.splice(index, 1);
-    selectedUsersData.value = selectedUsersData.value.filter(u => u.id !== userId);
+    formData.value.approverNames.splice(index, 1);
     
     // 현재 검색어가 있다면 다시 검색해서 제거된 사용자가 나타날 수 있도록
     if (searchTerm.value && searchTerm.value.length >= 2) {
@@ -308,11 +308,11 @@ const moveApprover = (fromIndex, toIndex) => {
   approverIds.splice(toIndex, 0, movedId);
   formData.value.approverIds = approverIds;
   
-  // 사용자 데이터 배열도 동일하게 순서 변경
-  const userData = [...selectedUsersData.value];
-  const [movedUser] = userData.splice(fromIndex, 1);
-  userData.splice(toIndex, 0, movedUser);
-  selectedUsersData.value = userData;
+  // 이름 배열 순서 변경
+  const approverNames = [...formData.value.approverNames];
+  const [movedName] = approverNames.splice(fromIndex, 1);
+  approverNames.splice(toIndex, 0, movedName);
+  formData.value.approverNames = approverNames;
 };
 
 // 폼 유효성 검사
@@ -339,6 +339,7 @@ const handleSave = () => {
     emit('save', {
       name: formData.value.name.trim(),
       approverIds: formData.value.approverIds,
+      approverNames: formData.value.approverNames,
     });
   }
 };
@@ -359,8 +360,8 @@ const resetForm = () => {
   formData.value = {
     name: '',
     approverIds: [],
+    approverNames: [],
   };
-  selectedUsersData.value = [];
   searchResults.value = [];
   errors.value = {};
   searchTerm.value = '';
@@ -372,22 +373,8 @@ const setEditGroup = async (group) => {
     formData.value = {
       name: group.name,
       approverIds: [...group.approver_ids],
+      approverNames: [...(group.approver_names || [])],
     };
-    
-    // 편집 모드에서 선택된 사용자들의 정보를 가져오기 (검색으로 찾기)
-    selectedUsersData.value = [];
-    for (const approverId of group.approver_ids) {
-      try {
-        // 각 사용자 ID로 검색해서 정보 가져오기 (간단한 방법)
-        const results = await userStore.searchUsers(approverId);
-        const user = results.find(u => u.id === approverId);
-        if (user) {
-          selectedUsersData.value.push(user);
-        }
-      } catch (error) {
-        console.error('사용자 정보 조회 실패:', error);
-      }
-    }
   } else {
     resetForm();
   }

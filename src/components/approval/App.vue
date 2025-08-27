@@ -65,7 +65,7 @@
                     : 'text-gray-500 hover:text-gray-700'
                 ]"
               >
-                즐겨찾기
+                결재선 그룹
               </button>
               <button
                 @click="activeTab = 'templates'"
@@ -96,22 +96,40 @@
             
             <!-- 새 결재 요청 버튼 -->
             <button
-              @click="showCreateModal = true"
+              @click="goToCreateApproval"
               class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
             >
               <Plus class="w-4 h-4 mr-2" />
               새 결재
             </button>
             
-            <!-- 로그아웃 버튼 -->
-            <button
-              @click="logout"
-              class="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-              title="로그아웃"
-            >
-              <LogOut class="w-4 h-4 mr-1" />
-              로그아웃
-            </button>
+            <!-- 사용자 메뉴 -->
+            <div class="relative">
+              <button
+                @click="showUserMenu = !showUserMenu"
+                @blur="handleUserMenuBlur"
+                class="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+                title="사용자 메뉴"
+              >
+                <User class="w-4 h-4 mr-1" />
+                {{ userStore.currentUser?.name || '사용자' }}
+                <ChevronDown class="w-3 h-3 ml-1" />
+              </button>
+              
+              <!-- 드롭다운 메뉴 -->
+              <div
+                v-if="showUserMenu"
+                class="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50"
+              >
+                <button
+                  @click="logout"
+                  class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <LogOut class="w-4 h-4 inline mr-2" />
+                  로그아웃
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -148,14 +166,12 @@
       <div v-if="activeTab === 'templates' && userStore.isAdmin">
         <TemplateManagement />
       </div>
-    </main>
 
-    <!-- 새 결재 요청 모달 -->
-    <ApprovalCreateModal
-      :is-visible="showCreateModal"
-      @close="showCreateModal = false"
-      @created="handleRequestCreated"
-    />
+      <!-- 새 결재 생성 -->
+      <div v-if="activeTab === 'create'">
+        <CreateApprovalPage @created="handleRequestCreated" />
+      </div>
+    </main>
 
     <!-- 결재 상세보기 모달 -->
     <ApprovalDetailModal
@@ -169,12 +185,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, Archive, LogOut } from 'lucide-vue-next';
+import { Plus, Archive, LogOut, User, ChevronDown } from 'lucide-vue-next';
 import { useUserStore } from '@/stores/useUserStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { authFetch } from '@/utils/authFetch';
-import ApprovalCreateModal from './ApprovalCreateModal.vue';
 import ApprovalDetailModal from './ApprovalDetailModal.vue';
+import CreateApprovalPage from './CreateApprovalPage.vue';
 import MyApprovalList from './MyApprovalList.vue';
 import PendingApprovalList from './PendingApprovalList.vue';
 import CompletedApprovalList from './CompletedApprovalList.vue';
@@ -188,9 +204,9 @@ const approvalStore = useApprovalStore();
 
 // 상태 관리
 const activeTab = ref('my-requests');
-const showCreateModal = ref(false);
 const showDetailModal = ref(false);
 const selectedApproval = ref(null);
+const showUserMenu = ref(false);
 
 // 권한 체크
 const hasVoucherAccess = computed(() => {
@@ -208,8 +224,26 @@ const goToArchive = () => {
   }
 };
 
+// 새 결재 생성 탭으로 이동
+const goToCreateApproval = () => {
+  activeTab.value = 'create';
+};
+
+// 사용자 메뉴 blur 핸들러 (메뉴 외부 클릭 시 닫기)
+const handleUserMenuBlur = (event) => {
+  // 드롭다운 메뉴 내부의 요소를 클릭했을 경우 메뉴를 유지
+  setTimeout(() => {
+    if (!event.relatedTarget || !event.relatedTarget.closest('.relative')) {
+      showUserMenu.value = false;
+    }
+  }, 100);
+};
+
+
 // 로그아웃
 const logout = async () => {
+  showUserMenu.value = false;
+  
   try {
     // 서버에 refresh_token 쿠키 삭제 요청
     const userUrl = import.meta.env.VITE_USER_API_URL;
@@ -253,4 +287,5 @@ const handleRequestCreated = () => {
   approvalStore.fetchMyApprovalRequests();
   activeTab.value = 'my-requests';
 };
+
 </script>
