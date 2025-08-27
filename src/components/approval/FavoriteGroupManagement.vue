@@ -172,6 +172,9 @@ import { useFavoriteApprovalStore } from '@/stores/useFavoriteApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
 import FavoriteGroupFormModal from './FavoriteGroupFormModal.vue';
 
+// emits 정의
+const emit = defineEmits(['group-updated']);
+
 const favoriteStore = useFavoriteApprovalStore();
 const userStore = useUserStore();
 const toast = useToast();
@@ -217,6 +220,7 @@ const confirmDelete = async () => {
     toast.success(`"${deletingGroup.value.name}" 그룹이 삭제되었습니다.`);
     showDeleteModal.value = false;
     deletingGroup.value = null;
+    emit('group-updated'); // 그룹 업데이트 이벤트 발생
   } catch (error) {
     toast.error('그룹 삭제에 실패했습니다.');
   }
@@ -238,10 +242,11 @@ const handleSaveGroup = async (groupData) => {
       toast.success(`"${groupData.name}" 그룹이 수정되었습니다.`);
     } else {
       // 생성 모드
-      await favoriteStore.createFavoriteGroup(groupData.name, groupData.approverIds);
+      await favoriteStore.createFavoriteGroup(groupData.name, groupData.approverIds, groupData.approverNames);
       toast.success(`"${groupData.name}" 그룹이 생성되었습니다.`);
     }
     handleCloseModal();
+    emit('group-updated'); // 그룹 업데이트 이벤트 발생
   } catch (error) {
     toast.error(editingGroup.value ? '그룹 수정에 실패했습니다.' : '그룹 생성에 실패했습니다.');
   }

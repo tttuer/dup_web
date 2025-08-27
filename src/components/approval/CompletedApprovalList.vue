@@ -3,7 +3,7 @@
     <!-- 헤더 -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">결재 완료</h2>
+        <h2 class="text-2xl font-bold text-gray-900">결재함</h2>
         <p class="text-gray-600 mt-1">내가 결재 완료한 목록</p>
       </div>
     </div>
@@ -65,7 +65,7 @@
                 <div class="text-sm text-gray-500">{{ approval.department_name }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatDate(approval.approved_at) }}
+                {{ formatDate(approval.completed_at) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button

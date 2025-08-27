@@ -279,12 +279,14 @@ const setDateRange = (range) => {
       searchFilters.endDate = formatDate(today);
       break;
     case 'month':
-      const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
       searchFilters.startDate = formatDate(monthAgo);
       searchFilters.endDate = formatDate(today);
       break;
     case 'quarter':
-      const quarterAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const quarterAgo = new Date(today);
+      quarterAgo.setMonth(quarterAgo.getMonth() - 3);
       searchFilters.startDate = formatDate(quarterAgo);
       searchFilters.endDate = formatDate(today);
       break;

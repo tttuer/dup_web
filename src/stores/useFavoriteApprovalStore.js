@@ -18,10 +18,11 @@ export const useFavoriteApprovalStore = defineStore('favoriteApproval', () => {
     error.value = null;
     try {
       const groups = await favoriteApi.getMyFavoriteGroups();
-      // 데이터 정규화: approver_ids가 없는 경우 빈 배열로 초기화
+      // 데이터 정규화: approver_ids, approver_names가 없는 경우 빈 배열로 초기화
       favoriteGroups.value = (groups || []).map(group => ({
         ...group,
-        approver_ids: group.approver_ids || []
+        approver_ids: group.approver_ids || [],
+        approver_names: group.approver_names || []
       }));
     } catch (err) {
       error.value = err.message;
@@ -32,15 +33,16 @@ export const useFavoriteApprovalStore = defineStore('favoriteApproval', () => {
   };
 
   // 즐겨찾기 그룹 생성
-  const createFavoriteGroup = async (name, approverIds) => {
+  const createFavoriteGroup = async (name, approverIds, approverNames) => {
     loading.value = true;
     error.value = null;
     try {
-      const newGroup = await favoriteApi.createFavoriteGroup(name, approverIds);
+      const newGroup = await favoriteApi.createFavoriteGroup(name, approverIds, approverNames);
       // 데이터 정규화
       const normalizedGroup = {
         ...newGroup,
-        approver_ids: newGroup.approver_ids || []
+        approver_ids: newGroup.approver_ids || [],
+        approver_names: newGroup.approver_names || []
       };
       favoriteGroups.value.unshift(normalizedGroup);
       return normalizedGroup;

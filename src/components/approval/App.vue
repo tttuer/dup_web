@@ -18,7 +18,7 @@
                     : 'text-gray-500 hover:text-gray-700'
                 ]"
               >
-                내 결재함
+                기안함
               </button>
               <button
                 @click="activeTab = 'pending'"
@@ -43,7 +43,7 @@
                     : 'text-gray-500 hover:text-gray-700'
                 ]"
               >
-                결재 완료
+                결재함
               </button>
               <button
                 @click="activeTab = 'search-all'"
@@ -139,7 +139,7 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- 내 결재함 -->
       <div v-if="activeTab === 'my-requests'">
-        <MyApprovalList />
+        <MyApprovalList @create-request="activeTab = 'create'" />
       </div>
 
       <!-- 결재 대기 -->

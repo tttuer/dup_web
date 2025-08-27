@@ -2,7 +2,8 @@
   <div class="space-y-6">
     <!-- 헤더 -->
     <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-bold text-gray-900">내가 기안한 결재</h2>
+      <h2 class="text-2xl font-bold text-gray-900">기안함</h2>
+      
       
       <!-- 필터 -->
       <div class="flex items-center gap-2">
@@ -41,7 +42,7 @@
       <h3 class="text-lg font-medium text-gray-900 mb-2">결재 요청이 없습니다</h3>
       <p class="text-gray-500 mb-6">새로운 결재 요청을 작성해보세요.</p>
       <button
-        @click="showCreateModal = true"
+        @click="emit('create-request')"
         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
       >
         <Plus class="w-4 h-4 mr-2" />
@@ -143,12 +144,6 @@
     @updated="refreshList"
   />
 
-  <!-- 새 결재 요청 모달 -->
-  <ApprovalCreateModal
-    :is-visible="showCreateModal"
-    @close="showCreateModal = false"
-    @created="handleRequestCreated"
-  />
 </template>
 
 <script setup>
@@ -161,7 +156,6 @@ import { useUserStore } from '@/stores/useUserStore';
 import { DOCUMENT_STATUS, DOCUMENT_STATUS_LABELS } from '@/stores/useTypeStore';
 import ApprovalStatus from './ApprovalStatus.vue';
 import ApprovalDetailModal from './ApprovalDetailModal.vue';
-import ApprovalCreateModal from './ApprovalCreateModal.vue';
 
 const emit = defineEmits(['create-request']);
 
@@ -173,7 +167,6 @@ const loading = ref(false);
 const statusFilter = ref('');
 const showDetailModal = ref(false);
 const selectedRequestId = ref('');
-const showCreateModal = ref(false);
 
 // 데이터
 const requests = computed(() => approvalStore.myApprovalRequests);
@@ -260,11 +253,6 @@ const getContentPreview = (content) => {
 };
 
 
-// 새 결재 요청 생성 완료 핸들러
-const handleRequestCreated = () => {
-  showCreateModal.value = false;
-  refreshList();
-};
 
 // 초기 데이터 로드
 onMounted(() => {

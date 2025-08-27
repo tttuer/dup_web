@@ -8,6 +8,7 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
   const isConnected = ref(false);
   const notifications = ref([]);
   const websocket = ref(null);
+  const pingInterval = ref(null);
 
   // WebSocket URL
   const wsUrl = import.meta.env.VITE_WS_URL_APPROVAL_NOTIFICATIONS;
@@ -34,6 +35,18 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
         
         // 연결 즉시 현재 대기 건수 요청
         websocket.value.send('get_pending_count');
+        
+        // 기존 ping interval이 있으면 정리
+        if (pingInterval.value) {
+          clearInterval(pingInterval.value);
+        }
+        
+        // 30초마다 ping 전송 (연결 유지)
+        pingInterval.value = setInterval(() => {
+          if (websocket.value?.readyState === WebSocket.OPEN) {
+            websocket.value.send('ping');
+          }
+        }, 30000);
       };
 
       websocket.value.onmessage = (event) => {
@@ -53,6 +66,12 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
       websocket.value.onclose = (event) => {
         isConnected.value = false;
         
+        // ping interval 정리
+        if (pingInterval.value) {
+          clearInterval(pingInterval.value);
+          pingInterval.value = null;
+        }
+        
         // 재연결 시도 (3초 후)
         if (event.code !== 1000) { // 정상 종료가 아닌 경우
           setTimeout(() => {
@@ -64,14 +83,13 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
       websocket.value.onerror = (error) => {
         console.error('❌ 전자결재 WebSocket 오류:', error);
         isConnected.value = false;
-      };
-
-      // 30초마다 ping 전송 (연결 유지)
-      setInterval(() => {
-        if (websocket.value?.readyState === WebSocket.OPEN) {
-          websocket.value.send('ping');
+        
+        // ping interval 정리
+        if (pingInterval.value) {
+          clearInterval(pingInterval.value);
+          pingInterval.value = null;
         }
-      }, 30000);
+      };
 
     } catch (error) {
       console.error('❌ 전자결재 WebSocket 연결 실패:', error);
@@ -177,6 +195,12 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
 
   // WebSocket 연결 해제
   const disconnectWebSocket = () => {
+    // ping interval 정리
+    if (pingInterval.value) {
+      clearInterval(pingInterval.value);
+      pingInterval.value = null;
+    }
+    
     if (websocket.value) {
       websocket.value.close(1000, 'User disconnected');
       websocket.value = null;

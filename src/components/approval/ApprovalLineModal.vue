@@ -61,7 +61,7 @@
             >
               <div>
                 <div class="font-medium text-gray-900">{{ group.name }}</div>
-                <div class="text-xs text-gray-500">{{ (group.approver_ids || []).length }}명</div>
+                <div class="text-xs text-gray-500">{{ (group.approver_names || []).length }}명</div>
               </div>
             </button>
           </div>
@@ -291,12 +291,6 @@ const activeTab = ref('setup'); // 탭 상태 추가
 // 초기화
 watch(() => props.isVisible, async (newValue) => {
   if (newValue) {
-    // 즐겨찾기 그룹 적용을 위해 결재자 목록을 미리 로드
-    try {
-      await userStore.fetchApprovers();
-    } catch (error) {
-      console.error('결재자 목록 로드 실패:', error);
-    }
     
     // 초기 결재선을 복사하고 사용자 정보를 조회
     const initialLines = [...props.initialLines];
@@ -479,41 +473,27 @@ watch(searchQuery, (newQuery) => {
 });
 
 // 즐겨찾기 그룹 적용
-const applyFavoriteGroup = async (group) => {
+const applyFavoriteGroup = (group) => {
   try {
     // 기존 결재선을 완전히 교체
     approvalLines.value = [];
     
     const approverIds = group.approver_ids || [];
+    const approverNames = group.approver_names || [];
+    
     for (let i = 0; i < approverIds.length; i++) {
-      const userIdValue = approverIds[i];
+      const newLine = {
+        approver_id: null, // API에서 받을 때 설정
+        approver_user_id: approverIds[i],
+        approver_name: approverNames[i] || approverIds[i], // 이름이 없으면 ID 사용
+        approver_department: '',
+        approver_position: '',
+        step_order: i + 1,
+        is_required: true,
+        is_parallel: false,
+      };
       
-      // 먼저 approvers에서 찾기
-      let user = userStore.approvers.find(u => u.user_id === userIdValue);
-      
-      // approvers에서 찾을 수 없으면 검색으로 시도
-      if (!user) {
-        try {
-          const searchResults = await userStore.searchUsers(userIdValue);
-          user = searchResults.find(u => u.user_id === userIdValue);
-        } catch (error) {
-          console.error(`사용자 검색 실패 (${userIdValue}):`, error);
-        }
-      }
-      
-      if (user) {
-        const newLine = {
-          approver_id: user.id,
-          approver_user_id: user.user_id,
-          approver_name: user.name,
-          approver_department: user.department || '',
-          approver_position: user.position || '',
-          step_order: i + 1,
-          is_required: true,
-          is_parallel: false,
-        };
-        approvalLines.value.push(newLine);
-      }
+      approvalLines.value.push(newLine);
     }
     
     validateLines();
@@ -526,8 +506,10 @@ const applyFavoriteGroup = async (group) => {
 const saveFavoriteGroup = async () => {
   try {
     const approverIds = approvalLines.value.map(line => line.approver_user_id);
+    const approverNames = approvalLines.value.map(line => line.approver_name);
+    
     const groupName = favoriteGroupName.value.trim();
-    await favoriteStore.createFavoriteGroup(groupName, approverIds);
+    await favoriteStore.createFavoriteGroup(groupName, approverIds, approverNames);
     
     showSaveFavoriteModal.value = false;
     favoriteGroupName.value = '';
