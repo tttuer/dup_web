@@ -116,8 +116,8 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
         };
         notifications.value.unshift(newNotification);
         
-        // 알림 개수 증가
-        pendingApprovalCount.value++;
+        // 알림 개수 증가 대신, 서버로부터 최신 카운트를 다시 가져옵니다.
+        refreshPendingCount();
         
         // 브라우저 알림 (권한이 있는 경우)
         showBrowserNotification(newNotification);

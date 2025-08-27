@@ -169,7 +169,7 @@
 
       <!-- 새 결재 생성 -->
       <div v-if="activeTab === 'create'">
-        <CreateApprovalPage @created="handleRequestCreated" />
+        <CreateApprovalPage @created="handleRequestCreated" @cancel="handleCreateCancel" />
       </div>
     </main>
 
@@ -285,6 +285,11 @@ onMounted(async () => {
 // 새 결재 요청 생성 완료 핸들러
 const handleRequestCreated = () => {
   approvalStore.fetchMyApprovalRequests();
+  activeTab.value = 'my-requests';
+};
+
+// 결재 생성 취소 핸들러
+const handleCreateCancel = () => {
   activeTab.value = 'my-requests';
 };
 

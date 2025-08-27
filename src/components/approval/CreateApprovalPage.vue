@@ -398,7 +398,7 @@ import { useApprovalStore } from '@/stores/useApprovalStore';
 import { approvalUtils } from '@/utils/approvalApi';
 import ApprovalLineModal from './ApprovalLineModal.vue';
 
-const emit = defineEmits(['created']);
+const emit = defineEmits(['created', 'cancel']);
 const templateStore = useTemplateStore();
 const approvalStore = useApprovalStore();
 const toast = useToast();
@@ -426,7 +426,7 @@ const templates = ref([]);
 // 뒤로 가기 (부모 컴포넌트에서 탭 변경으로 처리)
 const goBack = () => {
   // 부모 컴포넌트에서 탭을 변경하도록 이벤트 emit
-  emit('created');
+  emit('cancel');
 };
 
 // 초기화
