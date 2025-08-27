@@ -14,6 +14,34 @@ export const useUserStore = defineStore('user', () => {
   const currentUser = ref(null);
   const loading = ref(false);
   const error = ref(null);
+  const usersLoaded = ref(false);
+
+  // 모든 사용자 조회 및 캐싱
+  async function fetchAllUsers() {
+    if (usersLoaded.value) {
+      return users.value;
+    }
+
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await authFetch(`${USER_API_URL}`);
+      if (response.ok) {
+        const data = await response.json();
+        users.value = data;
+        usersLoaded.value = true;
+        return data;
+      } else {
+        throw new Error('사용자 목록 조회 실패');
+      }
+    } catch (err) {
+      error.value = err.message;
+      console.error('사용자 목록 조회 오류:', err);
+      return [];
+    } finally {
+      loading.value = false;
+    }
+  }
 
   // 현재 사용자 정보 조회
   // async function fetchCurrentUser() {
@@ -63,7 +91,31 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // 사용자 검색
+  // ID로 사용자 조회 (캐시된 데이터에서)
+  function getUserById(userId) {
+    return users.value.find(user => user.id === userId) || null;
+  }
+
+  // 여러 사용자 ID로 조회 (캐시된 데이터에서)
+  function getUsersByIds(userIds) {
+    if (!Array.isArray(userIds)) return [];
+    return userIds.map(id => getUserById(id)).filter(Boolean);
+  }
+
+  // 사용자 검색 (캐시된 데이터에서)
+  function searchUsersLocal(query) {
+    if (!query || query.length < 2) {
+      return [];
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    return users.value.filter(user => 
+      (user.name && user.name.toLowerCase().includes(lowerQuery)) ||
+      (user.user_id && user.user_id.toLowerCase().includes(lowerQuery))
+    );
+  }
+
+  // 사용자 검색 (서버)
   async function searchUsers(query) {
     if (!query || query.length < 2) {
       return [];
@@ -93,16 +145,13 @@ export const useUserStore = defineStore('user', () => {
     return users.value.filter(user => user.roles && user.roles.includes(role));
   }
 
-  // 사용자 표시명 포맷 (이름 + 부서/직책)
+  // 사용자 표시명 포맷 (이름 + 사용자ID)
   const formatUserDisplay = computed(() => {
     return (user) => {
       if (!user) return '';
-      let display = user.name || user.username;
-      if (user.department) {
-        display += ` (${user.department})`;
-      }
-      if (user.position) {
-        display += ` ${user.position}`;
+      let display = user.name || user.user_id;
+      if (user.name && user.user_id) {
+        display = `${user.name} (${user.user_id})`;
       }
       return display;
     };
@@ -141,9 +190,12 @@ export const useUserStore = defineStore('user', () => {
     error,
     
     // 액션
-    // fetchCurrentUser,
+    fetchAllUsers,
     fetchApprovers,
     searchUsers,
+    searchUsersLocal,
+    getUserById,
+    getUsersByIds,
     getUsersByDepartment,
     getUsersByRole,
     clearState,

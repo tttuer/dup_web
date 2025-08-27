@@ -291,29 +291,28 @@ const activeTab = ref('setup'); // 탭 상태 추가
 // 초기화
 watch(() => props.isVisible, async (newValue) => {
   if (newValue) {
+    // 사용자 목록 로드 (캐싱)
+    await userStore.fetchAllUsers();
     
     // 초기 결재선을 복사하고 사용자 정보를 조회
     const initialLines = [...props.initialLines];
     
-    // 각 결재선의 사용자 정보를 조회하여 이름 등을 업데이트
+    // 각 결재선의 사용자 정보를 캐시된 데이터에서 조회
     for (const line of initialLines) {
       if ((line.approver_id || line.approver_user_id) && !line.approver_name) {
-        try {
-          // 사용자 정보 조회 (ID로 검색)
-          const searchId = line.approver_user_id || line.approver_id;
-          const userData = await userStore.searchUsers(searchId);
-          if (userData && userData.length > 0) {
-            const user = userData[0];
-            line.approver_name = user.name;
-            line.approver_department = user.department || '';
-            line.approver_position = user.position || '';
-            // ID 정보 보완
-            if (!line.approver_id) line.approver_id = user.id;
-            if (!line.approver_user_id) line.approver_user_id = user.user_id;
-          }
-        } catch (error) {
-          console.warn('사용자 정보 조회 실패:', error);
-          // 실패 시 ID를 이름으로 사용
+        // 캐시된 사용자 데이터에서 조회
+        const user = userStore.getUserById(line.approver_id) || 
+                    userStore.users.find(u => u.user_id === line.approver_user_id);
+        
+        if (user) {
+          line.approver_name = user.name;
+          line.approver_department = user.department || '';
+          line.approver_position = user.position || '';
+          // ID 정보 보완
+          if (!line.approver_id) line.approver_id = user.id;
+          if (!line.approver_user_id) line.approver_user_id = user.user_id;
+        } else {
+          // 캐시에서 찾지 못한 경우 ID를 이름으로 사용
           line.approver_name = line.approver_name || line.approver_user_id || line.approver_id;
         }
       }
@@ -334,7 +333,8 @@ const searchUsers = async () => {
   }
   
   try {
-    const results = await userStore.searchUsers(searchQuery.value);
+    // 캐시된 데이터에서 검색 (로컬 검색)
+    const results = userStore.searchUsersLocal(searchQuery.value);
     
     // JWT 토큰에서 현재 사용자 정보 추출
     const getCurrentUserFromToken = () => {
@@ -352,7 +352,6 @@ const searchUsers = async () => {
     
     const currentUser = getCurrentUserFromToken();
     
-    
     const existingIds = new Set(approvalLines.value.map(line => line.approver_id));
     const existingUserIds = new Set(approvalLines.value.map(line => line.approver_user_id));
     
@@ -362,7 +361,6 @@ const searchUsers = async () => {
       
       // 이미 추가된 결재자 제외
       const isAlreadyAdded = existingIds.has(user.id) || existingUserIds.has(user.user_id);
-      
       
       return !isCurrentUser && !isAlreadyAdded;
     });

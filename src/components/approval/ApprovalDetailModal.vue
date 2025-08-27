@@ -1,32 +1,29 @@
 <template>
-  <div 
-    v-if="isVisible" 
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+  <div
+    v-if="isVisible"
+    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
     @click.self="closeModal"
   >
-    <div class="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white">
       <!-- 헤더 -->
-      <div class="flex justify-between items-center p-6 border-b">
+      <div class="flex items-center justify-between border-b p-6">
         <h3 class="text-xl font-semibold">결재 상세</h3>
-        <button 
-          @click="closeModal"
-          class="text-gray-400 hover:text-gray-600"
-        >
-          <X class="w-6 h-6" />
+        <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+          <X class="h-6 w-6" />
         </button>
       </div>
 
       <!-- 로딩 -->
       <div v-if="loading" class="flex justify-center py-12">
-        <Loader class="w-8 h-8 animate-spin text-blue-600" />
+        <Loader class="h-8 w-8 animate-spin text-blue-600" />
       </div>
 
       <!-- 콘텐츠 -->
-      <div v-else-if="request" class="p-6 space-y-6">
+      <div v-else-if="request" class="space-y-6 p-6">
         <!-- 기본 정보 -->
         <div class="grid grid-cols-1 gap-6">
           <div>
-            <h4 class="font-semibold text-gray-900 mb-3">기본 정보</h4>
+            <h4 class="mb-3 font-semibold text-gray-900">기본 정보</h4>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-600">문서번호:</span>
@@ -50,88 +47,96 @@
               </div>
             </div>
           </div>
-          
         </div>
 
         <!-- 결재선 및 진행 현황 -->
         <div>
-          <h4 class="font-semibold text-gray-900 mb-3">결재 진행 현황</h4>
-          <div v-if="approvalLines.length === 0" class="text-gray-500 text-center py-4">
+          <h4 class="mb-3 font-semibold text-gray-900">결재 진행 현황</h4>
+          <div v-if="approvalLines.length === 0" class="py-4 text-center text-gray-500">
             결재선이 설정되지 않았습니다.
           </div>
-          <div v-else class="flex items-center space-x-3 overflow-x-auto pb-2 pt-3 px-3">
+          <div v-else class="flex items-center space-x-3 overflow-x-auto px-3 pt-3 pb-2">
             <div
               v-for="(line, index) in approvalLines"
               :key="`${line.approver_id}-${index}`"
-              class="flex items-center space-x-3 flex-shrink-0"
+              class="flex flex-shrink-0 items-center space-x-3"
             >
               <!-- 결재자 카드 -->
-              <div class="relative group bg-white rounded-lg p-3 min-w-[160px] border-2" :class="getCardBorderClass(line)">
+              <div
+                class="group relative min-w-[160px] rounded-lg border-2 bg-white p-3"
+                :class="getCardBorderClass(line)"
+              >
                 <!-- 순서 배지 -->
-                <div class="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" :class="getStepCircleClass(line)">
-                  <component 
-                    :is="getStepIcon(line)" 
-                    class="w-3 h-3"
-                    v-if="getStepIcon(line)"
-                  />
+                <div
+                  class="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
+                  :class="getStepCircleClass(line)"
+                >
+                  <component :is="getStepIcon(line)" class="h-3 w-3" v-if="getStepIcon(line)" />
                   <span v-else>{{ index + 1 }}</span>
                 </div>
-                
+
                 <!-- 결재자 정보 -->
                 <div class="text-center">
-                  <div class="font-medium text-gray-900">{{ line.approver_name || '알 수 없음' }}</div>
-                  <div class="text-xs text-gray-500 mt-1">{{ line.approver_id }}</div>
+                  <div class="font-medium text-gray-900">
+                    {{ line.approver_name || '알 수 없음' }}
+                  </div>
+                  <div class="mt-1 text-xs text-gray-500">{{ line.approver_id }}</div>
                   <div class="text-xs text-gray-400">{{ line.approver_department }}</div>
                 </div>
-                
+
                 <!-- 상태 표시 -->
                 <div class="mt-2 text-center">
                   <div class="text-xs font-medium" :class="getStatusTextClass(line.status)">
                     {{ getStatusLabel(line.status) }}
                   </div>
-                  <div v-if="line.approved_at" class="text-xs text-gray-400 mt-1">
+                  <div v-if="line.approved_at" class="mt-1 text-xs text-gray-400">
                     {{ formatDate(line.approved_at) }}
                   </div>
                 </div>
-                
+
                 <!-- 필수/선택 표시 -->
                 <div v-if="!line.is_required" class="absolute top-1 right-1">
-                  <span class="px-1 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">선택</span>
+                  <span class="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-600">선택</span>
                 </div>
               </div>
-              
+
               <!-- 화살표 (마지막이 아닌 경우) -->
-              <ArrowRight v-if="index < approvalLines.length - 1" class="w-5 h-5 text-gray-400 flex-shrink-0" />
+              <ArrowRight
+                v-if="index < approvalLines.length - 1"
+                class="h-5 w-5 flex-shrink-0 text-gray-400"
+              />
             </div>
           </div>
         </div>
 
         <!-- 제목 -->
         <div>
-          <h4 class="font-semibold text-gray-900 mb-2">제목</h4>
+          <h4 class="mb-2 font-semibold text-gray-900">제목</h4>
           <p class="text-lg">{{ request.title }}</p>
         </div>
 
         <!-- 내용 -->
         <div>
-          <h4 class="font-semibold text-gray-900 mb-2">내용</h4>
-          <div class="prose max-w-none p-4 bg-gray-50 rounded-md">
-            <div v-html="request.content"></div>
+          <h4 class="mb-2 font-semibold text-gray-900">내용</h4>
+          <div class="prose max-w-none rounded-md bg-gray-50 p-4">
+            <div class="prose max-w-none rounded-md bg-gray-50 p-4 whitespace-pre-wrap">
+              {{ request.content }}
+            </div>
           </div>
         </div>
 
         <!-- 첨부파일 -->
         <div>
-          <div class="flex justify-between items-center mb-3">
+          <div class="mb-3 flex items-center justify-between">
             <h4 class="font-semibold text-gray-900">첨부파일</h4>
             <button
               v-if="attachedFiles.length > 1"
               @click="downloadAllFiles"
               :disabled="downloadingAll"
-              class="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50"
+              class="inline-flex items-center rounded bg-green-100 px-3 py-1 text-sm text-green-700 hover:bg-green-200 disabled:opacity-50"
             >
-              <Loader v-if="downloadingAll" class="w-4 h-4 mr-1 animate-spin" />
-              <Download v-else class="w-4 h-4 mr-1" />
+              <Loader v-if="downloadingAll" class="mr-1 h-4 w-4 animate-spin" />
+              <Download v-else class="mr-1 h-4 w-4" />
               전체 다운로드 (ZIP)
             </button>
           </div>
@@ -139,10 +144,10 @@
             <div
               v-for="file in attachedFiles"
               :key="file.id"
-              class="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+              class="flex items-center justify-between rounded-md bg-gray-50 p-3"
             >
               <div class="flex items-center space-x-3">
-                <component :is="getFileIcon(file.file_name)" class="w-5 h-5 text-gray-400" />
+                <component :is="getFileIcon(file.file_name)" class="h-5 w-5 text-gray-400" />
                 <div>
                   <div class="font-medium">{{ file.file_name }}</div>
                   <div class="text-sm text-gray-500">{{ formatFileSize(file.file_size) }}</div>
@@ -150,59 +155,64 @@
               </div>
               <button
                 @click="downloadFile(file)"
-                class="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                class="inline-flex items-center rounded bg-blue-100 px-3 py-1 text-sm text-blue-700 hover:bg-blue-200"
               >
-                <Download class="w-4 h-4 mr-1" />
+                <Download class="mr-1 h-4 w-4" />
                 다운로드
               </button>
             </div>
           </div>
-          <div v-else class="text-gray-500 text-sm">
-            첨부파일이 없습니다.
-          </div>
+          <div v-else class="text-sm text-gray-500">첨부파일이 없습니다.</div>
         </div>
 
         <!-- 결재 의견 -->
-        <div v-if="(request.histories && request.histories.length > 0)" class="border-t pt-6">
-          <h4 class="font-semibold text-gray-900 mb-3">결재 의견</h4>
+        <div v-if="request.histories && request.histories.length > 0" class="border-t pt-6">
+          <h4 class="mb-3 font-semibold text-gray-900">결재 의견</h4>
           <div class="overflow-x-auto">
-            <table class="min-w-full bg-white border border-gray-200">
+            <table class="min-w-full border border-gray-200 bg-white">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/6">
+                  <th
+                    class="w-1/6 border-b px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                  >
                     결재자
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/6">
+                  <th
+                    class="w-1/6 border-b px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                  >
                     결재 상태
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/6">
+                  <th
+                    class="w-1/6 border-b px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                  >
                     일시
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/2">
+                  <th
+                    class="w-1/2 border-b px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                  >
                     결재 의견
                   </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
-                <tr
-                  v-for="item in request.histories"
-                  :key="item.id"
-                  class="hover:bg-gray-50"
-                >
+                <tr v-for="item in request.histories" :key="item.id" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="font-medium text-gray-900">{{ item.approver_name }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full" :class="getActionBadgeClass(item.action)">
+                    <span
+                      class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
+                      :class="getActionBadgeClass(item.action)"
+                    >
                       {{ getActionLabel(item.action) }}
                     </span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                     {{ formatDate(item.created_at) }}
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-700">
                     <div v-if="item.comment" class="break-words">
-                      <div 
+                      <div
                         v-if="item.comment && item.comment.length > 100"
                         :class="expandedComments[item.id] ? '' : 'line-clamp-3'"
                       >
@@ -215,14 +225,12 @@
                       <button
                         v-if="item.comment && item.comment.length > 100"
                         @click="toggleComment(item.id)"
-                        class="text-blue-600 hover:text-blue-800 text-xs mt-1 underline"
+                        class="mt-1 text-xs text-blue-600 underline hover:text-blue-800"
                       >
                         {{ expandedComments[item.id] ? '접기' : '더보기' }}
                       </button>
                     </div>
-                    <div v-else class="text-gray-400 italic">
-                      -
-                    </div>
+                    <div v-else class="text-gray-400 italic">-</div>
                   </td>
                 </tr>
               </tbody>
@@ -294,7 +302,7 @@ const approvalLines = computed(() => approvalStore.approvalLines);
 // 상세 정보 로드
 const loadDetail = async () => {
   if (!props.requestId) return;
-  
+
   loading.value = true;
   try {
     await Promise.all([
@@ -332,10 +340,13 @@ const downloadFile = async (file) => {
 // 전체 파일 다운로드 (ZIP)
 const downloadAllFiles = async () => {
   if (attachedFiles.value.length === 0) return;
-  
+
   downloadingAll.value = true;
   try {
-    await fileApi.downloadAllFiles(props.requestId, `결재첨부파일_${request.value.document_number}`);
+    await fileApi.downloadAllFiles(
+      props.requestId,
+      `결재첨부파일_${request.value.document_number}`,
+    );
   } catch (error) {
     alert('파일 일괄 다운로드 중 오류가 발생했습니다: ' + error.message);
   } finally {
@@ -365,7 +376,6 @@ const formatDate = (dateString) => {
   if (!dateString) return '';
   return new Date(dateString).toLocaleString('ko-KR');
 };
-
 
 const getFileIcon = (fileName) => {
   const extension = fileName.split('.').pop().toLowerCase();
@@ -496,7 +506,7 @@ watch(
     if (isVisible && requestId) {
       loadDetail();
     }
-  }
+  },
 );
 </script>
 
