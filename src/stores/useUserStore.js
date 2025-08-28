@@ -44,26 +44,26 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // 현재 사용자 정보 조회
-  // async function fetchCurrentUser() {
-  //   loading.value = true;
-  //   error.value = null;
-  //   try {
-  //     const response = await authFetch('/api/users/me');
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       currentUser.value = data;
-  //       return data;
-  //     } else {
-  //       throw new Error('사용자 정보 조회 실패');
-  //     }
-  //   } catch (err) {
-  //     error.value = err.message;
-  //     console.error('사용자 정보 조회 오류:', err);
-  //     return null;
-  //   } finally {
-  //     loading.value = false;
-  //   }
-  // }
+  async function fetchCurrentUser() {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await authFetch(`${USER_API_URL}/me`);
+      if (response.ok) {
+        const data = await response.json();
+        currentUser.value = data;
+        return data;
+      } else {
+        throw new Error('사용자 정보 조회 실패');
+      }
+    } catch (err) {
+      error.value = err.message;
+      console.error('사용자 정보 조회 오류:', err);
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
 
   // 결재자 목록 조회 (부서별)
   async function fetchApprovers(departmentId = null) {
@@ -191,6 +191,7 @@ export const useUserStore = defineStore('user', () => {
     
     // 액션
     fetchAllUsers,
+    fetchCurrentUser,
     fetchApprovers,
     searchUsers,
     searchUsersLocal,

@@ -1,10 +1,59 @@
 <template>
   <div>
     <!-- 헤더 -->
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-900">결재함</h2>
         <p class="text-gray-600 mt-1">내가 결재 완료한 목록</p>
+      </div>
+      
+      <!-- 필터 -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- 정렬 -->
+        <select
+          v-model="sortBy"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          @change="refreshList"
+        >
+          <option value="completed_at_desc">완료일 최신순</option>
+          <option value="completed_at_asc">완료일 오래된순</option>
+        </select>
+
+        <!-- 시작 날짜 -->
+        <input
+          v-model="startDate"
+          type="date"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          @change="refreshList"
+          placeholder="완료일 시작"
+        />
+
+        <!-- 종료 날짜 -->
+        <input
+          v-model="endDate"
+          type="date"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          @change="refreshList"
+          placeholder="완료일 종료"
+        />
+
+        <!-- 필터 초기화 -->
+        <button
+          @click="resetFilters"
+          class="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm"
+          title="필터 초기화"
+        >
+          초기화
+        </button>
+
+        <button
+          @click="refreshList"
+          :disabled="loading"
+          class="inline-flex items-center px-3 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+        >
+          <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': loading }" />
+          새로고침
+        </button>
       </div>
     </div>
 
@@ -93,12 +142,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Loader, CheckCircle } from 'lucide-vue-next';
+import { Loader, CheckCircle, RefreshCw } from 'lucide-vue-next';
 import { authFetch } from '@/utils/authFetch';
 import ApprovalStatus from './ApprovalStatus.vue';
 
 // 상태 관리
 const loading = ref(false);
+const sortBy = ref('completed_at_desc'); // 기본값: 완료일 최신순
+const startDate = ref('');
+const endDate = ref('');
 const completedApprovals = ref([]);
 
 // 이벤트
@@ -109,7 +161,17 @@ const loadCompletedApprovals = async () => {
   loading.value = true;
   try {
     const APPROVAL_API_URL = import.meta.env.VITE_APPROVAL_API_URL;
-    const response = await authFetch(`${APPROVAL_API_URL}/completed`);
+    const queryParams = new URLSearchParams();
+    
+    if (sortBy.value) queryParams.append('sort', sortBy.value);
+    if (startDate.value) queryParams.append('start_date', startDate.value);
+    if (endDate.value) queryParams.append('end_date', endDate.value);
+    
+    const url = queryParams.toString() 
+      ? `${APPROVAL_API_URL}/completed?${queryParams.toString()}`
+      : `${APPROVAL_API_URL}/completed`;
+      
+    const response = await authFetch(url);
     
     if (response.ok) {
       const data = await response.json();
@@ -123,6 +185,19 @@ const loadCompletedApprovals = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// 새로고침
+const refreshList = () => {
+  loadCompletedApprovals();
+};
+
+// 필터 초기화
+const resetFilters = () => {
+  sortBy.value = 'completed_at_desc';
+  startDate.value = '';
+  endDate.value = '';
+  refreshList();
 };
 
 // 상세 보기

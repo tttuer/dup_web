@@ -18,11 +18,21 @@ export const useApprovalStore = defineStore('approval', () => {
   const error = ref(null);
 
   // 내가 기안한 결재 목록 조회
-  async function fetchMyApprovalRequests() {
+  async function fetchMyApprovalRequests(params = {}) {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(APPROVAL_API_URL);
+      const queryParams = new URLSearchParams();
+      if (params.status) queryParams.append('status', params.status);
+      if (params.sort) queryParams.append('sort', params.sort);
+      if (params.start_date) queryParams.append('start_date', params.start_date);
+      if (params.end_date) queryParams.append('end_date', params.end_date);
+      
+      const url = queryParams.toString() 
+        ? `${APPROVAL_API_URL}?${queryParams.toString()}`
+        : APPROVAL_API_URL;
+        
+      const response = await authFetch(url);
       if (response.ok) {
         const data = await response.json();
         myApprovalRequests.value = data;
@@ -38,11 +48,20 @@ export const useApprovalStore = defineStore('approval', () => {
   }
 
   // 내가 결재할 요청 목록 조회
-  async function fetchPendingApprovals() {
+  async function fetchPendingApprovals(params = {}) {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authFetch(APPROVAL_API_URL + '/pending');
+      const queryParams = new URLSearchParams();
+      if (params.sort) queryParams.append('sort', params.sort);
+      if (params.start_date) queryParams.append('start_date', params.start_date);
+      if (params.end_date) queryParams.append('end_date', params.end_date);
+      
+      const url = queryParams.toString() 
+        ? `${APPROVAL_API_URL}/pending?${queryParams.toString()}`
+        : `${APPROVAL_API_URL}/pending`;
+        
+      const response = await authFetch(url);
       if (response.ok) {
         const data = await response.json();
         pendingApprovals.value = data;

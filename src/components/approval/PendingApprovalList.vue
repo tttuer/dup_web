@@ -1,20 +1,60 @@
 <template>
   <div class="space-y-6">
     <!-- 헤더 -->
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center flex-wrap gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-900">결재 대기 목록</h2>
         <p class="text-gray-600 mt-1">내가 결재해야 할 요청들입니다.</p>
       </div>
       
-      <button
-        @click="refreshList"
-        :disabled="loading"
-        class="inline-flex items-center px-3 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
-      >
-        <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': loading }" />
-        새로고침
-      </button>
+      <!-- 필터 -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- 정렬 -->
+        <select
+          v-model="sortBy"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          @change="refreshList"
+        >
+          <option value="created_at_desc">최신순</option>
+          <option value="created_at_asc">오래된순</option>
+        </select>
+
+        <!-- 시작 날짜 -->
+        <input
+          v-model="startDate"
+          type="date"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          @change="refreshList"
+          placeholder="완료일 시작"
+        />
+
+        <!-- 종료 날짜 -->
+        <input
+          v-model="endDate"
+          type="date"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          @change="refreshList"
+          placeholder="완료일 종료"
+        />
+
+        <!-- 필터 초기화 -->
+        <button
+          @click="resetFilters"
+          class="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm"
+          title="필터 초기화"
+        >
+          초기화
+        </button>
+        
+        <button
+          @click="refreshList"
+          :disabled="loading"
+          class="inline-flex items-center px-3 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+        >
+          <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': loading }" />
+          새로고침
+        </button>
+      </div>
     </div>
 
     <!-- 로딩 상태 -->
@@ -248,12 +288,17 @@ import {
   RefreshCw, Loader, Clock, User, Calendar, FileText, Eye, Check, X 
 } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
+import { useToast } from 'vue-toastification';
 import ApprovalDetailModal from './ApprovalDetailModal.vue';
 
 const approvalStore = useApprovalStore();
+const toast = useToast();
 
 // 상태 관리
 const loading = ref(false);
+const sortBy = ref('created_at_desc'); // 기본값: 최신순
+const startDate = ref('');
+const endDate = ref('');
 const showDetailModal = ref(false);
 const selectedRequestId = ref('');
 const showQuickApproveModal = ref(false);
@@ -270,12 +315,25 @@ const pendingRequests = computed(() => approvalStore.pendingApprovals);
 const refreshList = async () => {
   loading.value = true;
   try {
-    await approvalStore.fetchPendingApprovals();
+    const params = {
+      sort: sortBy.value,
+      start_date: startDate.value || undefined,
+      end_date: endDate.value || undefined,
+    };
+    await approvalStore.fetchPendingApprovals(params);
   } catch (error) {
     console.error('대기 목록 새로고침 오류:', error);
   } finally {
     loading.value = false;
   }
+};
+
+// 필터 초기화
+const resetFilters = () => {
+  sortBy.value = 'created_at_desc';
+  startDate.value = '';
+  endDate.value = '';
+  refreshList();
 };
 
 // 상세 보기
@@ -301,9 +359,10 @@ const confirmQuickApprove = async () => {
       quickApproveComment.value
     );
     showQuickApproveModal.value = false;
+    toast.success('승인 처리되었습니다.');
     await refreshList();
   } catch (error) {
-    alert('승인 중 오류가 발생했습니다: ' + error.message);
+    toast.error('승인 중 오류가 발생했습니다: ' + error.message);
   } finally {
     quickActionLoading.value = false;
   }
@@ -317,7 +376,10 @@ const rejectRequest = (request) => {
 };
 
 const confirmQuickReject = async () => {
-  if (!quickActionRequest.value || !quickRejectComment.value.trim()) return;
+  if (!quickActionRequest.value || !quickRejectComment.value.trim()) {
+    toast.warning('반려 사유를 입력해주세요.');
+    return;
+  }
   
   quickActionLoading.value = true;
   try {
@@ -326,9 +388,10 @@ const confirmQuickReject = async () => {
       quickRejectComment.value
     );
     showQuickRejectModal.value = false;
+    toast.success('반려 처리되었습니다.');
     await refreshList();
   } catch (error) {
-    alert('반려 중 오류가 발생했습니다: ' + error.message);
+    toast.error('반려 중 오류가 발생했습니다: ' + error.message);
   } finally {
     quickActionLoading.value = false;
   }

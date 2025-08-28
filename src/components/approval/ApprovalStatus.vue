@@ -1,23 +1,24 @@
 <template>
-  <div class="flex items-center space-x-2">
+  <div :class="compact ? 'flex items-center space-x-1' : 'flex items-center space-x-2'">
     <!-- 상태 배지 -->
     <span 
       :class="[
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+        'inline-flex items-center rounded-full font-medium',
+        compact ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-0.5 text-xs',
         statusClasses
       ]"
     >
       <component 
         :is="statusIcon" 
-        class="w-3 h-3 mr-1" 
+        :class="compact ? 'w-2.5 h-2.5 mr-1' : 'w-3 h-3 mr-1'" 
         v-if="statusIcon"
       />
-      {{ statusLabel }}
+      {{ compact ? statusLabelShort : statusLabel }}
     </span>
     
     <!-- 진행률 표시 (진행중일 때만) -->
     <div 
-      v-if="status === DOCUMENT_STATUS.IN_PROGRESS && approvalLines.length > 0"
+      v-if="status === DOCUMENT_STATUS.IN_PROGRESS && approvalLines.length > 0 && !compact"
       class="flex items-center space-x-1 text-sm text-gray-600"
     >
       <span>{{ currentStep }}/{{ totalSteps }}</span>
@@ -28,6 +29,14 @@
         ></div>
       </div>
     </div>
+    
+    <!-- 컴팩트 모드에서의 간단한 진행률 -->
+    <span 
+      v-if="status === DOCUMENT_STATUS.IN_PROGRESS && approvalLines.length > 0 && compact"
+      class="text-xs text-gray-500"
+    >
+      {{ currentStep }}/{{ totalSteps }}
+    </span>
   </div>
 </template>
 
@@ -53,11 +62,35 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 // 상태별 라벨
 const statusLabel = computed(() => {
   return DOCUMENT_STATUS_LABELS[props.status] || props.status;
+});
+
+// 컴팩트 모드용 짧은 라벨
+const statusLabelShort = computed(() => {
+  switch (props.status) {
+    case DOCUMENT_STATUS.DRAFT:
+      return '임시';
+    case DOCUMENT_STATUS.SUBMITTED:
+      return '상신';
+    case DOCUMENT_STATUS.IN_PROGRESS:
+      return '진행';
+    case DOCUMENT_STATUS.APPROVED:
+      return '완료';
+    case DOCUMENT_STATUS.REJECTED:
+      return '반려';
+    case DOCUMENT_STATUS.CANCELLED:
+      return '취소';
+    default:
+      return props.status;
+  }
 });
 
 // 상태별 CSS 클래스

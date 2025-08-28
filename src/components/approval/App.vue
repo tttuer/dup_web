@@ -47,6 +47,7 @@
               </button>
               <button
                 @click="activeTab = 'search-all'"
+                v-if="userStore.isAdmin"
                 :class="[
                   'px-3 py-2 text-sm font-medium rounded-md',
                   activeTab === 'search-all' 
@@ -274,7 +275,7 @@ const pendingCount = computed(() => {
 // 초기 데이터 로드
 onMounted(async () => {
   try {
-    // await userStore.fetchCurrentUser();
+    await userStore.fetchCurrentUser();
     await approvalStore.fetchMyApprovalRequests();
     await approvalStore.fetchPendingApprovals();
   } catch (error) {
