@@ -1,0 +1,165 @@
+// src/stores/useFavoriteApprovalStore.js
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import { favoriteApi } from '@/utils/approvalApi';
+
+export const useFavoriteApprovalStore = defineStore('favoriteApproval', () => {
+  // 상태 관리
+  const favoriteGroups = ref([]);
+  const loading = ref(false);
+  const error = ref(null);
+
+  // 계산된 속성
+  const hasFavoriteGroups = computed(() => favoriteGroups.value.length > 0);
+
+  // 즐겨찾기 그룹 목록 조회
+  const fetchFavoriteGroups = async () => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const groups = await favoriteApi.getMyFavoriteGroups();
+      // 데이터 정규화: approver_ids, approver_names가 없는 경우 빈 배열로 초기화
+      favoriteGroups.value = (groups || []).map(group => ({
+        ...group,
+        approver_ids: group.approver_ids || [],
+        approver_names: group.approver_names || []
+      }));
+    } catch (err) {
+      error.value = err.message;
+      console.error('즐겨찾기 그룹 조회 실패:', err);
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 즐겨찾기 그룹 생성
+  const createFavoriteGroup = async (name, approverIds, approverNames) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const newGroup = await favoriteApi.createFavoriteGroup(name, approverIds, approverNames);
+      // 데이터 정규화
+      const normalizedGroup = {
+        ...newGroup,
+        approver_ids: newGroup.approver_ids || [],
+        approver_names: newGroup.approver_names || []
+      };
+      favoriteGroups.value.unshift(normalizedGroup);
+      return normalizedGroup;
+    } catch (err) {
+      error.value = err.message;
+      console.error('즐겨찾기 그룹 생성 실패:', err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 즐겨찾기 그룹 수정
+  const updateFavoriteGroup = async (groupId, updates) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const updatedGroup = await favoriteApi.updateFavoriteGroup(groupId, updates);
+      // 데이터 정규화
+      const normalizedGroup = {
+        ...updatedGroup,
+        approver_ids: updatedGroup.approver_ids || []
+      };
+      const index = favoriteGroups.value.findIndex(g => g.id === groupId);
+      if (index > -1) {
+        favoriteGroups.value[index] = normalizedGroup;
+      }
+      return normalizedGroup;
+    } catch (err) {
+      error.value = err.message;
+      console.error('즐겨찾기 그룹 수정 실패:', err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 즐겨찾기 그룹 삭제
+  const deleteFavoriteGroup = async (groupId) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const success = await favoriteApi.deleteFavoriteGroup(groupId);
+      if (success) {
+        favoriteGroups.value = favoriteGroups.value.filter(g => g.id !== groupId);
+      }
+      return success;
+    } catch (err) {
+      error.value = err.message;
+      console.error('즐겨찾기 그룹 삭제 실패:', err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 즐겨찾기 그룹을 결재선에 적용
+  const applyFavoriteGroup = async (groupId, requestId) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const addedLines = await favoriteApi.applyFavoriteGroupToRequest(groupId, requestId);
+      return addedLines;
+    } catch (err) {
+      error.value = err.message;
+      console.error('즐겨찾기 그룹 적용 실패:', err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 특정 결재자들로 즐겨찾기 그룹 검색
+  const findGroupByApprovers = (approverIds) => {
+    return favoriteGroups.value.find(group => {
+      const groupApproverIds = group.approver_ids || [];
+      if (groupApproverIds.length !== approverIds.length) return false;
+      return groupApproverIds.every(id => approverIds.includes(id));
+    });
+  };
+
+  // 즐겨찾기 그룹명 중복 체크
+  const isNameExists = (name, excludeId = null) => {
+    return favoriteGroups.value.some(group => 
+      group.name === name && group.id !== excludeId
+    );
+  };
+
+  // 상태 초기화
+  const clearError = () => {
+    error.value = null;
+  };
+
+  const resetState = () => {
+    favoriteGroups.value = [];
+    loading.value = false;
+    error.value = null;
+  };
+
+  return {
+    // 상태
+    favoriteGroups,
+    loading,
+    error,
+
+    // 계산된 속성
+    hasFavoriteGroups,
+
+    // 액션
+    fetchFavoriteGroups,
+    createFavoriteGroup,
+    updateFavoriteGroup,
+    deleteFavoriteGroup,
+    applyFavoriteGroup,
+    findGroupByApprovers,
+    isNameExists,
+    clearError,
+    resetState,
+  };
+});

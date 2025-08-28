@@ -142,7 +142,7 @@ watch(
                   class="inline-block"
                   :groupId="nameToEnum[option]"
                   :groupName="option"
-                  @click.stop="console.log('Delete clicked: ', option)"
+                  @click.stop=""
                   @group-deleted="(deletedGroupId) => emit('group-deleted', deletedGroupId)"
                 />
                 <UserAuth
@@ -151,7 +151,7 @@ watch(
                   :groupId="nameToEnum[option]"
                   :groupName="option"
                   :company="props.company"
-                  @click.stop="console.log('Auth clicked: ', option)"
+                  @click.stop=""
                 />
               </div>
             </div>

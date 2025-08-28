@@ -33,7 +33,6 @@ export const usePendingUsersStore = defineStore('pendingUsers', () => {
     pendingUsersSocket = new WebSocket(wsUrl);
     
     pendingUsersSocket.onopen = () => {
-      console.log('📡 Pending users WebSocket connected');
       isConnected.value = true;
     };
     
@@ -54,7 +53,6 @@ export const usePendingUsersStore = defineStore('pendingUsers', () => {
     };
     
     pendingUsersSocket.onclose = () => {
-      console.log('📡 Pending users WebSocket disconnected');
       isConnected.value = false;
     };
   }
