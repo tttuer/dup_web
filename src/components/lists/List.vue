@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onUnmounted, computed, onMounted, nextTick } from 'vue';
+import { ref, watch, onUnmounted, computed, onMounted, nextTick, shallowRef } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import DateSearch from './DateSearch.vue';
@@ -12,7 +12,7 @@ import BaseList from '@/components/base/BaseList.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
-import { usePdfPreview } from '@/composables/usePdfPreview';
+// PDF 미리보기 기능은 필요시 동적으로 로드
 import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
 
 const syncStore = useSyncStatusStore();
@@ -27,14 +27,27 @@ const typeStore = useTypeStore();
 const isLoading = ref(false);
 const selectedCompany = ref(null);
 const selectedDate = ref('');
-const voucherLists = ref([]);
+const voucherLists = shallowRef([]);
 const totalPage = ref(0);
 const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
-const { handlePreviewPosition, resetPreviewPosition, generatePreview, clearPreviewCache } =
-  usePdfPreview(voucherLists, 'merge');
+// PDF 미리보기 기능 지연 로딩
+let pdfPreviewModule = null;
+const loadPdfPreview = async () => {
+  if (!pdfPreviewModule) {
+    const { usePdfPreview } = await import('@/composables/usePdfPreview');
+    pdfPreviewModule = usePdfPreview(voucherLists, 'merge');
+  }
+  return pdfPreviewModule;
+};
+
+// 기본 빈 함수들로 초기화
+let handlePreviewPosition = () => {};
+let resetPreviewPosition = () => {};
+let generatePreview = () => {};
+let clearPreviewCache = () => {};
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
   백성운수: 'BAEKSUNG',
@@ -112,8 +125,10 @@ async function fetchVouchers(isReset = false) {
     }));
     voucherLists.value = [...voucherLists.value, ...vouchers];
 
-    vouchers.forEach((voucher) => {
-      generatePreview(voucher);
+    // PDF 미리보기 필요시에만 로드
+    vouchers.forEach(async (voucher) => {
+      const preview = await loadPdfPreview();
+      preview.generatePreview(voucher);
     });
     
   } finally {
@@ -181,7 +196,10 @@ async function editVoucher(payload) {
 
     if (response.ok) {
       toast.success('수정 완료');
-      clearPreviewCache(payload.id);
+      // PDF 캐시 클리어도 지연 로딩
+      if (pdfPreviewModule) {
+        pdfPreviewModule.clearPreviewCache(payload.id);
+      }
       closeEditModal();
       fetchVouchers(true);
     } else {
@@ -247,9 +265,16 @@ function getBadgeClassByCode(code) {
 
 // 그룹 자동 로딩 함수 제거
 
-watch([selectedCompany, start_at, end_at, lockFilter], async () => {
-  await fetchVouchers(true);
-});
+// 디바운스된 fetch 함수 생성
+let debounceTimer = null;
+const debouncedFetchVouchers = () => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    fetchVouchers(true);
+  }, 300);
+};
+
+watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
 </script>
 
 <template>

@@ -1,6 +1,6 @@
 // src/stores/useApprovalStore.js
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, shallowRef } from 'vue';
 import { authFetch } from '@/utils/authFetch';
 import { DOCUMENT_STATUS, APPROVAL_STATUS } from '@/stores/useTypeStore';
 
@@ -8,12 +8,12 @@ const APPROVAL_API_URL = import.meta.env.VITE_APPROVAL_API_URL;
 
 export const useApprovalStore = defineStore('approval', () => {
   // 상태 관리
-  const myApprovalRequests = ref([]);
-  const pendingApprovals = ref([]);
+  const myApprovalRequests = shallowRef([]);
+  const pendingApprovals = shallowRef([]);
   const approvalDetail = ref(null);
-  const approvalLines = ref([]);
-  const approvalHistory = ref([]);
-  const attachedFiles = ref([]);
+  const approvalLines = shallowRef([]);
+  const approvalHistory = shallowRef([]);
+  const attachedFiles = shallowRef([]);
   const loading = ref(false);
   const error = ref(null);
 

@@ -70,19 +70,25 @@ const emit = defineEmits([
 const container = ref(null);
 const invisibleSentinel = ref(null);
 let observer = null;
+let lastTriggerTime = 0;
 
 // Intersection Observer 설정
 onMounted(() => {
   observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting && !props.loading && props.currentPage < props.totalPage) {
-        handleIntersect();
+        // 쓰로틀링: 300ms 간격으로 제한
+        const now = Date.now();
+        if (now - lastTriggerTime > 300) {
+          handleIntersect();
+          lastTriggerTime = now;
+        }
       }
     });
   }, { 
     root: null, 
-    threshold: 0.5, // 0.1 -> 0.5로 늘려서 더 빠른 감지
-    rootMargin: '200px' // 200px 마진 추가로 더 빠른 트리거
+    threshold: 0.1, // 더 부드러운 로딩을 위해 0.1로 변경
+    rootMargin: '100px' // 마진도 100px로 조정
   });
 });
 
@@ -231,6 +237,7 @@ function handleIntersect() {
           <tr
             v-for="(item, index) in displayableItems"
             :key="item.id"
+            v-memo="[item.id, checkedIds.has(item.id), item.groupIndex]"
             class="border-b border-gray-200 dark:border-gray-700"
             :class="
               item.groupIndex % 2 === 0
