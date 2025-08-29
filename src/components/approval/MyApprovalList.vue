@@ -67,27 +67,8 @@
       </div>
     </div>
 
-    <!-- 로딩 상태 -->
-    <div v-if="loading && requests.length === 0" class="flex justify-center py-12">
-      <Loader class="w-8 h-8 animate-spin text-blue-600" />
-    </div>
-
-    <!-- 빈 상태 -->
-    <div v-else-if="requests.length === 0" class="text-center py-12">
-      <FileText class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-      <h3 class="text-lg font-medium text-gray-900 mb-2">결재 요청이 없습니다</h3>
-      <p class="text-gray-500 mb-6">새로운 결재 요청을 작성해보세요.</p>
-      <button
-        @click="emit('create-request')"
-        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-      >
-        <Plus class="w-4 h-4 mr-2" />
-        새 결재
-      </button>
-    </div>
-
-    <!-- 결재 목록 -->
-    <div v-else class="space-y-2">
+    <!-- 기존 카드 형태의 결재 목록 -->
+    <div class="space-y-2">
       <div
         v-for="request in requests"
         :key="request.id"
@@ -156,14 +137,36 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- 페이지네이션 (필요시) -->
-    <div v-if="requests.length > 0" class="flex justify-center mt-8">
-      <div class="text-sm text-gray-500">
-        총 {{ requests.length }}개의 결재 요청
+      
+      <!-- 무한 스크롤을 위한 Sentinel -->
+      <div 
+        v-if="approvalStore.currentPage < approvalStore.totalPage && !approvalStore.loading"
+        ref="sentinelRef" 
+        class="h-10 flex items-center justify-center"
+      >
+        <span class="text-sm text-gray-500">더 많은 항목을 불러오는 중...</span>
+      </div>
+      
+      <!-- 로딩 표시 -->
+      <div v-if="approvalStore.loading && requests.length > 0" class="flex justify-center py-4">
+        <Loader class="w-6 h-6 animate-spin text-blue-600" />
       </div>
     </div>
+
+    <!-- 빈 상태 처리 -->
+    <div v-if="!approvalStore.loading && requests.length === 0" class="text-center py-12">
+      <FileText class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+      <h3 class="text-lg font-medium text-gray-900 mb-2">결재 요청이 없습니다</h3>
+      <p class="text-gray-500 mb-6">새로운 결재 요청을 작성해보세요.</p>
+      <button
+        @click="emit('create-request')"
+        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+      >
+        <Plus class="w-4 h-4 mr-2" />
+        새 결재
+      </button>
+    </div>
+
   </div>
 
   <!-- 상세 모달 -->
@@ -177,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { 
   RefreshCw, Loader, FileText, Plus, Calendar, Edit, RotateCcw, ExternalLink 
 } from 'lucide-vue-next';
@@ -201,6 +204,10 @@ const endDate = ref('');
 const showDetailModal = ref(false);
 const selectedRequestId = ref('');
 
+// 무한 스크롤용 refs
+const sentinelRef = ref(null);
+let observer = null;
+
 // 데이터
 const requests = computed(() => approvalStore.myApprovalRequests);
 
@@ -216,13 +223,48 @@ const refreshList = async () => {
       start_date: startDate.value || undefined,
       end_date: endDate.value || undefined,
     };
-    await approvalStore.fetchMyApprovalRequests(params);
+    await approvalStore.fetchMyApprovalRequests(params, true); // isReset = true
   } catch (error) {
     console.error('목록 새로고침 오류:', error);
   } finally {
     loading.value = false;
   }
 };
+
+// 무한 스크롤 핸들러
+const handleIntersect = () => {
+  if (!approvalStore.loading && approvalStore.currentPage < approvalStore.totalPage) {
+    approvalStore.loadNextPage();
+  }
+};
+
+// Intersection Observer 설정
+const setupInfiniteScroll = () => {
+  if (observer) observer.disconnect();
+  
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting && !approvalStore.loading && approvalStore.currentPage < approvalStore.totalPage) {
+        approvalStore.loadNextPage();
+      }
+    });
+  }, { 
+    threshold: 0.1,
+    rootMargin: '50px'
+  });
+  
+  if (sentinelRef.value) {
+    observer.observe(sentinelRef.value);
+  }
+};
+
+// Sentinel 요소 감시
+watch(sentinelRef, (newSentinel, oldSentinel) => {
+  if (observer) {
+    if (oldSentinel) observer.unobserve(oldSentinel);
+    if (newSentinel) observer.observe(newSentinel);
+  }
+});
 
 // 필터 초기화
 const resetFilters = () => {
@@ -303,8 +345,17 @@ const getContentPreview = (content) => {
 
 
 // 초기 데이터 로드
-onMounted(() => {
-  refreshList();
+onMounted(async () => {
+  await refreshList();
+  await nextTick();
+  setupInfiniteScroll();
+});
+
+// 컴포넌트 언마운트 시 observer 정리
+onBeforeUnmount(() => {
+  if (observer) {
+    observer.disconnect();
+  }
 });
 </script>
 
