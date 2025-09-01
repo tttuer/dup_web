@@ -25,6 +25,11 @@ export const useApprovalStore = defineStore('approval', () => {
   const pendingTotalPage = ref(0);
   const completedCurrentPage = ref(1);
   const completedTotalPage = ref(0);
+  
+  // 필터 파라미터 저장 (무한 스크롤 시 유지하기 위해)
+  const lastMyApprovalParams = ref({});
+  const lastPendingParams = ref({});
+  const lastCompletedParams = ref({});
 
   // 내가 기안한 결재 목록 조회
   async function fetchMyApprovalRequests(params = {}, isReset = false) {
@@ -34,6 +39,8 @@ export const useApprovalStore = defineStore('approval', () => {
       if (isReset) {
         myApprovalRequests.value = [];
         currentPage.value = 1;
+        // 새로운 필터 파라미터 저장
+        lastMyApprovalParams.value = { ...params };
       }
 
       const queryParams = new URLSearchParams();
@@ -88,6 +95,8 @@ export const useApprovalStore = defineStore('approval', () => {
       if (isReset) {
         pendingApprovals.value = [];
         pendingCurrentPage.value = 1;
+        // 새로운 필터 파라미터 저장
+        lastPendingParams.value = { ...params };
       }
 
       const queryParams = new URLSearchParams();
@@ -138,6 +147,8 @@ export const useApprovalStore = defineStore('approval', () => {
       if (isReset) {
         completedApprovals.value = [];
         completedCurrentPage.value = 1;
+        // 새로운 필터 파라미터 저장
+        lastCompletedParams.value = { ...params };
       }
 
       const queryParams = new URLSearchParams();
@@ -450,21 +461,24 @@ export const useApprovalStore = defineStore('approval', () => {
   function loadNextPage() {
     if (currentPage.value < totalPage.value) {
       currentPage.value++;
-      fetchMyApprovalRequests({}, false);
+      // 저장된 필터 파라미터 사용
+      fetchMyApprovalRequests(lastMyApprovalParams.value, false);
     }
   }
 
   function loadNextPendingPage() {
     if (pendingCurrentPage.value < pendingTotalPage.value) {
       pendingCurrentPage.value++;
-      fetchPendingApprovals({}, false);
+      // 저장된 필터 파라미터 사용
+      fetchPendingApprovals(lastPendingParams.value, false);
     }
   }
 
   function loadNextCompletedPage() {
     if (completedCurrentPage.value < completedTotalPage.value) {
       completedCurrentPage.value++;
-      fetchCompletedApprovals({}, false);
+      // 저장된 필터 파라미터 사용
+      fetchCompletedApprovals(lastCompletedParams.value, false);
     }
   }
 
