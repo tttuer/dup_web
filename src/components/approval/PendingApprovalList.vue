@@ -302,10 +302,12 @@ import {
   RefreshCw, Loader, Clock, User, Calendar, FileText, Eye, Check, X 
 } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
+import { useApprovalNotificationStore } from '@/stores/useApprovalNotificationStore';
 import { useToast } from 'vue-toastification';
 import ApprovalDetailModal from './ApprovalDetailModal.vue';
 
 const approvalStore = useApprovalStore();
+const approvalNotificationStore = useApprovalNotificationStore();
 const toast = useToast();
 
 // 상태 관리
@@ -403,6 +405,8 @@ const confirmQuickApprove = async () => {
     showQuickApproveModal.value = false;
     toast.success('승인 처리되었습니다.');
     await refreshList();
+    // 알림 스토어의 카운트도 새로고침
+    approvalNotificationStore.refreshPendingCount();
   } catch (error) {
     toast.error('승인 중 오류가 발생했습니다: ' + error.message);
   } finally {
@@ -432,6 +436,8 @@ const confirmQuickReject = async () => {
     showQuickRejectModal.value = false;
     toast.success('반려 처리되었습니다.');
     await refreshList();
+    // 알림 스토어의 카운트도 새로고침
+    approvalNotificationStore.refreshPendingCount();
   } catch (error) {
     toast.error('반려 중 오류가 발생했습니다: ' + error.message);
   } finally {

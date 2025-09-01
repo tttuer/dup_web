@@ -15,8 +15,14 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
 
   // WebSocket 연결
   const connectWebSocket = () => {
-    if (websocket.value?.readyState === WebSocket.OPEN) {
+    // 이미 연결 중이거나 연결된 경우 건너뛰기
+    if (websocket.value?.readyState === WebSocket.OPEN || websocket.value?.readyState === WebSocket.CONNECTING) {
       return;
+    }
+    
+    // 기존 연결이 있으면 완전히 정리
+    if (websocket.value) {
+      disconnectWebSocket();
     }
 
     const token = localStorage.getItem('access_token');
@@ -104,6 +110,11 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
         pendingApprovalCount.value = data.count || 0;
         break;
         
+      case 'approval_pending_count':
+        // 새로운 형태의 대기 결재 건수 업데이트
+        pendingApprovalCount.value = data.data?.count || 0;
+        break;
+        
       case 'new_approval_request':
         // 새로운 결재 요청 알림
         const newNotification = {
@@ -115,9 +126,6 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
           data: data.data
         };
         notifications.value.unshift(newNotification);
-        
-        // 알림 개수 증가 대신, 서버로부터 최신 카운트를 다시 가져옵니다.
-        refreshPendingCount();
         
         // 브라우저 알림 (권한이 있는 경우)
         showBrowserNotification(newNotification);

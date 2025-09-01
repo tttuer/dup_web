@@ -189,6 +189,7 @@ import { useRouter } from 'vue-router';
 import { Plus, Archive, LogOut, User, ChevronDown } from 'lucide-vue-next';
 import { useUserStore } from '@/stores/useUserStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
+import { useApprovalNotificationStore } from '@/stores/useApprovalNotificationStore';
 import { authFetch } from '@/utils/authFetch';
 import ApprovalDetailModal from './ApprovalDetailModal.vue';
 import CreateApprovalPage from './CreateApprovalPage.vue';
@@ -202,6 +203,7 @@ import FavoriteGroupManagement from './FavoriteGroupManagement.vue';
 const router = useRouter();
 const userStore = useUserStore();
 const approvalStore = useApprovalStore();
+const approvalNotificationStore = useApprovalNotificationStore();
 
 // 상태 관리
 const activeTab = ref('my-requests');
@@ -267,9 +269,9 @@ const handleViewDetail = (approval) => {
   showDetailModal.value = true;
 };
 
-// 결재 대기 개수
+// 결재 대기 개수 (웹소켓에서 실시간으로 받은 값 사용)
 const pendingCount = computed(() => {
-  return approvalStore.pendingApprovals.length;
+  return approvalNotificationStore.pendingApprovalCount;
 });
 
 // 초기 데이터 로드
@@ -278,6 +280,9 @@ onMounted(async () => {
     await userStore.fetchCurrentUser();
     await approvalStore.fetchMyApprovalRequests();
     await approvalStore.fetchPendingApprovals();
+    
+    // 웹소켓 연결 (결재 알림용)
+    approvalNotificationStore.connectWebSocket();
   } catch (error) {
     console.error('초기 데이터 로드 오류:', error);
   }

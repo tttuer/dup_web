@@ -167,10 +167,10 @@ watchEffect(() => {
               @click="goToApproval"
             />
             <span
-              v-if="Math.max(approvalNotificationStore.pendingApprovalCount, approvalStore.pendingApprovals?.length || 0) > 0"
+              v-if="approvalNotificationStore.pendingApprovalCount > 0"
               class="absolute top-1.5 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full"
             >
-              {{ Math.max(approvalNotificationStore.pendingApprovalCount, approvalStore.pendingApprovals?.length || 0) }}
+              {{ approvalNotificationStore.pendingApprovalCount }}
             </span>
           </div>
           <div
