@@ -129,6 +129,9 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
         
         // 브라우저 알림 (권한이 있는 경우)
         showBrowserNotification(newNotification);
+        
+        // 서버로부터 최신 카운트를 다시 가져옵니다 (안전성을 위해)
+        refreshPendingCount();
         break;
         
       case 'approval_completed':

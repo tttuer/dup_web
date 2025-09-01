@@ -65,8 +65,12 @@ export const useApprovalStore = defineStore('approval', () => {
           } else {
             myApprovalRequests.value = [...myApprovalRequests.value, ...data];
           }
-          // 페이지 정보는 헤더나 별도 응답에서 가져와야 함
-          totalPage.value = Math.ceil(data.length / 20); // 임시
+          // 마지막 페이지 여부 판단: 받은 데이터가 페이지 크기보다 적으면 마지막 페이지
+          if (data.length < 20) {
+            totalPage.value = currentPage.value; // 현재 페이지가 마지막
+          } else {
+            totalPage.value = currentPage.value + 1; // 다음 페이지가 있을 수 있음
+          }
         } else if (data.items) {
           // 페이징 정보 포함된 응답인 경우
           if (isReset) {
@@ -119,7 +123,12 @@ export const useApprovalStore = defineStore('approval', () => {
           } else {
             pendingApprovals.value = [...pendingApprovals.value, ...data];
           }
-          pendingTotalPage.value = Math.ceil(data.length / 20); // 임시
+          // 마지막 페이지 여부 판단
+          if (data.length < 20) {
+            pendingTotalPage.value = pendingCurrentPage.value; // 현재 페이지가 마지막
+          } else {
+            pendingTotalPage.value = pendingCurrentPage.value + 1; // 다음 페이지가 있을 수 있음
+          }
         } else if (data.items) {
           if (isReset) {
             pendingApprovals.value = data.items;
@@ -170,7 +179,12 @@ export const useApprovalStore = defineStore('approval', () => {
           } else {
             completedApprovals.value = [...completedApprovals.value, ...data];
           }
-          completedTotalPage.value = Math.ceil(data.length / 20); // 임시
+          // 마지막 페이지 여부 판단
+          if (data.length < 20) {
+            completedTotalPage.value = completedCurrentPage.value; // 현재 페이지가 마지막
+          } else {
+            completedTotalPage.value = completedCurrentPage.value + 1; // 다음 페이지가 있을 수 있음
+          }
         } else if (data.items) {
           if (isReset) {
             completedApprovals.value = data.items;
