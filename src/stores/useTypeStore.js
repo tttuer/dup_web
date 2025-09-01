@@ -17,12 +17,10 @@ export const APPROVAL_STATUS = {
 };
 
 export const DOCUMENT_STATUS = {
-  DRAFT: 'DRAFT',           // 임시저장
   SUBMITTED: 'SUBMITTED',   // 상신완료
   IN_PROGRESS: 'IN_PROGRESS', // 결재진행중
   APPROVED: 'APPROVED',     // 승인완료
   REJECTED: 'REJECTED',     // 반려
-  CANCELLED: 'CANCELLED'    // 취소
 };
 
 export const APPROVAL_ACTION = {
@@ -49,12 +47,10 @@ export const APPROVAL_STATUS_LABELS = {
 };
 
 export const DOCUMENT_STATUS_LABELS = {
-  [DOCUMENT_STATUS.DRAFT]: '임시저장',
   [DOCUMENT_STATUS.SUBMITTED]: '상신완료',
   [DOCUMENT_STATUS.IN_PROGRESS]: '결재진행중',
   [DOCUMENT_STATUS.APPROVED]: '승인완료',
   [DOCUMENT_STATUS.REJECTED]: '반려',
-  [DOCUMENT_STATUS.CANCELLED]: '취소'
 };
 
 export const useTypeStore = defineStore('type', () => {

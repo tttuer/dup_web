@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onUnmounted, computed, onMounted, nextTick } from 'vue';
+import { ref, watch, onUnmounted, computed, onMounted, nextTick, shallowRef } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { authFetch } from '../../utils/authFetch';
 import DateSearch from './DateSearch.vue';
@@ -12,7 +12,7 @@ import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
-import { usePdfPreview } from '@/composables/usePdfPreview';
+// PDF 미리보기 기능은 필요시 동적으로 로드
 
 const selectedGroup = ref('');
 const roles = ref(getRoleFromLocalStorage());
@@ -21,13 +21,26 @@ const typeStore = useTypeStore();
 
 const isLoading = ref(false);
 const selectedCompany = ref('');
-const fileLists = ref([]);
+const fileLists = shallowRef([]);
 const totalPage = ref(0);
 const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
-const { handlePreviewPosition, resetPreviewPosition, generatePreview } = usePdfPreview(fileLists, 'single');
+// PDF 미리보기 기능 지연 로딩
+let pdfPreviewModule = null;
+const loadPdfPreview = async () => {
+  if (!pdfPreviewModule) {
+    const { usePdfPreview } = await import('@/composables/usePdfPreview');
+    pdfPreviewModule = usePdfPreview(fileLists, 'single');
+  }
+  return pdfPreviewModule;
+};
+
+// 기본 빈 함수들로 초기화
+let handlePreviewPosition = () => {};
+let resetPreviewPosition = () => {};
+let generatePreview = () => {};
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
   백성운수: 'BAEKSUNG',
@@ -97,8 +110,10 @@ async function fetchFiles(isReset = false) {
     }));
     fileLists.value = [...fileLists.value, ...newFiles];
 
-    newFiles.forEach((file) => {
-      generatePreview(file);
+    // PDF 미리보기 필요시에만 로드
+    newFiles.forEach(async (file) => {
+      const preview = await loadPdfPreview();
+      preview.generatePreview(file);
     });
   } finally {
     isLoading.value = false;
@@ -198,11 +213,18 @@ watch(selectedCompany, async (newCompany) => {
   }
 });
 
-watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], async () => {
-  if (selectedGroup.value) {
-    await fetchFiles(true);
-  }
-});
+// 디바운스된 fetch 함수 생성  
+let debounceTimer = null;
+const debouncedFetchFiles = () => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    if (selectedGroup.value) {
+      fetchFiles(true);
+    }
+  }, 300);
+};
+
+watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], debouncedFetchFiles);
 </script>
 
 <template>

@@ -25,12 +25,10 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">전체</option>
-            <option value="DRAFT">임시저장</option>
             <option value="SUBMITTED">상신완료</option>
             <option value="IN_PROGRESS">결재진행중</option>
             <option value="APPROVED">승인완료</option>
             <option value="REJECTED">반려</option>
-            <option value="CANCELLED">취소</option>
           </select>
         </div>
         

@@ -1,6 +1,6 @@
 // src/stores/useApprovalStore.js
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, shallowRef } from 'vue';
 import { authFetch } from '@/utils/authFetch';
 import { DOCUMENT_STATUS, APPROVAL_STATUS } from '@/stores/useTypeStore';
 
@@ -8,34 +8,78 @@ const APPROVAL_API_URL = import.meta.env.VITE_APPROVAL_API_URL;
 
 export const useApprovalStore = defineStore('approval', () => {
   // 상태 관리
-  const myApprovalRequests = ref([]);
-  const pendingApprovals = ref([]);
+  const myApprovalRequests = shallowRef([]);
+  const pendingApprovals = shallowRef([]);
+  const completedApprovals = shallowRef([]);
   const approvalDetail = ref(null);
-  const approvalLines = ref([]);
-  const approvalHistory = ref([]);
-  const attachedFiles = ref([]);
+  const approvalLines = shallowRef([]);
+  const approvalHistory = shallowRef([]);
+  const attachedFiles = shallowRef([]);
   const loading = ref(false);
   const error = ref(null);
+  
+  // 페이징 상태
+  const currentPage = ref(1);
+  const totalPage = ref(0);
+  const pendingCurrentPage = ref(1);
+  const pendingTotalPage = ref(0);
+  const completedCurrentPage = ref(1);
+  const completedTotalPage = ref(0);
+  
+  // 필터 파라미터 저장 (무한 스크롤 시 유지하기 위해)
+  const lastMyApprovalParams = ref({});
+  const lastPendingParams = ref({});
+  const lastCompletedParams = ref({});
 
   // 내가 기안한 결재 목록 조회
-  async function fetchMyApprovalRequests(params = {}) {
+  async function fetchMyApprovalRequests(params = {}, isReset = false) {
     loading.value = true;
     error.value = null;
     try {
+      if (isReset) {
+        myApprovalRequests.value = [];
+        currentPage.value = 1;
+        // 새로운 필터 파라미터 저장
+        lastMyApprovalParams.value = { ...params };
+      }
+
       const queryParams = new URLSearchParams();
       if (params.status) queryParams.append('status', params.status);
       if (params.sort) queryParams.append('sort', params.sort);
       if (params.start_date) queryParams.append('start_date', params.start_date);
       if (params.end_date) queryParams.append('end_date', params.end_date);
+      queryParams.append('page', currentPage.value);
+      queryParams.append('page_size', 20);
       
-      const url = queryParams.toString() 
-        ? `${APPROVAL_API_URL}?${queryParams.toString()}`
-        : APPROVAL_API_URL;
+      const url = `${APPROVAL_API_URL}?${queryParams.toString()}`;
         
       const response = await authFetch(url);
       if (response.ok) {
         const data = await response.json();
-        myApprovalRequests.value = data;
+        
+        // 백엔드 응답 구조에 맞게 수정 (실제 응답 구조 확인 필요)
+        if (Array.isArray(data)) {
+          // 단순 배열 응답인 경우
+          if (isReset) {
+            myApprovalRequests.value = data;
+          } else {
+            myApprovalRequests.value = [...myApprovalRequests.value, ...data];
+          }
+          // 마지막 페이지 여부 판단: 받은 데이터가 페이지 크기보다 적으면 마지막 페이지
+          if (data.length < 20) {
+            totalPage.value = currentPage.value; // 현재 페이지가 마지막
+          } else {
+            totalPage.value = currentPage.value + 1; // 다음 페이지가 있을 수 있음
+          }
+        } else if (data.items) {
+          // 페이징 정보 포함된 응답인 경우
+          if (isReset) {
+            myApprovalRequests.value = data.items;
+          } else {
+            myApprovalRequests.value = [...myApprovalRequests.value, ...data.items];
+          }
+          totalPage.value = data.total_pages;
+        }
       } else {
         throw new Error('결재 목록 조회 실패');
       }
@@ -48,29 +92,113 @@ export const useApprovalStore = defineStore('approval', () => {
   }
 
   // 내가 결재할 요청 목록 조회
-  async function fetchPendingApprovals(params = {}) {
+  async function fetchPendingApprovals(params = {}, isReset = false) {
     loading.value = true;
     error.value = null;
     try {
+      if (isReset) {
+        pendingApprovals.value = [];
+        pendingCurrentPage.value = 1;
+        // 새로운 필터 파라미터 저장
+        lastPendingParams.value = { ...params };
+      }
+
       const queryParams = new URLSearchParams();
       if (params.sort) queryParams.append('sort', params.sort);
       if (params.start_date) queryParams.append('start_date', params.start_date);
       if (params.end_date) queryParams.append('end_date', params.end_date);
+      queryParams.append('page', pendingCurrentPage.value);
+      queryParams.append('page_size', 20);
       
-      const url = queryParams.toString() 
-        ? `${APPROVAL_API_URL}/pending?${queryParams.toString()}`
-        : `${APPROVAL_API_URL}/pending`;
+      const url = `${APPROVAL_API_URL}/pending?${queryParams.toString()}`;
         
       const response = await authFetch(url);
       if (response.ok) {
         const data = await response.json();
-        pendingApprovals.value = data;
+        
+        // 백엔드 응답 구조에 맞게 수정
+        if (Array.isArray(data)) {
+          if (isReset) {
+            pendingApprovals.value = data;
+          } else {
+            pendingApprovals.value = [...pendingApprovals.value, ...data];
+          }
+          // 마지막 페이지 여부 판단
+          if (data.length < 20) {
+            pendingTotalPage.value = pendingCurrentPage.value; // 현재 페이지가 마지막
+          } else {
+            pendingTotalPage.value = pendingCurrentPage.value + 1; // 다음 페이지가 있을 수 있음
+          }
+        } else if (data.items) {
+          if (isReset) {
+            pendingApprovals.value = data.items;
+          } else {
+            pendingApprovals.value = [...pendingApprovals.value, ...data.items];
+          }
+          pendingTotalPage.value = data.total_pages;
+        }
       } else {
         throw new Error('대기 결재 목록 조회 실패');
       }
     } catch (err) {
       error.value = err.message;
       console.error('대기 결재 목록 조회 오류:', err);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // 완료된 결재 목록 조회
+  async function fetchCompletedApprovals(params = {}, isReset = false) {
+    loading.value = true;
+    error.value = null;
+    try {
+      if (isReset) {
+        completedApprovals.value = [];
+        completedCurrentPage.value = 1;
+        // 새로운 필터 파라미터 저장
+        lastCompletedParams.value = { ...params };
+      }
+
+      const queryParams = new URLSearchParams();
+      if (params.sort) queryParams.append('sort', params.sort);
+      if (params.start_date) queryParams.append('start_date', params.start_date);
+      if (params.end_date) queryParams.append('end_date', params.end_date);
+      queryParams.append('page', completedCurrentPage.value);
+      queryParams.append('page_size', 20);
+      
+      const url = `${APPROVAL_API_URL}/completed?${queryParams.toString()}`;
+        
+      const response = await authFetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (Array.isArray(data)) {
+          if (isReset) {
+            completedApprovals.value = data;
+          } else {
+            completedApprovals.value = [...completedApprovals.value, ...data];
+          }
+          // 마지막 페이지 여부 판단
+          if (data.length < 20) {
+            completedTotalPage.value = completedCurrentPage.value; // 현재 페이지가 마지막
+          } else {
+            completedTotalPage.value = completedCurrentPage.value + 1; // 다음 페이지가 있을 수 있음
+          }
+        } else if (data.items) {
+          if (isReset) {
+            completedApprovals.value = data.items;
+          } else {
+            completedApprovals.value = [...completedApprovals.value, ...data.items];
+          }
+          completedTotalPage.value = data.total_pages;
+        }
+      } else {
+        throw new Error('완료 결재 목록 조회 실패');
+      }
+    } catch (err) {
+      error.value = err.message;
+      console.error('완료 결재 목록 조회 오류:', err);
     } finally {
       loading.value = false;
     }
@@ -343,10 +471,36 @@ export const useApprovalStore = defineStore('approval', () => {
     error.value = null;
   }
 
+  // 다음 페이지 로드 함수들
+  function loadNextPage() {
+    if (currentPage.value < totalPage.value) {
+      currentPage.value++;
+      // 저장된 필터 파라미터 사용
+      fetchMyApprovalRequests(lastMyApprovalParams.value, false);
+    }
+  }
+
+  function loadNextPendingPage() {
+    if (pendingCurrentPage.value < pendingTotalPage.value) {
+      pendingCurrentPage.value++;
+      // 저장된 필터 파라미터 사용
+      fetchPendingApprovals(lastPendingParams.value, false);
+    }
+  }
+
+  function loadNextCompletedPage() {
+    if (completedCurrentPage.value < completedTotalPage.value) {
+      completedCurrentPage.value++;
+      // 저장된 필터 파라미터 사용
+      fetchCompletedApprovals(lastCompletedParams.value, false);
+    }
+  }
+
   return {
     // 상태
     myApprovalRequests,
     pendingApprovals,
+    completedApprovals,
     approvalDetail,
     approvalLines,
     approvalHistory,
@@ -354,9 +508,18 @@ export const useApprovalStore = defineStore('approval', () => {
     loading,
     error,
     
+    // 페이징 상태
+    currentPage,
+    totalPage,
+    pendingCurrentPage,
+    pendingTotalPage,
+    completedCurrentPage,
+    completedTotalPage,
+    
     // 액션
     fetchMyApprovalRequests,
     fetchPendingApprovals,
+    fetchCompletedApprovals,
     fetchApprovalDetail,
     fetchApprovalLines,
     createApprovalRequest,
@@ -366,6 +529,9 @@ export const useApprovalStore = defineStore('approval', () => {
     recallRequest,
     setApprovalLines,
     clearState,
+    loadNextPage,
+    loadNextPendingPage,
+    loadNextCompletedPage,
     
     // 계산된 속성
     canApprove,

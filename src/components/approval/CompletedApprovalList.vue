@@ -48,22 +48,22 @@
 
         <button
           @click="refreshList"
-          :disabled="loading"
+          :disabled="approvalStore.loading"
           class="inline-flex items-center px-3 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
         >
-          <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': loading }" />
+          <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': approvalStore.loading }" />
           새로고침
         </button>
       </div>
     </div>
 
     <!-- 로딩 -->
-    <div v-if="loading" class="flex justify-center py-12">
+    <div v-if="approvalStore.loading && completedApprovals.length === 0" class="flex justify-center py-12">
       <Loader class="w-8 h-8 animate-spin text-blue-600" />
     </div>
 
     <!-- 결재 완료 목록이 없는 경우 -->
-    <div v-else-if="completedApprovals.length === 0" class="text-center py-12">
+    <div v-else-if="completedApprovals.length === 0 && !approvalStore.loading" class="text-center py-12">
       <CheckCircle class="w-16 h-16 mx-auto text-gray-400 mb-4" />
       <h3 class="text-lg font-medium text-gray-900 mb-2">결재 완료한 내역이 없습니다</h3>
       <p class="text-gray-500">아직 결재를 완료한 항목이 없습니다.</p>
@@ -129,68 +129,84 @@
         </table>
       </div>
       
-      <!-- 페이징 정보 -->
-      <div class="px-6 py-3 bg-gray-50 border-t border-gray-200">
-        <div class="flex justify-between items-center text-sm text-gray-700">
-          <span>총 {{ completedApprovals.length }}건</span>
-          <span>내가 결재 완료한 항목들</span>
-        </div>
+      <!-- 무한 스크롤을 위한 Sentinel -->
+      <div 
+        v-if="approvalStore.completedCurrentPage < approvalStore.completedTotalPage && !approvalStore.loading"
+        ref="sentinelRef" 
+        class="h-10 flex items-center justify-center"
+      >
+        <span class="text-sm text-gray-500">더 많은 항목을 불러오는 중...</span>
+      </div>
+      
+      <!-- 로딩 표시 -->
+      <div v-if="approvalStore.loading && completedApprovals.length > 0" class="flex justify-center py-4">
+        <Loader class="w-6 h-6 animate-spin text-blue-600" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue';
 import { Loader, CheckCircle, RefreshCw } from 'lucide-vue-next';
-import { authFetch } from '@/utils/authFetch';
+import { useApprovalStore } from '@/stores/useApprovalStore';
 import ApprovalStatus from './ApprovalStatus.vue';
 
+const approvalStore = useApprovalStore();
+
 // 상태 관리
-const loading = ref(false);
 const sortBy = ref('completed_at_desc'); // 기본값: 완료일 최신순
 const startDate = ref('');
 const endDate = ref('');
-const completedApprovals = ref([]);
+const sentinelRef = ref(null);
+let observer = null;
+
+const completedApprovals = computed(() => approvalStore.completedApprovals);
 
 // 이벤트
 const emit = defineEmits(['view-detail']);
 
 // 완료한 결재 목록 조회
-const loadCompletedApprovals = async () => {
-  loading.value = true;
+const refreshList = async () => {
   try {
-    const APPROVAL_API_URL = import.meta.env.VITE_APPROVAL_API_URL;
-    const queryParams = new URLSearchParams();
-    
-    if (sortBy.value) queryParams.append('sort', sortBy.value);
-    if (startDate.value) queryParams.append('start_date', startDate.value);
-    if (endDate.value) queryParams.append('end_date', endDate.value);
-    
-    const url = queryParams.toString() 
-      ? `${APPROVAL_API_URL}/completed?${queryParams.toString()}`
-      : `${APPROVAL_API_URL}/completed`;
-      
-    const response = await authFetch(url);
-    
-    if (response.ok) {
-      const data = await response.json();
-      completedApprovals.value = data;
-    } else {
-      throw new Error('결재 완료 목록 조회 실패');
-    }
+    const params = {
+      sort: sortBy.value,
+      start_date: startDate.value || undefined,
+      end_date: endDate.value || undefined,
+    };
+    await approvalStore.fetchCompletedApprovals(params, true);
   } catch (error) {
-    console.error('결재 완료 목록 조회 오류:', error);
-    alert('결재 완료 목록 조회 중 오류가 발생했습니다: ' + error.message);
-  } finally {
-    loading.value = false;
+    console.error('완료 목록 새로고침 오류:', error);
   }
 };
 
-// 새로고침
-const refreshList = () => {
-  loadCompletedApprovals();
+// Intersection Observer 설정
+const setupInfiniteScroll = () => {
+  if (observer) observer.disconnect();
+  
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting && !approvalStore.loading && approvalStore.completedCurrentPage < approvalStore.completedTotalPage) {
+        approvalStore.loadNextCompletedPage();
+      }
+    });
+  }, { 
+    threshold: 0.1,
+    rootMargin: '50px'
+  });
+  
+  if (sentinelRef.value) {
+    observer.observe(sentinelRef.value);
+  }
 };
+
+// Sentinel 요소 감시
+watch(sentinelRef, (newSentinel, oldSentinel) => {
+  if (observer) {
+    if (oldSentinel) observer.unobserve(oldSentinel);
+    if (newSentinel) observer.observe(newSentinel);
+  }
+});
 
 // 필터 초기화
 const resetFilters = () => {
@@ -218,7 +234,15 @@ const formatDate = (dateString) => {
 };
 
 // 컴포넌트 마운트 시 데이터 로드
-onMounted(() => {
-  loadCompletedApprovals();
+onMounted(async () => {
+  await refreshList();
+  await nextTick();
+  setupInfiniteScroll();
+});
+
+onBeforeUnmount(() => {
+  if (observer) {
+    observer.disconnect();
+  }
 });
 </script>

@@ -48,22 +48,22 @@
         
         <button
           @click="refreshList"
-          :disabled="loading"
+          :disabled="approvalStore.loading"
           class="inline-flex items-center px-3 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
         >
-          <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': loading }" />
+          <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': approvalStore.loading }" />
           새로고침
         </button>
       </div>
     </div>
 
     <!-- 로딩 상태 -->
-    <div v-if="loading && pendingRequests.length === 0" class="flex justify-center py-12">
+    <div v-if="approvalStore.loading && pendingRequests.length === 0" class="flex justify-center py-12">
       <Loader class="w-8 h-8 animate-spin text-blue-600" />
     </div>
 
     <!-- 빈 상태 -->
-    <div v-else-if="pendingRequests.length === 0" class="text-center py-12">
+    <div v-else-if="pendingRequests.length === 0 && !approvalStore.loading" class="text-center py-12">
       <Clock class="w-16 h-16 text-gray-400 mx-auto mb-4" />
       <h3 class="text-lg font-medium text-gray-900 mb-2">결재 대기 중인 요청이 없습니다</h3>
       <p class="text-gray-500">새로운 결재 요청이 오면 여기에 표시됩니다.</p>
@@ -179,6 +179,20 @@
           </div>
         </div>
       </div>
+      
+      <!-- 무한 스크롤을 위한 Sentinel -->
+      <div 
+        v-if="approvalStore.pendingCurrentPage < approvalStore.pendingTotalPage && !approvalStore.loading"
+        ref="sentinelRef" 
+        class="h-10 flex items-center justify-center"
+      >
+        <span class="text-sm text-gray-500">더 많은 항목을 불러오는 중...</span>
+      </div>
+      
+      <!-- 로딩 표시 -->
+      <div v-if="approvalStore.loading && pendingRequests.length > 0" class="flex justify-center py-4">
+        <Loader class="w-6 h-6 animate-spin text-blue-600" />
+      </div>
     </div>
   </div>
 
@@ -283,19 +297,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { 
   RefreshCw, Loader, Clock, User, Calendar, FileText, Eye, Check, X 
 } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
+import { useApprovalNotificationStore } from '@/stores/useApprovalNotificationStore';
 import { useToast } from 'vue-toastification';
 import ApprovalDetailModal from './ApprovalDetailModal.vue';
 
 const approvalStore = useApprovalStore();
+const approvalNotificationStore = useApprovalNotificationStore();
 const toast = useToast();
 
 // 상태 관리
-const loading = ref(false);
 const sortBy = ref('created_at_desc'); // 기본값: 최신순
 const startDate = ref('');
 const endDate = ref('');
@@ -308,25 +323,54 @@ const quickApproveComment = ref('');
 const quickRejectComment = ref('');
 const quickActionLoading = ref(false);
 
+// 무한 스크롤용 refs
+const sentinelRef = ref(null);
+let observer = null;
+
 // 데이터
 const pendingRequests = computed(() => approvalStore.pendingApprovals);
 
 // 데이터 새로고침
 const refreshList = async () => {
-  loading.value = true;
   try {
     const params = {
       sort: sortBy.value,
       start_date: startDate.value || undefined,
       end_date: endDate.value || undefined,
     };
-    await approvalStore.fetchPendingApprovals(params);
+    await approvalStore.fetchPendingApprovals(params, true); // isReset = true
   } catch (error) {
     console.error('대기 목록 새로고침 오류:', error);
-  } finally {
-    loading.value = false;
   }
 };
+
+// Intersection Observer 설정
+const setupInfiniteScroll = () => {
+  if (observer) observer.disconnect();
+  
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting && !approvalStore.loading && approvalStore.pendingCurrentPage < approvalStore.pendingTotalPage) {
+        approvalStore.loadNextPendingPage();
+      }
+    });
+  }, { 
+    threshold: 0.1,
+    rootMargin: '50px'
+  });
+  
+  if (sentinelRef.value) {
+    observer.observe(sentinelRef.value);
+  }
+};
+
+// Sentinel 요소 감시
+watch(sentinelRef, (newSentinel, oldSentinel) => {
+  if (observer) {
+    if (oldSentinel) observer.unobserve(oldSentinel);
+    if (newSentinel) observer.observe(newSentinel);
+  }
+});
 
 // 필터 초기화
 const resetFilters = () => {
@@ -361,6 +405,8 @@ const confirmQuickApprove = async () => {
     showQuickApproveModal.value = false;
     toast.success('승인 처리되었습니다.');
     await refreshList();
+    // 알림 스토어의 카운트도 새로고침
+    approvalNotificationStore.refreshPendingCount();
   } catch (error) {
     toast.error('승인 중 오류가 발생했습니다: ' + error.message);
   } finally {
@@ -390,6 +436,8 @@ const confirmQuickReject = async () => {
     showQuickRejectModal.value = false;
     toast.success('반려 처리되었습니다.');
     await refreshList();
+    // 알림 스토어의 카운트도 새로고침
+    approvalNotificationStore.refreshPendingCount();
   } catch (error) {
     toast.error('반려 중 오류가 발생했습니다: ' + error.message);
   } finally {
@@ -455,8 +503,16 @@ const getApprovalLineStyle = (line, currentStep) => {
 };
 
 // 초기 데이터 로드
-onMounted(() => {
-  refreshList();
+onMounted(async () => {
+  await refreshList();
+  await nextTick();
+  setupInfiniteScroll();
+});
+
+onBeforeUnmount(() => {
+  if (observer) {
+    observer.disconnect();
+  }
 });
 </script>
 
