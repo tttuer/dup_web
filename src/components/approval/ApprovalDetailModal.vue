@@ -165,6 +165,20 @@
           <div v-else class="text-sm text-gray-500">첨부파일이 없습니다.</div>
         </div>
 
+        <!-- 무결성 검증 섹션 -->
+        <div v-if="showIntegritySection" class="border-t pt-6">
+          <IntegrityVerificationWidget 
+            :requestId="request.id"
+            :autoVerify="isCompletedApproval"
+            :canCreateIntegrity="canCreateIntegrity"
+          />
+        </div>
+
+        <!-- 법적 문서 다운로드 -->
+        <div v-if="showLegalDocumentSection" class="border-t pt-6">
+          <LegalDocumentDownload :requestId="request.id" />
+        </div>
+
         <!-- 결재 의견 -->
         <div v-if="request.histories && request.histories.length > 0" class="border-t pt-6">
           <h4 class="mb-3 font-semibold text-gray-900">결재 의견</h4>
@@ -265,12 +279,15 @@
 import { ref, computed, watch } from 'vue';
 import { X, Loader, Download, FileText, File, Clock, Check, ArrowRight } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
+import { useUserStore } from '@/stores/useUserStore';
 import { fileApi, approvalUtils } from '@/utils/approvalApi';
-import { APPROVAL_STATUS, APPROVAL_ACTION } from '@/stores/useTypeStore';
+import { APPROVAL_STATUS, APPROVAL_ACTION, DOCUMENT_STATUS } from '@/stores/useTypeStore';
 import ApprovalStatus from './ApprovalStatus.vue';
 import ApprovalHistory from './ApprovalHistory.vue';
 import ApprovalActionButtons from './ApprovalActionButtons.vue';
 import ApprovalLineModal from './ApprovalLineModal.vue';
+import IntegrityVerificationWidget from './IntegrityVerificationWidget.vue';
+import LegalDocumentDownload from './LegalDocumentDownload.vue';
 
 const props = defineProps({
   isVisible: {
@@ -287,6 +304,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'updated']);
 
 const approvalStore = useApprovalStore();
+const userStore = useUserStore();
 
 // 상태 관리
 const loading = ref(false);
@@ -298,6 +316,25 @@ const expandedComments = ref({}); // 펼쳐진 댓글들 추적
 // 데이터
 const request = computed(() => approvalStore.approvalDetail);
 const approvalLines = computed(() => approvalStore.approvalLines);
+
+// 무결성 및 법적 문서 섹션 표시 로직
+const showIntegritySection = computed(() => {
+  // 결재가 완료된 경우에만 무결성 검증 섹션 표시
+  return request.value && request.value.status === DOCUMENT_STATUS.APPROVED;
+});
+
+const showLegalDocumentSection = computed(() => {
+  return request.value && request.value.status === DOCUMENT_STATUS.APPROVED;
+});
+
+const isCompletedApproval = computed(() => {
+  return request.value && request.value.status === DOCUMENT_STATUS.APPROVED;
+});
+
+const canCreateIntegrity = computed(() => {
+  // 관리자이거나 결재 완료된 경우에만 무결성 기록 생성 가능
+  return userStore.isAdmin || isCompletedApproval.value;
+});
 
 // 상세 정보 로드
 const loadDetail = async () => {

@@ -291,3 +291,102 @@ export const favoriteApi = {
     return response.json();
   },
 };
+
+// 무결성 검증 관련 API
+export const integrityApi = {
+  // 문서 무결성 검증
+  async verifyIntegrity(requestId) {
+    const response = await authFetch(`${API_URL}/legal/integrity/${requestId}/verify`);
+    
+    if (!response.ok) {
+      throw new Error('무결성 검증 실패');
+    }
+    
+    return await response.json();
+  },
+
+  // 무결성 체인 조회
+  async getIntegrityChain(requestId) {
+    const response = await authFetch(`${API_URL}/legal/integrity/${requestId}/chain`);
+    
+    if (!response.ok) {
+      throw new Error('무결성 체인 조회 실패');
+    }
+    
+    return await response.json();
+  },
+
+  // 위변조된 문서 목록 조회 (관리자용)
+  async getTamperedDocuments(page = 1, pageSize = 20) {
+    const response = await authFetch(`${API_URL}/legal/integrity/tampered?page=${page}&page_size=${pageSize}`);
+    
+    if (!response.ok) {
+      throw new Error('위변조 문서 목록 조회 실패');
+    }
+    
+    return await response.json();
+  },
+
+  // 무결성 기록 수동 생성
+  async createIntegrityRecord(requestId) {
+    const response = await authFetch(`${API_URL}/legal/integrity/${requestId}/create`, {
+      method: 'POST',
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '무결성 기록 생성 실패');
+    }
+    
+    return await response.json();
+  },
+};
+
+// 법적 문서 보관 관련 API
+export const legalArchiveApi = {
+  // 법적 문서 다운로드
+  async downloadLegalDocument(requestId, fileName = null) {
+    const response = await authFetch(`${API_URL}/legal/archive/${requestId}/download`);
+    
+    if (!response.ok) {
+      throw new Error('법적 문서 다운로드 실패');
+    }
+    
+    const blob = await response.blob();
+    
+    // 파일 다운로드 처리
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName || `legal_document_${requestId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
+  // 법적 문서 존재 확인
+  async checkLegalDocumentExists(requestId) {
+    const response = await authFetch(`${API_URL}/legal/archive/${requestId}/exists`);
+    
+    if (!response.ok) {
+      throw new Error('법적 문서 존재 확인 실패');
+    }
+    
+    return await response.json();
+  },
+
+  // 법적 문서 수동 생성
+  async createLegalDocument(requestId) {
+    const response = await authFetch(`${API_URL}/legal/archive/${requestId}/create`, {
+      method: 'POST',
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '법적 문서 생성 실패');
+    }
+    
+    return await response.json();
+  },
+};
