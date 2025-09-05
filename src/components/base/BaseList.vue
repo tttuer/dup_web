@@ -77,9 +77,9 @@ onMounted(() => {
   observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting && !props.loading && props.currentPage < props.totalPage) {
-        // 쓰로틀링: 300ms 간격으로 제한
+        // 쓰로틀링: 100ms 간격으로 제한 (빠른 스크롤 대응)
         const now = Date.now();
-        if (now - lastTriggerTime > 300) {
+        if (now - lastTriggerTime > 100) {
           handleIntersect();
           lastTriggerTime = now;
         }
@@ -87,8 +87,8 @@ onMounted(() => {
     });
   }, { 
     root: null, 
-    threshold: 0.1, // 더 부드러운 로딩을 위해 0.1로 변경
-    rootMargin: '100px' // 마진도 100px로 조정
+    threshold: 0,
+    rootMargin: '200px' // 더 넉넉한 마진으로 빠른 스크롤 대응
   });
 });
 
@@ -269,9 +269,9 @@ function handleIntersect() {
               </slot>
             </td>
           </tr>
-          <!-- 보이지 않는 Sentinel - 더 빠른 감지를 위해 높이 추가 -->
-          <tr v-if="currentPage < totalPage" ref="invisibleSentinel" class="h-10 opacity-0">
-            <td :colspan="headers.length + (showCheckboxes ? 1 : 0)"></td>
+          <!-- 무한 스크롤 센티널 - 보이지만 투명하게 처리 -->
+          <tr v-if="currentPage < totalPage" ref="invisibleSentinel" class="h-1">
+            <td :colspan="headers.length + (showCheckboxes ? 1 : 0)" class="p-0"></td>
           </tr>
         </tbody>
       </table>
