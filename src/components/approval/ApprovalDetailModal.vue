@@ -166,7 +166,7 @@
         </div>
 
         <!-- 무결성 검증 섹션 -->
-        <div v-if="showIntegritySection" class="border-t pt-6">
+        <div v-if="false && showIntegritySection" class="border-t pt-6">
           <IntegrityVerificationWidget 
             :requestId="request.id"
             :autoVerify="isCompletedApproval"
@@ -175,7 +175,7 @@
         </div>
 
         <!-- 법적 문서 다운로드 -->
-        <div v-if="showLegalDocumentSection" class="border-t pt-6">
+        <div v-if="false && showLegalDocumentSection" class="border-t pt-6">
           <LegalDocumentDownload :requestId="request.id" />
         </div>
 

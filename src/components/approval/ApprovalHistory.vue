@@ -102,7 +102,7 @@
 
             <!-- 법적 증명 상세 정보 (확장 가능) -->
             <div
-              v-if="expandedDetails[item.id]"
+              v-if="false && expandedDetails[item.id]"
               class="px-3 pb-3 border-t border-gray-200 bg-gray-25 dark:bg-gray-800"
             >
               <div class="pt-3">
