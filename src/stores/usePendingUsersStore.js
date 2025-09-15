@@ -52,8 +52,15 @@ export const usePendingUsersStore = defineStore('pendingUsers', () => {
       isConnected.value = false;
     };
     
-    pendingUsersSocket.onclose = () => {
+    pendingUsersSocket.onclose = (event) => {
       isConnected.value = false;
+      
+      // 재연결 시도 (3초 후)
+      if (event.code !== 1000) { // 정상 종료가 아닌 경우
+        setTimeout(() => {
+          connectWebSocket();
+        }, 3000);
+      }
     };
   }
 
