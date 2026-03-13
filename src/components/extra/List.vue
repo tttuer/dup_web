@@ -12,7 +12,6 @@ import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
-// PDF 미리보기 기능은 필요시 동적으로 로드
 
 const selectedGroup = ref('');
 const roles = ref(getRoleFromLocalStorage());
@@ -27,20 +26,7 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
-// PDF 미리보기 기능 지연 로딩
-let pdfPreviewModule = null;
-const loadPdfPreview = async () => {
-  if (!pdfPreviewModule) {
-    const { usePdfPreview } = await import('@/composables/usePdfPreview');
-    pdfPreviewModule = usePdfPreview(fileLists, 'single');
-  }
-  return pdfPreviewModule;
-};
 
-// 기본 빈 함수들로 초기화
-let handlePreviewPosition = () => {};
-let resetPreviewPosition = () => {};
-let generatePreview = () => {};
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
   백성운수: 'BAEKSUNG',
@@ -106,15 +92,8 @@ async function fetchFiles(isReset = false) {
     totalPage.value = total_page;
     const newFiles = lists.map((file) => ({
       ...file,
-      pdf_url: null, // 나중에 Worker가 채워줌
     }));
     fileLists.value = [...fileLists.value, ...newFiles];
-
-    // PDF 미리보기 필요시에만 로드
-    newFiles.forEach(async (file) => {
-      const preview = await loadPdfPreview();
-      preview.generatePreview(file);
-    });
   } finally {
     isLoading.value = false;
     isPdfConverting.value = false;
@@ -387,12 +366,8 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], debouncedF
         </template>
 
         <template #item.file_name="{ item }">
-            <div
-                class="group relative w-full text-ellipsis whitespace-nowrap"
-                @mouseenter="handlePreviewPosition"
-                @mouseleave="resetPreviewPosition"
-            >
-                <div class="group relative inline-block w-full">
+            <div class="w-full text-ellipsis whitespace-nowrap">
+                <div class="inline-block w-full">
                     <div class="w-full overflow-hidden text-ellipsis whitespace-nowrap">
                         <a
                         :href="`data:application/pdf;base64,${item.file_data}`"
@@ -401,16 +376,6 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], debouncedF
                         >
                         {{ item.file_name }}
                         </a>
-                    </div>
-                    <div
-                        class="pdf-preview absolute top-full left-0 z-20 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
-                    >
-                        <embed
-                            v-if="item.pdf_url"
-                            :src="item.pdf_url"
-                            type="application/pdf"
-                            class="h-full w-full"
-                        />
                     </div>
                 </div>
             </div>

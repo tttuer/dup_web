@@ -12,7 +12,6 @@ import BaseList from '@/components/base/BaseList.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
-// PDF 미리보기 기능은 필요시 동적으로 로드
 import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
 
 const syncStore = useSyncStatusStore();
@@ -33,21 +32,7 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
-// PDF 미리보기 기능 지연 로딩
-let pdfPreviewModule = null;
-const loadPdfPreview = async () => {
-  if (!pdfPreviewModule) {
-    const { usePdfPreview } = await import('@/composables/usePdfPreview');
-    pdfPreviewModule = usePdfPreview(voucherLists, 'merge');
-  }
-  return pdfPreviewModule;
-};
 
-// 기본 빈 함수들로 초기화
-let handlePreviewPosition = () => {};
-let resetPreviewPosition = () => {};
-let generatePreview = () => {};
-let clearPreviewCache = () => {};
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
   백성운수: 'BAEKSUNG',
@@ -121,15 +106,8 @@ async function fetchVouchers(isReset = false) {
     totalPage.value = total_page;
     const vouchers = lists.map((voucher) => ({
       ...voucher,
-      pdf_url: null, // 나중에 Worker가 채워줌
     }));
     voucherLists.value = [...voucherLists.value, ...vouchers];
-
-    // PDF 미리보기 필요시에만 로드
-    vouchers.forEach(async (voucher) => {
-      const preview = await loadPdfPreview();
-      preview.generatePreview(voucher);
-    });
     
   } finally {
     isLoading.value = false;
@@ -196,10 +174,6 @@ async function editVoucher(payload) {
 
     if (response.ok) {
       toast.success('수정 완료');
-      // PDF 캐시 클리어도 지연 로딩
-      if (pdfPreviewModule) {
-        pdfPreviewModule.clearPreviewCache(payload.id);
-      }
       closeEditModal();
       fetchVouchers(true);
     } else {
@@ -439,12 +413,8 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
       </template>
 
       <template #item.files="{ item }">
-        <div
-          class="group relative w-full"
-          @mouseenter="handlePreviewPosition"
-          @mouseleave="resetPreviewPosition"
-        >
-          <div class="group relative inline-block w-full">
+        <div class="w-full">
+          <div class="inline-block w-full">
             <!-- 파일 이름 리스트 -->
             <div class="overflow-hidden text-ellipsis whitespace-nowrap">
               <template v-if="item.files && item.files.length">
@@ -465,14 +435,6 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
                   }}
                 </a>
               </template>
-            </div>
-
-            <!-- 하나의 병합된 PDF 미리보기 -->
-            <div
-              v-if="item.files && item.merged_pdf_url"
-              class="pdf-preview absolute top-full left-0 z-10 mt-2 hidden h-80 w-64 border border-gray-300 bg-white p-2 shadow-lg group-hover:block"
-            >
-              <embed :src="item.merged_pdf_url" type="application/pdf" class="h-full w-full" />
             </div>
           </div>
         </div>
