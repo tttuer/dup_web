@@ -278,7 +278,6 @@ const pendingCount = computed(() => {
 onMounted(async () => {
   try {
     await userStore.fetchCurrentUser();
-    await approvalStore.fetchMyApprovalRequests();
     await approvalStore.fetchPendingApprovals();
     
     // 웹소켓 연결 (결재 알림용)
