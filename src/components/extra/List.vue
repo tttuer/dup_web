@@ -12,6 +12,7 @@ import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
+import FileDeleteModal from './FileDeleteModal.vue';
 
 const selectedGroup = ref('');
 const roles = ref(getRoleFromLocalStorage());
@@ -43,6 +44,15 @@ const toast = useToast();
 const isEditModalOpen = ref(false);
 const editTargetFile = ref(null);
 const lockFilter = ref(false);
+
+const isFileDeleteModalOpen = ref(false);
+const filesToDelete = computed(() => {
+  return [...checkedIds.value].reduce((acc, id) => {
+    const file = fileLists.value.find((v) => v.id === id);
+    if (file) acc.push(file);
+    return acc;
+  }, []);
+});
 
 const headers = ref([
     { text: '날짜', value: 'withdrawn_at', width: '8%' },
@@ -100,6 +110,15 @@ async function fetchFiles(isReset = false) {
   }
 }
 
+function confirmDelete() {
+  if (checkedIds.value.size === 0) return;
+  isFileDeleteModalOpen.value = true;
+}
+
+function closeDeleteConfirmModal() {
+  isFileDeleteModalOpen.value = false;
+}
+
 async function deleteFiles() {
   const query = [...checkedIds.value].map((id) => `ids=${id}`).join('&');
 
@@ -111,6 +130,7 @@ async function deleteFiles() {
     if (response.ok) {
       toast.success('파일 삭제 성공');
       checkedIds.value.clear();
+      closeDeleteConfirmModal();
       fetchFiles(true);
     } else {
       toast.error('파일 삭제 실패');
@@ -244,7 +264,7 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], debouncedF
             class="h-full w-10 cursor-pointer rounded-sm"
             type="button"
             value="삭제"
-            @click="deleteFiles"
+            @click="confirmDelete"
           />
         </div>
       </div>
@@ -396,6 +416,12 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], debouncedF
       :file="editTargetFile"
       @close="closeEditModal"
       @save="editFile"
+    />
+    <FileDeleteModal
+      :visible="isFileDeleteModalOpen"
+      :files="filesToDelete"
+      @close="closeDeleteConfirmModal"
+      @save="deleteFiles"
     />
   </div>
 </template>
