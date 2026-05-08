@@ -77,6 +77,10 @@ function goToApproval() {
   router.push('/approval');
 }
 
+function goToWiki() {
+  router.push('/wiki');
+}
+
 watchEffect(() => {
   if (route.path === '/') {
     typeStore.setType(TYPE.VOUCHER);
@@ -172,6 +176,17 @@ watchEffect(() => {
             >
               {{ approvalNotificationStore.pendingApprovalCount }}
             </span>
+          </div>
+          <div
+            class="ml-5 content-center relative"
+            :class="route.path.startsWith('/wiki') ? 'border-b-2 border-black font-bold' : ''"
+          >
+            <input
+              class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
+              type="button"
+              value="사내 위키"
+              @click="goToWiki"
+            />
           </div>
           <div
             class="ml-5 content-center relative"
