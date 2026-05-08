@@ -60,19 +60,44 @@
       </div>
     </div>
 
-    <!-- Content -->
-    <div class="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-gray-200 bg-white">
-      <div class="max-w-4xl mx-auto pb-20">
-        <MdPreview :editorId="id" :modelValue="page.content" language="ko-KR" />
+    <!-- Content Area -->
+    <div class="flex-1 flex overflow-hidden bg-white">
+      <!-- Main Document -->
+      <div class="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-gray-200" ref="scrollContainer">
+        <div class="max-w-4xl mx-auto pb-20 prose prose-blue max-w-none wiki-content">
+          <div v-html="processed.html"></div>
+        </div>
+      </div>
+      
+      <!-- TOC Sidebar -->
+      <div v-if="processed.headings.length > 0" class="hidden lg:block w-64 border-l border-gray-100 bg-gray-50 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-200 shrink-0">
+        <h4 class="text-sm font-bold text-gray-800 mb-4 tracking-wider flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mr-2 text-blue-600"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
+          목차
+        </h4>
+        <ul class="space-y-2.5 text-sm">
+          <li v-for="h in processed.headings" :key="h.id" :style="{ paddingLeft: `${(h.level-1)*0.75}rem` }">
+            <a :href="`#${h.id}`" @click.prevent="scrollToHeading(h.id)" class="text-gray-600 hover:text-blue-600 transition-colors block truncate">
+              {{ h.text }}
+            </a>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { MdPreview } from 'md-editor-v3';
-import 'md-editor-v3/lib/preview.css';
-import '@/utils/mdEditorConfig'; // 한국어 설정 로드
+import { computed, ref, watch, nextTick, onMounted } from 'vue';
+import { marked } from 'marked';
+import Prism from 'prismjs';
+import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-sql';
 
 const props = defineProps({
   page: {
@@ -86,7 +111,58 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['edit', 'delete', 'navigate']);
-const id = 'wiki-preview';
+
+const scrollContainer = ref(null);
+
+const htmlContent = computed(() => {
+  if (!props.page?.content) return '';
+  const raw = props.page.content;
+  if (!raw.trim().startsWith('<') && (raw.includes('\n') || raw.includes('#'))) {
+    return marked.parse(raw);
+  }
+  return raw;
+});
+
+const processed = computed(() => {
+  let raw = htmlContent.value;
+  if (!raw) return { html: '', headings: [] };
+  
+  const div = document.createElement('div');
+  div.innerHTML = raw;
+  
+  const headingsList = [];
+  const elements = div.querySelectorAll('h1, h2, h3');
+  
+  elements.forEach((el, index) => {
+    const id = `wiki-heading-${index}`;
+    el.id = id;
+    headingsList.push({
+      id,
+      text: el.innerText,
+      level: parseInt(el.tagName.replace('H', ''))
+    });
+  });
+  
+  return {
+    html: div.innerHTML,
+    headings: headingsList
+  };
+});
+
+const scrollToHeading = (id) => {
+  const el = document.getElementById(id);
+  if (el && scrollContainer.value) {
+    scrollContainer.value.scrollTo({
+      top: el.offsetTop - 30,
+      behavior: 'smooth'
+    });
+  }
+};
+
+watch(() => processed.value.html, async () => {
+  await nextTick();
+  Prism.highlightAll();
+}, { immediate: true });
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
@@ -100,3 +176,51 @@ const confirmDelete = () => {
   }
 };
 </script>
+
+<style scoped>
+/* Tailwind의 prose 클래스가 에디터(TinyMCE)에서 설정한 인라인 스타일/정렬을 방해하지 않도록 오버라이드 */
+:deep(.wiki-content img) {
+  display: revert !important;
+  margin: revert !important;
+  vertical-align: baseline !important;
+  border-radius: 8px;
+  max-width: 100%;
+  height: auto;
+}
+:deep(.wiki-content table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: revert !important;
+}
+:deep(.wiki-content td), :deep(.wiki-content th) {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+}
+/* 리스트 및 마커 색상을 에디터처럼 진하게(검은색에 가깝게) 복구 */
+:deep(.wiki-content li::marker) {
+  color: #111827 !important;
+  font-weight: bold;
+}
+:deep(.wiki-content ul), :deep(.wiki-content ol), :deep(.wiki-content li) {
+  color: #111827 !important;
+}
+/* 중첩 리스트의 마커 모양이 1단계, 2단계, 3단계별로 달라지도록 강제 설정 */
+:deep(.wiki-content ul) {
+  list-style-type: disc !important;
+}
+:deep(.wiki-content ul ul) {
+  list-style-type: circle !important;
+}
+:deep(.wiki-content ul ul ul) {
+  list-style-type: square !important;
+}
+:deep(.wiki-content ol) {
+  list-style-type: decimal !important;
+}
+:deep(.wiki-content ol ol) {
+  list-style-type: lower-alpha !important;
+}
+:deep(.wiki-content ol ol ol) {
+  list-style-type: lower-roman !important;
+}
+</style>

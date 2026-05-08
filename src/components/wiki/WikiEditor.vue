@@ -12,7 +12,20 @@
             class="w-full text-xl font-bold bg-white border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition shadow-sm placeholder-gray-300 text-gray-800"
           >
         </div>
-        <div class="flex space-x-2">
+        <div class="flex items-center space-x-2">
+          <!-- Auto-save indicator -->
+          <div class="text-xs text-gray-500 mr-2 flex items-center min-w-[120px] justify-end">
+            <span v-if="isSaving" class="animate-pulse">임시저장 중...</span>
+            <span v-else-if="lastSavedTime">마지막 저장: {{ lastSavedTime }}</span>
+          </div>
+          
+          <button 
+            @click="openDraftsModal" 
+            class="px-4 py-2 rounded-md text-sm font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition shadow-sm"
+          >
+            임시저장 목록
+          </button>
+          
           <button 
             @click="$emit('cancel')" 
             class="px-5 py-2 rounded-md text-sm font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 transition shadow-sm"
@@ -119,23 +132,31 @@
 
     <!-- Editor -->
     <div class="flex-1 overflow-hidden">
-      <MdEditor 
-        v-model="content" 
-        language="ko-KR"
-        @onUploadImg="onUploadImg"
-        class="h-full border-0"
+      <Editor
+        v-model="content"
+        :init="editorConfig"
+        tinymce-script-src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"
       />
     </div>
+
+    <!-- Drafts Modal -->
+    <WikiDraftsModal 
+      :isOpen="isDraftsModalOpen"
+      :drafts="savedDrafts"
+      @close="isDraftsModalOpen = false"
+      @load="loadDraft"
+      @delete="deleteDraft"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
-import { MdEditor } from 'md-editor-v3';
-import 'md-editor-v3/lib/style.css';
-import '@/utils/mdEditorConfig'; // 한국어 설정 로드
+import Editor from '@tinymce/tinymce-vue';
+import WikiDraftsModal from './WikiDraftsModal.vue';
 import { uploadImage } from '@/api/wiki';
 import { useToast } from 'vue-toastification';
+import { marked } from 'marked';
 
 const props = defineProps({
   initialData: {
@@ -189,12 +210,112 @@ const handleClickOutside = (e) => {
   }
 };
 
+// Local storage autosave state
+const isSaving = ref(false);
+const lastSavedTime = ref(null);
+const currentDraftId = ref(null);
+const savedDrafts = ref([]);
+const isDraftsModalOpen = ref(false);
+let autoSaveTimeout = null;
+let isInitialLoad = true;
+
+const loadDrafts = () => {
+  try {
+    const raw = localStorage.getItem('wiki_drafts');
+    savedDrafts.value = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    savedDrafts.value = [];
+  }
+};
+
+const openDraftsModal = () => {
+  loadDrafts();
+  isDraftsModalOpen.value = true;
+};
+
+const deleteDraft = (id) => {
+  savedDrafts.value = savedDrafts.value.filter(d => d.id !== id);
+  localStorage.setItem('wiki_drafts', JSON.stringify(savedDrafts.value));
+};
+
+const loadDraft = (draft) => {
+  isInitialLoad = true;
+  title.value = draft.title;
+  content.value = draft.content;
+  parentId.value = draft.parentId || '';
+  isPersonal.value = draft.isPersonal || false;
+  currentDraftId.value = draft.id;
+  isDraftsModalOpen.value = false;
+  toast.success('임시저장된 문서를 불러왔습니다.');
+  setTimeout(() => { isInitialLoad = false; }, 500);
+};
+
+const triggerAutoSave = () => {
+  if (isInitialLoad) return;
+  if (!title.value && !content.value) return;
+  
+  isSaving.value = true;
+  clearTimeout(autoSaveTimeout);
+  
+  autoSaveTimeout = setTimeout(() => {
+    loadDrafts();
+    const now = new Date().toISOString();
+    
+    if (!currentDraftId.value) {
+      currentDraftId.value = Date.now().toString();
+    }
+    
+    const draftData = {
+      id: currentDraftId.value,
+      title: title.value,
+      content: content.value,
+      parentId: parentId.value === '' ? null : parentId.value,
+      isPersonal: isPersonal.value,
+      pageId: props.initialData?.id || null,
+      updatedAt: now
+    };
+    
+    const existingIdx = savedDrafts.value.findIndex(d => d.id === currentDraftId.value);
+    if (existingIdx >= 0) {
+      savedDrafts.value[existingIdx] = draftData;
+    } else {
+      savedDrafts.value.unshift(draftData);
+    }
+    
+    if (savedDrafts.value.length > 20) {
+      savedDrafts.value = savedDrafts.value.slice(0, 20);
+    }
+    
+    localStorage.setItem('wiki_drafts', JSON.stringify(savedDrafts.value));
+    
+    const d = new Date();
+    lastSavedTime.value = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    isSaving.value = false;
+  }, 2000);
+};
+
+watch([title, content, parentId, isPersonal], () => {
+  triggerAutoSave();
+}, { deep: true });
+
+// Page unload warning
+const handleBeforeUnload = (e) => {
+  if ((title.value || content.value) && !isInitialLoad) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+};
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  loadDrafts();
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('beforeunload', handleBeforeUnload);
+  clearTimeout(autoSaveTimeout);
 });
 
 // 공간(isPersonal)이 변경될 때마다 부모 선택 초기화 (단, 기존 선택값과 다를 때만)
@@ -209,17 +330,27 @@ watch(isPersonal, (newVal, oldVal) => {
 
 // Initialize with data if editing
 watch(() => props.initialData, (newVal) => {
+  isInitialLoad = true;
   if (newVal) {
     title.value = newVal.title || '';
-    content.value = newVal.content || '';
     parentId.value = newVal.parent_id || '';
     isPersonal.value = newVal.is_personal || false;
+    
+    // Check if it's markdown or html
+    const rawContent = newVal.content || '';
+    if (rawContent && !rawContent.trim().startsWith('<') && (rawContent.includes('\n') || rawContent.includes('#'))) {
+      content.value = marked.parse(rawContent);
+    } else {
+      content.value = rawContent;
+    }
   } else {
     title.value = '';
     content.value = '';
     parentId.value = '';
     isPersonal.value = false;
   }
+  
+  setTimeout(() => { isInitialLoad = false; }, 500);
 }, { immediate: true });
 
 const save = () => {
@@ -227,6 +358,12 @@ const save = () => {
     toast.warning('제목을 입력해주세요.');
     return;
   }
+  
+  // 저장 성공 시 임시저장 내역 삭제
+  if (currentDraftId.value) {
+    deleteDraft(currentDraftId.value);
+  }
+  
   emit('save', { 
     title: title.value, 
     content: content.value,
@@ -235,18 +372,41 @@ const save = () => {
   });
 };
 
-const onUploadImg = async (files, callback) => {
-  try {
-    const urls = await Promise.all(
-      files.map(async (file) => {
-        const res = await uploadImage(file);
-        return res.url; // 백엔드 반환 형태에 맞게 조정 필요
-      })
-    );
-    callback(urls);
-  } catch (error) {
-    console.error('Image upload failed:', error);
-    toast.error('이미지 업로드에 실패했습니다.');
-  }
+const editorConfig = {
+  height: '100%',
+  menubar: false,
+  plugins: [
+    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+    'insertdatetime', 'media', 'table', 'codesample', 'wordcount'
+  ],
+  toolbar: 'undo redo | preview fullscreen | blocks | ' +
+    'bold italic underline strikethrough | alignleft aligncenter ' +
+    'alignright alignjustify | bullist numlist outdent indent | ' +
+    'link image table | codesample removeformat | code',
+  relative_urls: false,
+  remove_script_host: false,
+  content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; padding: 1rem; cursor: text; user-select: text; -webkit-user-select: text; } img { max-width: 100%; height: auto; border-radius: 8px; } table { border-collapse: collapse; width: 100%; } td, th { border: 1px solid #ccc; padding: 8px; }',
+  images_upload_handler: async (blobInfo, progress) => {
+    try {
+      const file = new File([blobInfo.blob()], blobInfo.filename() || 'image.png', { type: blobInfo.blob().type });
+      const res = await uploadImage(file);
+      
+      const baseUrl = import.meta.env.VITE_WIKI_API_URL.split('/api')[0];
+      return baseUrl + res.url;
+    } catch (error) {
+      console.error('Image upload error:', error);
+      throw new Error('Image upload failed');
+    }
+  },
+  object_resizing: true,
+  image_caption: true,
+  table_toolbar: 'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol',
+  language: 'ko_KR',
+  language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.10.9/langs6/ko_KR.js',
+  skin: 'oxide',
+  content_css: 'default',
+  branding: false,
+  promotion: false
 };
 </script>
