@@ -85,7 +85,7 @@
 import { ref, computed, onUnmounted } from 'vue';
 import WikiTreeNode from './WikiTreeNode.vue';
 
-defineProps({
+const props = defineProps({
   publicTree: {
     type: Array,
     default: () => [],
