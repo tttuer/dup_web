@@ -480,6 +480,35 @@ const editorConfig = {
   skin: 'oxide',
   content_css: 'default',
   branding: false,
-  promotion: false
+  promotion: false,
+  setup: (editor) => {
+    editor.on('paste', (e) => {
+      try {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData) return;
+        
+        const htmlData = clipboardData.getData('text/html');
+        const textData = clipboardData.getData('text/plain');
+        
+        // 정규식을 사용해 뚜렷한 마크다운 문법(제목, 굵게, 리스트, 인용구)이 있는지 확인
+        const isMarkdown = /^#+\s/m.test(textData) || /\*\*.+\*\*/.test(textData) || /^-\s/m.test(textData) || /^>\s/m.test(textData);
+        
+        // 이미 렌더링된 웹페이지 요소(h1, h2, 표 등)를 복사한 거라면 원본 HTML 형식을 존중
+        const isRenderedHtml = htmlData && (htmlData.includes('<h1') || htmlData.includes('<h2') || htmlData.includes('<table'));
+
+        // 마크다운 원문을 복사한 경우 (채팅창 등에서 복사할 때 숨겨진 htmlData가 들어오는 것 무시)
+        if (textData && isMarkdown && !isRenderedHtml) {
+          e.preventDefault();
+          // marked.parse 결과를 안전하게 삽입
+          const parsed = marked.parse(textData);
+          Promise.resolve(parsed).then(parsedHtml => {
+            editor.insertContent(parsedHtml);
+          });
+        }
+      } catch (err) {
+        console.error("Paste Markdown Error:", err);
+      }
+    });
+  }
 };
 </script>
