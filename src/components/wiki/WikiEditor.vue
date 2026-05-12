@@ -130,13 +130,47 @@
       </div>
     </div>
 
-    <!-- Editor -->
-    <div class="flex-1 overflow-hidden">
-      <Editor
-        v-model="content"
-        :init="editorConfig"
-        tinymce-script-src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"
-      />
+    <!-- Editor & Attachments -->
+    <div class="flex-1 overflow-hidden flex flex-col">
+      <div class="flex-1 min-h-0">
+        <Editor
+          v-model="content"
+          :init="editorConfig"
+          tinymce-script-src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"
+          class="h-full"
+        />
+      </div>
+
+      <!-- Attachments Section -->
+      <div class="border-t border-gray-200 bg-gray-50 p-4 shrink-0">
+        <div class="flex justify-between items-center mb-2">
+          <label class="text-sm font-bold text-gray-700 flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+            첨부파일
+          </label>
+          <div class="relative">
+            <input type="file" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" @change="handleFileUpload" :disabled="isUploading">
+            <button type="button" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-gray-700 hover:bg-gray-100 shadow-sm" :class="{ 'opacity-50': isUploading }">
+              {{ isUploading ? '업로드 중...' : '파일 추가' }}
+            </button>
+          </div>
+        </div>
+        
+        <ul v-if="attachments.length > 0" class="space-y-1.5 mt-2 max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+          <li v-for="(file, index) in attachments" :key="index" class="flex justify-between items-center bg-white p-2.5 border border-gray-200 rounded-md text-sm shadow-sm group">
+            <div class="flex items-center min-w-0">
+              <span class="text-blue-500 mr-2 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+              </span>
+              <span class="truncate text-gray-700 font-medium">{{ file.file_name }}</span>
+              <span class="text-xs text-gray-400 ml-2 shrink-0">({{ formatSize(file.size) }})</span>
+            </div>
+            <button @click="removeAttachment(index)" type="button" class="text-gray-400 hover:text-red-500 text-xs ml-2 shrink-0 px-2 py-1 rounded hover:bg-red-50 transition">
+              삭제
+            </button>
+          </li>
+        </ul>
+      </div>
     </div>
 
     <!-- Drafts Modal -->
@@ -154,7 +188,7 @@
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import Editor from '@tinymce/tinymce-vue';
 import WikiDraftsModal from './WikiDraftsModal.vue';
-import { uploadImage } from '@/api/wiki';
+import { uploadImage, uploadAttachment } from '@/api/wiki';
 import { useToast } from 'vue-toastification';
 import { marked } from 'marked';
 
@@ -210,6 +244,40 @@ const handleClickOutside = (e) => {
   }
 };
 
+// File Attachments
+const attachments = ref([]);
+const isUploading = ref(false);
+
+const handleFileUpload = async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+  
+  isUploading.value = true;
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const res = await uploadAttachment(files[i]);
+      attachments.value.push(res);
+    }
+  } catch (err) {
+    toast.error('파일 업로드에 실패했습니다.');
+  } finally {
+    isUploading.value = false;
+    e.target.value = ''; // Reset input
+  }
+};
+
+const removeAttachment = (index) => {
+  attachments.value.splice(index, 1);
+};
+
+const formatSize = (bytes) => {
+  if (bytes === 0 || !bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
 // Local storage autosave state
 const isSaving = ref(false);
 const lastSavedTime = ref(null);
@@ -244,6 +312,7 @@ const loadDraft = (draft) => {
   content.value = draft.content;
   parentId.value = draft.parentId || '';
   isPersonal.value = draft.isPersonal || false;
+  attachments.value = draft.attachments || [];
   currentDraftId.value = draft.id;
   isDraftsModalOpen.value = false;
   toast.success('임시저장된 문서를 불러왔습니다.');
@@ -271,6 +340,7 @@ const triggerAutoSave = () => {
       content: content.value,
       parentId: parentId.value === '' ? null : parentId.value,
       isPersonal: isPersonal.value,
+      attachments: attachments.value,
       pageId: props.initialData?.id || null,
       updatedAt: now
     };
@@ -294,7 +364,7 @@ const triggerAutoSave = () => {
   }, 2000);
 };
 
-watch([title, content, parentId, isPersonal], () => {
+watch([title, content, parentId, isPersonal, attachments], () => {
   triggerAutoSave();
 }, { deep: true });
 
@@ -335,6 +405,7 @@ watch(() => props.initialData, (newVal) => {
     title.value = newVal.title || '';
     parentId.value = newVal.parent_id || '';
     isPersonal.value = newVal.is_personal || false;
+    attachments.value = newVal.attachments ? [...newVal.attachments] : [];
     
     // Check if it's markdown or html
     const rawContent = newVal.content || '';
@@ -348,6 +419,7 @@ watch(() => props.initialData, (newVal) => {
     content.value = '';
     parentId.value = '';
     isPersonal.value = false;
+    attachments.value = [];
   }
   
   setTimeout(() => { isInitialLoad = false; }, 500);
@@ -368,7 +440,8 @@ const save = () => {
     title: title.value, 
     content: content.value,
     parent_id: parentId.value === '' ? null : parentId.value,
-    is_personal: isPersonal.value
+    is_personal: isPersonal.value,
+    attachments: attachments.value
   });
 };
 

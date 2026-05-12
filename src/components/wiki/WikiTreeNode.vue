@@ -1,12 +1,15 @@
 <template>
-  <div>
-    <div
-      v-for="node in nodes"
-      :key="node.id"
-      class="text-sm text-gray-700"
-    >
-      <div class="flex items-center w-full mb-0.5">
-        <!-- Fold/Unfold Button (Independent Area) -->
+  <draggable
+    :list="nodes"
+    item-key="id"
+    @end="onDragEnd"
+    class="w-full"
+    :class="{ 'pl-4 ml-2 border-l border-gray-200': !isRoot }"
+  >
+    <template #item="{ element: node }">
+      <div class="text-sm text-gray-700 w-full relative">
+        <div class="flex items-center w-full mb-0.5">
+          <!-- Fold/Unfold Button (Independent Area) -->
         <button
           v-if="node.children && node.children.length > 0"
           @click.stop="toggleFolder(node)"
@@ -27,7 +30,7 @@
           class="flex-1 flex items-center px-2 h-8 hover:bg-gray-100 cursor-pointer rounded-md transition-colors overflow-hidden"
           :class="{ 'bg-blue-50 text-blue-700 font-bold': selectedId === node.id }"
           @click.stop="handleClick(node)"
-          title="문서 보기"
+          title="클릭하여 보기, 길게 눌러 드래그(순서 변경)"
         >
           <svg v-if="node.children && node.children.length > 0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-2 text-blue-400 flex-shrink-0">
             <path d="M3.75 3A1.75 1.75 0 002 4.75v3.26a3.235 3.235 0 011.75-.51h12.5c.644 0 1.245.205 1.75.51V6.75A1.75 1.75 0 0016.25 5h-4.836a.25.25 0 01-.177-.073L9.823 3.513A1.75 1.75 0 008.586 3H3.75zM3.75 9A1.75 1.75 0 002 10.75v4.5c0 .966.784 1.75 1.75 1.75h12.5A1.75 1.75 0 0018 15.25v-4.5A1.75 1.75 0 0016.25 9H3.75z" />
@@ -40,22 +43,23 @@
         </div>
       </div>
 
-      <div
-        v-if="node.children && node.children.length > 0 && isExpanded(node)"
-        class="pl-4 ml-2 border-l border-gray-200"
-      >
-        <WikiTreeNode
-          :nodes="node.children"
-          :selectedId="selectedId"
-          @select="$emit('select', $event)"
-        />
-      </div>
+      <!-- Recursive node -->
+      <WikiTreeNode
+        v-if="node.children && isExpanded(node)"
+        :nodes="node.children"
+        :selectedId="selectedId"
+        :isRoot="false"
+        @select="$emit('select', $event)"
+        @reorder="$emit('reorder')"
+      />
     </div>
-  </div>
+  </template>
+</draggable>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import draggable from 'vuedraggable';
 
 const props = defineProps({
   nodes: {
@@ -66,9 +70,13 @@ const props = defineProps({
     type: [Number, String],
     default: null,
   },
+  isRoot: {
+    type: Boolean,
+    default: true
+  }
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(['select', 'reorder']);
 const expandedIds = ref(new Set());
 
 const isExpanded = (node) => expandedIds.value.has(node.id);
@@ -83,5 +91,9 @@ const toggleFolder = (node) => {
 
 const handleClick = (node) => {
   emit('select', node);
+};
+
+const onDragEnd = () => {
+  emit('reorder');
 };
 </script>

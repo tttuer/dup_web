@@ -1,6 +1,10 @@
 <template>
-  <div class="h-full flex flex-col bg-gray-50 border-r border-gray-200 w-64 overflow-hidden shadow-sm z-10">
-    <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-white">
+  <div 
+    ref="treeContainerRef"
+    class="relative h-full flex flex-col bg-gray-50 border-r border-gray-200 overflow-hidden shadow-sm z-10 flex-shrink-0"
+    :style="{ width: sidebarWidth + 'px' }"
+  >
+    <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-white shrink-0">
       <h2 class="text-xl font-bold text-gray-800 tracking-tight">사내 위키</h2>
       <button @click="$emit('create', null)" class="p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition shadow-sm" title="최상위에 새 페이지 생성">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
@@ -55,7 +59,7 @@
           </svg>
           공용 위키
         </h3>
-        <WikiTreeNode :nodes="publicTree" :selectedId="selectedId" @select="$emit('select', $event)" />
+        <WikiTreeNode :nodes="publicTree" :selectedId="selectedId" @select="$emit('select', $event)" @reorder="$emit('reorder')" />
       </div>
 
       <div>
@@ -65,14 +69,20 @@
           </svg>
           개인 공간
         </h3>
-        <WikiTreeNode :nodes="personalTree" :selectedId="selectedId" @select="$emit('select', $event)" />
+        <WikiTreeNode :nodes="personalTree" :selectedId="selectedId" @select="$emit('select', $event)" @reorder="$emit('reorder')" />
       </div>
     </div>
+
+    <!-- Resizer Handle -->
+    <div 
+      class="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-400 active:bg-blue-500 z-50 transition-colors"
+      @mousedown.stop.prevent="startResize"
+    ></div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import WikiTreeNode from './WikiTreeNode.vue';
 
 defineProps({
@@ -90,7 +100,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(['select', 'create']);
+const emit = defineEmits(['select', 'create', 'reorder']);
 
 const searchQuery = ref('');
 
@@ -118,4 +128,36 @@ const selectResult = (res) => {
   emit('select', { id: res.id });
   // searchQuery.value = ''; // Optional: uncomment if you want search to clear after selection
 };
+
+// Resizer Logic
+const sidebarWidth = ref(256); // default 256px (w-64)
+const treeContainerRef = ref(null);
+let isResizing = false;
+
+const startResize = (e) => {
+  isResizing = true;
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', stopResize);
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+};
+
+const handleMouseMove = (e) => {
+  if (!isResizing || !treeContainerRef.value) return;
+  const rect = treeContainerRef.value.getBoundingClientRect();
+  const newWidth = e.clientX - rect.left;
+  sidebarWidth.value = Math.max(200, Math.min(newWidth, 800)); // min 200px, max 800px
+};
+
+const stopResize = () => {
+  isResizing = false;
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', stopResize);
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+};
+
+onUnmounted(() => {
+  if (isResizing) stopResize();
+});
 </script>

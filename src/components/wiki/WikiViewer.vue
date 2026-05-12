@@ -64,8 +64,37 @@
     <div class="flex-1 flex overflow-hidden bg-white">
       <!-- Main Document -->
       <div class="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-gray-200" ref="scrollContainer">
-        <div class="max-w-4xl mx-auto pb-20 prose prose-blue max-w-none wiki-content">
+        <div class="pb-8 prose prose-blue max-w-none wiki-content">
           <div v-html="processed.html"></div>
+        </div>
+        
+        <!-- Attachments View -->
+        <div v-if="page.attachments && page.attachments.length > 0" class="mt-12 border-t border-gray-200 pt-8 pb-12">
+          <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+            첨부파일 ({{ page.attachments.length }})
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <a 
+              v-for="file in page.attachments" 
+              :key="file.id" 
+              :href="getDownloadUrl(file.url)" 
+              download
+              target="_blank"
+              class="flex items-center p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-md transition-all group"
+            >
+              <div class="w-10 h-10 rounded bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 mr-3 shrink-0 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-gray-700 truncate group-hover:text-blue-700">{{ file.file_name }}</p>
+                <p class="text-xs text-gray-500">{{ formatSize(file.size) }}</p>
+              </div>
+              <div class="text-gray-300 group-hover:text-blue-500 ml-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              </div>
+            </a>
+          </div>
         </div>
       </div>
       
@@ -168,6 +197,21 @@ const formatDate = (dateString) => {
   if (!dateString) return '';
   const d = new Date(dateString);
   return d.toLocaleString('ko-KR');
+};
+
+const formatSize = (bytes) => {
+  if (bytes === 0 || !bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const getDownloadUrl = (url) => {
+  if (!url) return '#';
+  if (url.startsWith('http')) return url;
+  const baseUrl = import.meta.env.VITE_WIKI_API_URL.split('/api')[0];
+  return baseUrl + url;
 };
 
 const confirmDelete = () => {

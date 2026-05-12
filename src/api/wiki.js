@@ -59,3 +59,25 @@ export async function uploadImage(file) {
   if (!res.ok) throw new Error('Failed to upload image');
   return res.json();
 }
+
+export async function reorderWiki(items) {
+  const res = await authFetch(`${wikiUrl}/reorder`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) throw new Error('Failed to reorder wiki');
+  return res.json();
+}
+
+export async function uploadAttachment(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const res = await authFetch(`${wikiUrl}/attachments/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Failed to upload attachment');
+  return res.json();
+}

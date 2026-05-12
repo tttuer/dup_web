@@ -7,6 +7,7 @@
       :selectedId="selectedPageId"
       @select="handleSelectPage"
       @create="handleCreatePage"
+      @reorder="handleReorder"
     />
 
     <!-- Main Content -->
@@ -90,7 +91,7 @@ import { ref, computed, onMounted } from 'vue';
 import WikiTree from './WikiTree.vue';
 import WikiViewer from './WikiViewer.vue';
 import WikiEditor from './WikiEditor.vue';
-import { getWikiTree, getPersonalWiki, getWiki, createWiki, updateWiki, deleteWiki } from '@/api/wiki';
+import { getWikiTree, getPersonalWiki, getWiki, createWiki, updateWiki, deleteWiki, reorderWiki } from '@/api/wiki';
 import { useToast } from 'vue-toastification';
 
 const toast = useToast();
@@ -150,6 +151,39 @@ const loadTrees = async () => {
     personalTree.value = buildTree(per);
   } catch (error) {
     console.error('Failed to load wiki trees', error);
+  }
+};
+
+const handleReorder = async () => {
+  const itemsToUpdate = [];
+  
+  const extractItems = (nodes, parentId = null) => {
+    if (!nodes) return;
+    nodes.forEach((node, index) => {
+      // If order or parent has changed, add to update payload
+      // DB handles root parent_id as null
+      if (node.order !== index || node.parent_id !== parentId) {
+        itemsToUpdate.push({ id: node.id, order: index, parent_id: parentId });
+        node.order = index; // update local instantly
+        node.parent_id = parentId;
+      }
+      if (node.children) {
+        extractItems(node.children, node.id);
+      }
+    });
+  };
+
+  extractItems(publicTree.value, null);
+  extractItems(personalTree.value, null);
+
+  if (itemsToUpdate.length > 0) {
+    try {
+      await reorderWiki(itemsToUpdate);
+      // reload lightly or assume local state is correct
+      await loadTrees();
+    } catch (error) {
+      toast.error('순서 변경에 실패했습니다.');
+    }
   }
 };
 
@@ -230,7 +264,8 @@ const handleEditPage = () => {
     title: selectedPageData.value.title, 
     content: selectedPageData.value.content,
     parent_id: selectedPageData.value.parent_id || '',
-    is_personal: selectedPageData.value.is_personal || false
+    is_personal: selectedPageData.value.is_personal || false,
+    attachments: selectedPageData.value.attachments || []
   };
   isEditing.value = true;
 };
