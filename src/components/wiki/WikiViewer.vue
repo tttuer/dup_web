@@ -117,43 +117,40 @@
     <!-- Image Modal (Lightbox) -->
     <div 
       v-if="selectedImage" 
-      class="fixed inset-0 z-[100] bg-black bg-opacity-80 p-4 overflow-auto flex justify-center"
-      :class="isZoomedIn ? 'items-start' : 'items-center'"
+      ref="modalRef"
+      class="fixed inset-0 z-[100] bg-black bg-opacity-80 overflow-auto"
       @click="selectedImage = null"
     >
-      <div class="relative flex flex-col items-center w-full min-h-full">
-        <!-- Top Toolbar -->
-        <div class="fixed top-4 right-6 flex space-x-3 z-[110]">
-          <a 
-            :href="selectedImage" 
-            target="_blank"
-            class="flex items-center px-3 py-1.5 bg-black bg-opacity-60 text-white rounded hover:bg-opacity-80 transition text-sm font-medium"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            새 탭에서 원본 열기
-          </a>
-          <button 
-            @click="selectedImage = null" 
-            class="p-1.5 bg-black bg-opacity-60 text-white rounded hover:bg-opacity-80 transition"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      <!-- Top Toolbar -->
+      <div class="fixed top-4 right-6 flex space-x-3 z-[110]">
+        <a 
+          :href="selectedImage" 
+          target="_blank"
+          class="flex items-center px-3 py-1.5 bg-black bg-opacity-60 text-white rounded hover:bg-opacity-80 transition text-sm font-medium"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          새 탭에서 원본 열기
+        </a>
+        <button 
+          @click="selectedImage = null" 
+          class="p-1.5 bg-black bg-opacity-60 text-white rounded hover:bg-opacity-80 transition"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-        <!-- Image Container -->
-        <div class="w-full flex justify-center" :class="isZoomedIn ? 'mt-16 mb-16' : 'h-[90vh] items-center'">
-          <img 
-            :src="selectedImage" 
-            class="bg-white transition-transform duration-200"
-            :class="isZoomedIn ? 'cursor-zoom-out max-w-none shadow-xl' : 'cursor-zoom-in max-w-full max-h-full object-contain shadow-2xl'"
-            @click.stop="handleModalImageClick"
-            title="클릭하여 확대/축소"
-          >
-        </div>
+      <div class="flex min-w-full min-h-full p-4 md:p-8" @click="selectedImage = null">
+        <img 
+          :src="selectedImage" 
+          class="bg-white m-auto transition-none"
+          :class="isZoomedIn ? 'cursor-zoom-out max-w-none shadow-xl' : 'cursor-zoom-in max-w-full max-h-[85vh] object-contain shadow-2xl'"
+          @click.stop="handleModalImageClick"
+          title="클릭하여 확대/축소"
+        >
       </div>
     </div>
   </div>
@@ -265,6 +262,7 @@ const confirmDelete = () => {
 
 const selectedImage = ref(null);
 const isZoomedIn = ref(false);
+const modalRef = ref(null);
 
 const handleContentClick = (e) => {
   if (e.target.tagName === 'IMG') {
@@ -273,8 +271,34 @@ const handleContentClick = (e) => {
   }
 };
 
-const handleModalImageClick = () => {
-  isZoomedIn.value = !isZoomedIn.value;
+const handleModalImageClick = (e) => {
+  if (!isZoomedIn.value) {
+    // 확대하기 전, 클릭한 지점의 비율(%) 계산
+    const rect = e.target.getBoundingClientRect();
+    const xRatio = (e.clientX - rect.left) / rect.width;
+    const yRatio = (e.clientY - rect.top) / rect.height;
+    
+    isZoomedIn.value = true;
+    
+    // 확대 후, 레이아웃 변경이 적용된 뒤 새 크기를 기반으로 완벽한 스크롤 위치 계산
+    nextTick(() => {
+      if (!modalRef.value) return;
+      const img = e.target;
+      
+      // offsetLeft, offsetTop은 문서 내 이미지의 실제 픽셀 시작 위치를 의미합니다.
+      const newX = img.offsetLeft + (img.offsetWidth * xRatio);
+      const newY = img.offsetTop + (img.offsetHeight * yRatio);
+      
+      // 현재 마우스 위치(clientX, clientY)에 아까 계산한 newX, newY가 오도록 맞춥니다.
+      modalRef.value.scrollTo({
+        left: newX - e.clientX,
+        top: newY - e.clientY,
+        behavior: 'instant'
+      });
+    });
+  } else {
+    isZoomedIn.value = false;
+  }
 };
 </script>
 
