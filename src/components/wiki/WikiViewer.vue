@@ -64,7 +64,7 @@
     <div class="flex-1 flex overflow-hidden bg-white">
       <!-- Main Document -->
       <div class="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-gray-200" ref="scrollContainer">
-        <div class="pb-8 prose prose-blue max-w-none wiki-content">
+        <div class="pb-8 prose prose-blue max-w-none wiki-content" @click="handleContentClick">
           <div v-html="processed.html"></div>
         </div>
         
@@ -111,6 +111,49 @@
             </a>
           </li>
         </ul>
+      </div>
+    </div>
+    
+    <!-- Image Modal (Lightbox) -->
+    <div 
+      v-if="selectedImage" 
+      class="fixed inset-0 z-[100] bg-black bg-opacity-80 p-4 overflow-auto flex justify-center"
+      :class="isZoomedIn ? 'items-start' : 'items-center'"
+      @click="selectedImage = null"
+    >
+      <div class="relative flex flex-col items-center w-full min-h-full">
+        <!-- Top Toolbar -->
+        <div class="fixed top-4 right-6 flex space-x-3 z-[110]">
+          <a 
+            :href="selectedImage" 
+            target="_blank"
+            class="flex items-center px-3 py-1.5 bg-black bg-opacity-60 text-white rounded hover:bg-opacity-80 transition text-sm font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            새 탭에서 원본 열기
+          </a>
+          <button 
+            @click="selectedImage = null" 
+            class="p-1.5 bg-black bg-opacity-60 text-white rounded hover:bg-opacity-80 transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Image Container -->
+        <div class="w-full flex justify-center" :class="isZoomedIn ? 'mt-16 mb-16' : 'h-[90vh] items-center'">
+          <img 
+            :src="selectedImage" 
+            class="bg-white transition-transform duration-200"
+            :class="isZoomedIn ? 'cursor-zoom-out max-w-none shadow-xl' : 'cursor-zoom-in max-w-full max-h-full object-contain shadow-2xl'"
+            @click.stop="handleModalImageClick"
+            title="클릭하여 확대/축소"
+          >
+        </div>
       </div>
     </div>
   </div>
@@ -219,6 +262,20 @@ const confirmDelete = () => {
     emit('delete', props.page.id);
   }
 };
+
+const selectedImage = ref(null);
+const isZoomedIn = ref(false);
+
+const handleContentClick = (e) => {
+  if (e.target.tagName === 'IMG') {
+    selectedImage.value = e.target.src;
+    isZoomedIn.value = false;
+  }
+};
+
+const handleModalImageClick = () => {
+  isZoomedIn.value = !isZoomedIn.value;
+};
 </script>
 
 <style scoped>
@@ -229,7 +286,8 @@ const confirmDelete = () => {
   vertical-align: baseline !important;
   border-radius: 8px;
   max-width: 100%;
-  height: auto;
+  height: auto !important;
+  cursor: zoom-in;
 }
 :deep(.wiki-content table) {
   width: 100%;
