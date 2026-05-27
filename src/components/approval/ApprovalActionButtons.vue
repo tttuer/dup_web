@@ -55,16 +55,7 @@
       반려
     </button>
 
-    <!-- 회수 버튼 -->
-    <button
-      v-if="canRecall"
-      @click="handleRecall"
-      :disabled="loading"
-      class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 disabled:opacity-50"
-    >
-      <RotateCcw class="w-4 h-4 mr-2" />
-      회수
-    </button>
+
 
     <!-- 결재선 설정 버튼 (초안일 때만) -->
     <button
@@ -161,7 +152,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Send, Check, X, RotateCcw, Users, Loader, Edit, Trash2 } from 'lucide-vue-next';
+import { Send, Check, X, Users, Loader, Edit, Trash2 } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { DOCUMENT_STATUS } from '@/stores/useTypeStore';
@@ -193,8 +184,11 @@ const rejectComment = ref('');
 
 // 권한 체크
 const canSubmit = computed(() => {
+  if (!userStore.currentUser) return false;
+  const isRequester = String(props.request.requester_id) === String(userStore.currentUser.id) || 
+                      String(props.request.requester_id) === String(userStore.currentUser.user_id);
   return props.request.status === DOCUMENT_STATUS.DRAFT &&
-         props.request.requester_id === userStore.currentUser?.id &&
+         isRequester &&
          props.approvalLines.length > 0;
 });
 
@@ -216,21 +210,22 @@ const canReject = computed(() => {
   return canApprove.value;
 });
 
-const canRecall = computed(() => {
-  return [DOCUMENT_STATUS.SUBMITTED, DOCUMENT_STATUS.IN_PROGRESS].includes(props.request.status) &&
-         props.request.requester_id === userStore.currentUser?.id;
-});
-
 const canEditApprovalLine = computed(() => {
+  if (!userStore.currentUser) return false;
+  const isRequester = String(props.request.requester_id) === String(userStore.currentUser.id) || 
+                      String(props.request.requester_id) === String(userStore.currentUser.user_id);
   return props.request.status === DOCUMENT_STATUS.DRAFT &&
-         props.request.requester_id === userStore.currentUser?.id;
+         isRequester;
 });
 
 const canEditOrDelete = computed(() => {
-  if (props.request.requester_id !== userStore.currentUser?.id) return false;
-  if (!props.approvalLines) return false;
+  if (!props.request || !userStore.currentUser) return false;
+  const isRequester = String(props.request.requester_id) === String(userStore.currentUser.id) || 
+                      String(props.request.requester_id) === String(userStore.currentUser.user_id);
+  if (!isRequester) return false;
+  if (!props.approvalLines || props.approvalLines.length === 0) return true; // 결재선이 없어도 삭제/수정 가능 (임시저장 등의 경우)
   
-  // 승인/반려된 결재선이 하나도 없어야 함
+  // 승인/반려된 결재선이 하나도 없어야 함 (모두 PENDING 이거나 초기 상태)
   const hasProcessed = props.approvalLines.some(line => ['APPROVED', 'REJECTED'].includes(line.status));
   return !hasProcessed;
 });
@@ -305,18 +300,4 @@ const handleReject = async () => {
   }
 };
 
-const handleRecall = async () => {
-  if (!confirm('결재를 회수하시겠습니까?')) return;
-  
-  loading.value = true;
-  try {
-    await approvalStore.recallRequest(props.request.id);
-    toast.success('결재가 회수되었습니다.');
-    emit('action-completed', 'recall');
-  } catch (error) {
-    toast.error('회수 중 오류가 발생했습니다: ' + error.message);
-  } finally {
-    loading.value = false;
-  }
-};
 </script>

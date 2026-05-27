@@ -132,15 +132,6 @@
                 >
                   <Trash2 class="w-3 h-3" />
                 </button>
-                
-                <button
-                  v-if="canRecall(request)"
-                  @click.stop="recallRequest(request)"
-                  class="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                  title="회수"
-                >
-                  <RotateCcw class="w-3 h-3" />
-                </button>
               </div>
             </div>
           </div>
@@ -192,7 +183,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { 
-  RefreshCw, Loader, FileText, Plus, Calendar, Edit, RotateCcw, ExternalLink, Trash2
+  RefreshCw, Loader, FileText, Plus, Calendar, Edit, ExternalLink, Trash2
 } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
@@ -302,6 +293,7 @@ const deleteRequest = async (request) => {
   
   try {
     await approvalStore.deleteApprovalRequest(request.id);
+    await refreshList();
   } catch (error) {
     alert('삭제 중 오류가 발생했습니다: ' + error.message);
   }
@@ -309,27 +301,23 @@ const deleteRequest = async (request) => {
 
 // 수정/삭제 가능 여부 체크
 const canEditOrDelete = (request) => {
-  if (!request) return false;
-  // 리스트에서는 approval_lines가 없으므로 상태로만 확인 (승인/반려가 하나도 없는 상태는 SUBMITTED)
-  return request.status === DOCUMENT_STATUS.SUBMITTED && request.requester_id === userStore.currentUser?.id;
-};
-
-// 회수
-const recallRequest = async (request) => {
-  if (!confirm(`"${request.title}" 결재를 회수하시겠습니까?`)) return;
+  if (!request || !userStore.currentUser) return false;
   
-  try {
-    await approvalStore.recallRequest(request.id);
-    await refreshList();
-  } catch (error) {
-    alert('회수 중 오류가 발생했습니다: ' + error.message);
-  }
-};
+  const isRequester = String(request.requester_id) === String(userStore.currentUser.id) || 
+                      String(request.requester_id) === String(userStore.currentUser.user_id);
+  if (!isRequester) return false;
 
-// 회수 가능 여부 체크
-const canRecall = (request) => {
-  return [DOCUMENT_STATUS.SUBMITTED, DOCUMENT_STATUS.IN_PROGRESS].includes(request.status) &&
-         request.requester_id === userStore.currentUser?.id;
+  // 리스트에 approval_lines가 포함되어 있다면 승인/반려 내역이 없는지 확실히 체크
+  if (request.approval_lines && request.approval_lines.length > 0) {
+    const hasProcessed = request.approval_lines.some(line => ['APPROVED', 'REJECTED'].includes(line.status));
+    return !hasProcessed;
+  }
+
+  // approval_lines가 없는 경우 (백엔드 응답 형태에 따라 다름)
+  // 임시저장(DRAFT)이거나 상신(SUBMITTED) 상태일 때 노출
+  // 백엔드가 상신 직후 바로 IN_PROGRESS로 바꾼다면 IN_PROGRESS도 포함하고 첫 번째 스텝인지 확인해야 함
+  return [DOCUMENT_STATUS.SUBMITTED, DOCUMENT_STATUS.DRAFT].includes(request.status) || 
+         (request.status === DOCUMENT_STATUS.IN_PROGRESS && request.current_step <= 1);
 };
 
 // 유틸리티 함수들

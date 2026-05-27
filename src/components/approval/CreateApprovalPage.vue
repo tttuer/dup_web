@@ -397,6 +397,7 @@ import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { approvalUtils } from '@/utils/approvalApi';
 import { fileApi } from '@/utils/approvalApi';
+import ApprovalLineModal from './ApprovalLineModal.vue';
 
 const props = defineProps({
   editRequestId: {
@@ -582,6 +583,7 @@ const removeFile = (index) => {
 };
 
 const getFileIcon = (fileName) => {
+  if (!fileName) return File;
   const extension = fileName.split('.').pop().toLowerCase();
   if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
     return FileText;
@@ -674,7 +676,7 @@ const loadExistingRequest = async () => {
     
     selectedFiles.value = files.map(f => ({
       id: f.id,
-      name: f.original_name,
+      name: f.file_name,
       size: f.file_size
     }));
     

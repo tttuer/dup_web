@@ -394,8 +394,13 @@ const downloadAllFiles = async () => {
 
 // 액션 완료 핸들러
 const handleActionCompleted = (action) => {
-  loadDetail();
-  emit('updated');
+  if (action === 'delete') {
+    closeModal();
+    emit('updated');
+  } else {
+    loadDetail();
+    emit('updated');
+  }
 };
 
 // 결재선 저장 핸들러

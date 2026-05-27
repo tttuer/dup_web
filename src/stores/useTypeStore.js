@@ -17,6 +17,7 @@ export const APPROVAL_STATUS = {
 };
 
 export const DOCUMENT_STATUS = {
+  DRAFT: 'DRAFT',           // 임시저장
   SUBMITTED: 'SUBMITTED',   // 상신완료
   IN_PROGRESS: 'IN_PROGRESS', // 결재진행중
   APPROVED: 'APPROVED',     // 승인완료
