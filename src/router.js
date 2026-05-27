@@ -7,6 +7,7 @@ import ApprovalView from './components/approval/App.vue';
 import LoginView from './components/login/App.vue';
 import SignUpView from './components/login/SignUp.vue';
 import UserApprovalView from './components/admin/UserApproval.vue';
+import WikiApp from './components/wiki/App.vue';
 import { tryRefreshToken } from '@/utils/authFetch'; // 가정: 토큰 갱신 함수
 import { authFetch } from './utils/authFetch';
 
@@ -15,6 +16,7 @@ const routes = [
   { path: '/extra', component: ExtraView, meta: { requiresAuth: true } },
   { path: '/approval', component: ApprovalView, meta: { requiresAuth: true } },
   { path: '/user-approval', component: UserApprovalView, meta: { requiresAuth: true, requiresAdmin: true } },
+  { path: '/wiki', component: WikiApp, meta: { requiresAuth: true } },
   { path: '/login', component: LoginView },
   { path: '/signup', component: SignUpView },
 ];

@@ -27,7 +27,12 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
+const sortOrder = ref('desc');
 
+function toggleSortOrder() {
+  sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc';
+}
+// PDF 미리보기 기능 지연 로딩
 const companyOptions = ['백성운수', '평택여객', '파란전기'];
 const companyNameToEnum = {
   백성운수: 'BAEKSUNG',
@@ -92,6 +97,7 @@ async function fetchFiles(isReset = false) {
   params.append('search_option', searchbarOption.value);
   params.append('is_locked', lockFilter.value);
   params.append('group_id', selectedGroup.value);
+  params.append('order', sortOrder.value);
 
   isLoading.value = true;
   isPdfConverting.value = true;
@@ -223,7 +229,7 @@ const debouncedFetchFiles = () => {
   }, 300);
 };
 
-watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], debouncedFetchFiles);
+watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder], debouncedFetchFiles);
 </script>
 
 <template>
@@ -310,6 +316,18 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup], debouncedF
                 @createFiles="addCreatedFiles"
                 :selectedGroupId="selectedGroup"
             />
+        </template>
+
+        <template #header.withdrawn_at="{ header }">
+            <div
+                class="flex cursor-pointer select-none items-center justify-center transition-colors hover:text-blue-500"
+                @click="toggleSortOrder"
+            >
+                <span>{{ header.text }}</span>
+                <span class="ml-1 text-[10px] text-gray-500 dark:text-gray-400">
+                    {{ sortOrder === 'desc' ? '▼' : '▲' }}
+                </span>
+            </div>
         </template>
 
         <template #header.file_name="{ header }">
