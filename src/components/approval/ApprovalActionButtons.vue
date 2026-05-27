@@ -11,6 +11,28 @@
       상신하기
     </button>
 
+    <!-- 수정 버튼 -->
+    <button
+      v-if="canEditOrDelete"
+      @click="handleEdit"
+      :disabled="loading"
+      class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 disabled:opacity-50"
+    >
+      <Edit class="w-4 h-4 mr-2" />
+      수정
+    </button>
+
+    <!-- 삭제 버튼 -->
+    <button
+      v-if="canEditOrDelete"
+      @click="handleDelete"
+      :disabled="loading"
+      class="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-md hover:bg-red-200 disabled:opacity-50"
+    >
+      <Trash2 class="w-4 h-4 mr-2" />
+      삭제
+    </button>
+
     <!-- 승인 버튼 -->
     <button
       v-if="canApprove"
@@ -139,7 +161,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Send, Check, X, RotateCcw, Users, Loader } from 'lucide-vue-next';
+import { Send, Check, X, RotateCcw, Users, Loader, Edit, Trash2 } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { DOCUMENT_STATUS } from '@/stores/useTypeStore';
@@ -156,7 +178,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['action-completed', 'edit-approval-line']);
+const emit = defineEmits(['action-completed', 'edit-approval-line', 'edit-document']);
 
 const approvalStore = useApprovalStore();
 const userStore = useUserStore();
@@ -204,6 +226,15 @@ const canEditApprovalLine = computed(() => {
          props.request.requester_id === userStore.currentUser?.id;
 });
 
+const canEditOrDelete = computed(() => {
+  if (props.request.requester_id !== userStore.currentUser?.id) return false;
+  if (!props.approvalLines) return false;
+  
+  // 승인/반려된 결재선이 하나도 없어야 함
+  const hasProcessed = props.approvalLines.some(line => ['APPROVED', 'REJECTED'].includes(line.status));
+  return !hasProcessed;
+});
+
 // 액션 핸들러들
 const handleSubmit = async () => {
   if (!confirm('결재를 상신하시겠습니까?')) return;
@@ -215,6 +246,25 @@ const handleSubmit = async () => {
     emit('action-completed', 'submit');
   } catch (error) {
     toast.error('상신 중 오류가 발생했습니다: ' + error.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleEdit = () => {
+  emit('edit-document', props.request.id);
+};
+
+const handleDelete = async () => {
+  if (!confirm(`"${props.request.title}" 결재를 삭제하시겠습니까?`)) return;
+  
+  loading.value = true;
+  try {
+    await approvalStore.deleteApprovalRequest(props.request.id);
+    toast.success('결재가 삭제되었습니다.');
+    emit('action-completed', 'delete');
+  } catch (error) {
+    toast.error('삭제 중 오류가 발생했습니다: ' + error.message);
   } finally {
     loading.value = false;
   }

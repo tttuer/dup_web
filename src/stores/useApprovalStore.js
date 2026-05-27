@@ -296,6 +296,83 @@ export const useApprovalStore = defineStore('approval', () => {
     }
   }
 
+  // 결재 요청 수정 (파일 포함)
+  async function updateApprovalRequest(requestId, requestData, files = [], deletedFileIds = []) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const formData = new FormData();
+      
+      formData.append('title', requestData.title);
+      formData.append('content', requestData.content);
+      
+      if (requestData.template_id) {
+        formData.append('template_id', requestData.template_id);
+      }
+      if (requestData.form_data) {
+        formData.append('form_data', JSON.stringify(requestData.form_data));
+      }
+      if (requestData.department_id) {
+        formData.append('department_id', requestData.department_id);
+      }
+      if (requestData.approval_lines) {
+        formData.append('approval_lines', JSON.stringify(requestData.approval_lines));
+      }
+      if (deletedFileIds && deletedFileIds.length > 0) {
+        formData.append('deleted_file_ids', JSON.stringify(deletedFileIds));
+      }
+      
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+      
+      const response = await authFetch(`${APPROVAL_API_URL}/${requestId}`, {
+        method: 'PUT',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        await fetchMyApprovalRequests({}, true);
+        return data;
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '결재 요청 수정 실패');
+      }
+    } catch (err) {
+      error.value = err.message;
+      console.error('결재 요청 수정 오류:', err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // 결재 요청 삭제
+  async function deleteApprovalRequest(requestId) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await authFetch(`${APPROVAL_API_URL}/${requestId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        await fetchMyApprovalRequests({}, true);
+        return true;
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '결재 요청 삭제 실패');
+      }
+    } catch (err) {
+      error.value = err.message;
+      console.error('결재 요청 삭제 오류:', err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   // 결재 상신
   async function submitApproval(requestId) {
     loading.value = true;
@@ -462,6 +539,22 @@ export const useApprovalStore = defineStore('approval', () => {
     };
   });
 
+  const canEdit = computed(() => {
+    return (requestId, currentUser) => {
+      const lines = approvalLines.value;
+      const detail = approvalDetail.value;
+      if (!detail || !lines || detail.requester_id !== currentUser.id) return false;
+      
+      // 승인이나 반려된 결재선이 하나라도 있으면 수정 불가
+      const hasProcessed = lines.some(line => ['APPROVED', 'REJECTED'].includes(line.status));
+      return !hasProcessed;
+    };
+  });
+
+  const canDelete = computed(() => {
+    return canEdit.value; // 조건 동일
+  });
+
   // 상태 초기화
   function clearState() {
     approvalDetail.value = null;
@@ -523,6 +616,8 @@ export const useApprovalStore = defineStore('approval', () => {
     fetchApprovalDetail,
     fetchApprovalLines,
     createApprovalRequest,
+    updateApprovalRequest,
+    deleteApprovalRequest,
     submitApproval,
     approveRequest,
     rejectRequest,
@@ -536,5 +631,7 @@ export const useApprovalStore = defineStore('approval', () => {
     // 계산된 속성
     canApprove,
     canRecall,
+    canEdit,
+    canDelete,
   };
 });

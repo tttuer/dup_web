@@ -259,6 +259,7 @@
             :approval-lines="approvalLines"
             @action-completed="handleActionCompleted"
             @edit-approval-line="showApprovalLineModal = true"
+            @edit-document="emit('edit-document', $event)"
           />
         </div>
       </div>
@@ -276,7 +277,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { X, Loader, Download, FileText, File, Clock, Check, ArrowRight } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
@@ -301,7 +302,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'updated']);
+const emit = defineEmits(['close', 'updated', 'edit-document']);
 
 const approvalStore = useApprovalStore();
 const userStore = useUserStore();
@@ -545,6 +546,23 @@ watch(
     }
   },
 );
+
+// 모달 열림 상태에 따라 body 스크롤 방지
+watch(
+  () => props.isVisible,
+  (visible) => {
+    if (visible) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  },
+  { immediate: true }
+);
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 </script>
 
 <style scoped>

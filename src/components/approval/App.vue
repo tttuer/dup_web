@@ -140,7 +140,7 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- 내 결재함 -->
       <div v-if="activeTab === 'my-requests'">
-        <MyApprovalList @create-request="activeTab = 'create'" />
+        <MyApprovalList @create-request="activeTab = 'create'" @edit-request="handleEditRequest" />
       </div>
 
       <!-- 결재 대기 -->
@@ -172,6 +172,11 @@
       <div v-if="activeTab === 'create'">
         <CreateApprovalPage @created="handleRequestCreated" @cancel="handleCreateCancel" />
       </div>
+
+      <!-- 결재 수정 -->
+      <div v-if="activeTab === 'edit'">
+        <CreateApprovalPage :edit-request-id="editRequestId" @created="handleRequestCreated" @cancel="handleCreateCancel" />
+      </div>
     </main>
 
     <!-- 결재 상세보기 모달 -->
@@ -179,6 +184,7 @@
       :is-visible="showDetailModal"
       :request-id="selectedApproval?.id"
       @close="showDetailModal = false"
+      @edit-document="handleEditRequest"
     />
   </div>
 </template>
@@ -210,6 +216,7 @@ const activeTab = ref('my-requests');
 const showDetailModal = ref(false);
 const selectedApproval = ref(null);
 const showUserMenu = ref(false);
+const editRequestId = ref(null);
 
 // 권한 체크
 const hasVoucherAccess = computed(() => {
@@ -229,7 +236,15 @@ const goToArchive = () => {
 
 // 새 결재 생성 탭으로 이동
 const goToCreateApproval = () => {
+  editRequestId.value = null;
   activeTab.value = 'create';
+};
+
+// 결재 수정 탭으로 이동
+const handleEditRequest = (requestId) => {
+  editRequestId.value = requestId;
+  showDetailModal.value = false;
+  activeTab.value = 'edit';
 };
 
 // 사용자 메뉴 blur 핸들러 (메뉴 외부 클릭 시 닫기)

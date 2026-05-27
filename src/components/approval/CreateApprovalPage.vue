@@ -396,8 +396,14 @@ import { useToast } from 'vue-toastification';
 import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { approvalUtils } from '@/utils/approvalApi';
-import ApprovalLineModal from './ApprovalLineModal.vue';
+import { fileApi } from '@/utils/approvalApi';
 
+const props = defineProps({
+  editRequestId: {
+    type: String,
+    default: null
+  }
+});
 const emit = defineEmits(['created', 'cancel']);
 const templateStore = useTemplateStore();
 const approvalStore = useApprovalStore();
@@ -409,6 +415,7 @@ const loading = ref(false);
 const selectedTemplate = ref(null);
 const showApprovalLineModal = ref(false);
 const selectedFiles = ref([]);
+const deletedFileIds = ref([]);
 const fileInput = ref(null);
 const isDragOver = ref(false);
 
@@ -567,6 +574,10 @@ const addFiles = (files) => {
 };
 
 const removeFile = (index) => {
+  const file = selectedFiles.value[index];
+  if (file.id) {
+    deletedFileIds.value.push(file.id);
+  }
   selectedFiles.value.splice(index, 1);
 };
 
@@ -600,7 +611,7 @@ const handleApprovalLineSave = (lines) => {
   showApprovalLineModal.value = false;
 };
 
-// 결재 상신
+// 결재 상신/수정
 const submitApproval = async () => {
   if (!canComplete.value) {
     toast.error('필수 정보를 모두 입력해주세요.');
@@ -611,23 +622,84 @@ const submitApproval = async () => {
   try {
     const requestData = {
       ...formData.value,
-      approval_lines: approvalLines.value,
+      approval_lines: approvalLines.value.map(line => ({
+        step_order: line.step_order,
+        approver_user_id: line.approver_id || line.approver_user_id,
+        is_required: line.is_required !== false,
+        is_parallel: line.is_parallel === true
+      })),
     };
     
-    const result = await approvalStore.createApprovalRequest(requestData, selectedFiles.value);
+    // 새로 추가된 파일만 필터링 (File 객체인 경우)
+    const newFiles = selectedFiles.value.filter(file => !file.id);
     
-    toast.success('결재가 상신되었습니다.');
+    let result;
+    if (props.editRequestId) {
+      result = await approvalStore.updateApprovalRequest(props.editRequestId, requestData, newFiles, deletedFileIds.value);
+      toast.success('결재가 수정되었습니다.');
+    } else {
+      result = await approvalStore.createApprovalRequest(requestData, newFiles);
+      toast.success('결재가 상신되었습니다.');
+    }
+    
     emit('created', result);
   } catch (error) {
-    toast.error('결재 상신 중 오류가 발생했습니다: ' + error.message);
+    toast.error('처리 중 오류가 발생했습니다: ' + error.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 기존 데이터 로드 (수정 모드)
+const loadExistingRequest = async () => {
+  if (!props.editRequestId) return;
+  
+  loading.value = true;
+  try {
+    const detail = await approvalStore.fetchApprovalDetail(props.editRequestId);
+    const lines = await approvalStore.fetchApprovalLines(props.editRequestId);
+    const files = await fileApi.getFiles(props.editRequestId);
+    
+    formData.value = {
+      title: detail.title,
+      content: detail.content,
+      template_id: detail.template_id,
+      form_data: detail.form_data || {},
+    };
+    
+    approvalLines.value = lines.map(line => ({
+      ...line,
+      approver_user_id: line.approver_id // 모달과 호환성을 위해 추가
+    }));
+    
+    selectedFiles.value = files.map(f => ({
+      id: f.id,
+      name: f.original_name,
+      size: f.file_size
+    }));
+    
+    if (detail.template_id) {
+      const template = templates.value.find(t => t.id === detail.template_id);
+      if (template) {
+        selectedTemplate.value = template;
+      }
+    }
+    
+    deletedFileIds.value = [];
+  } catch (err) {
+    toast.error('기존 데이터를 불러오는데 실패했습니다.');
+    console.error(err);
   } finally {
     loading.value = false;
   }
 };
 
 // 초기 로드
-onMounted(() => {
+onMounted(async () => {
   resetForm();
-  loadTemplates();
+  await loadTemplates();
+  if (props.editRequestId) {
+    await loadExistingRequest();
+  }
 });
 </script>

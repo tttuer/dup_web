@@ -116,12 +116,21 @@
               <!-- 액션 버튼 -->
               <div class="flex items-center space-x-1">
                 <button
-                  v-if="request.status === DOCUMENT_STATUS.DRAFT"
+                  v-if="canEditOrDelete(request)"
                   @click.stop="editRequest(request)"
                   class="inline-flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                   title="수정"
                 >
                   <Edit class="w-3 h-3" />
+                </button>
+                
+                <button
+                  v-if="canEditOrDelete(request)"
+                  @click.stop="deleteRequest(request)"
+                  class="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                  title="삭제"
+                >
+                  <Trash2 class="w-3 h-3" />
                 </button>
                 
                 <button
@@ -175,6 +184,7 @@
     :request-id="selectedRequestId"
     @close="showDetailModal = false"
     @updated="refreshList"
+    @edit-document="editRequest"
   />
 
 </template>
@@ -182,7 +192,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { 
-  RefreshCw, Loader, FileText, Plus, Calendar, Edit, RotateCcw, ExternalLink 
+  RefreshCw, Loader, FileText, Plus, Calendar, Edit, RotateCcw, ExternalLink, Trash2
 } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
@@ -190,7 +200,7 @@ import { DOCUMENT_STATUS, DOCUMENT_STATUS_LABELS } from '@/stores/useTypeStore';
 import ApprovalStatus from './ApprovalStatus.vue';
 import ApprovalDetailModal from './ApprovalDetailModal.vue';
 
-const emit = defineEmits(['create-request']);
+const emit = defineEmits(['create-request', 'edit-request']);
 
 const approvalStore = useApprovalStore();
 const userStore = useUserStore();
@@ -281,10 +291,27 @@ const viewDetail = (request) => {
   showDetailModal.value = true;
 };
 
-// 수정 (임시저장 상태만)
+// 수정
 const editRequest = (request) => {
-  // TODO: 수정 모달 구현
-  console.log('수정:', request);
+  emit('edit-request', request.id);
+};
+
+// 삭제
+const deleteRequest = async (request) => {
+  if (!confirm(`"${request.title}" 결재를 삭제하시겠습니까?`)) return;
+  
+  try {
+    await approvalStore.deleteApprovalRequest(request.id);
+  } catch (error) {
+    alert('삭제 중 오류가 발생했습니다: ' + error.message);
+  }
+};
+
+// 수정/삭제 가능 여부 체크
+const canEditOrDelete = (request) => {
+  if (!request) return false;
+  // 리스트에서는 approval_lines가 없으므로 상태로만 확인 (승인/반려가 하나도 없는 상태는 SUBMITTED)
+  return request.status === DOCUMENT_STATUS.SUBMITTED && request.requester_id === userStore.currentUser?.id;
 };
 
 // 회수
