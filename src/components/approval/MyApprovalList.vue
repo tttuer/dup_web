@@ -283,8 +283,9 @@ const viewDetail = (request) => {
 };
 
 // 수정
-const editRequest = (request) => {
-  emit('edit-request', request.id);
+const editRequest = (requestOrId) => {
+  const id = typeof requestOrId === 'object' ? requestOrId.id : requestOrId;
+  emit('edit-request', id);
 };
 
 // 삭제
