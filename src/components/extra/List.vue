@@ -199,7 +199,7 @@ const { downloadAllFiles } = useFileDownloader();
 function downloadCheckedFiles() {
   const files = [...checkedIds.value].reduce((acc, id) => {
     const file = fileLists.value.find((v) => v.id === id);
-    if (file.file_data) {
+    if (file.file_name) {
       acc.push(file);
     }
     return acc;
@@ -407,13 +407,12 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder],
             <div class="w-full text-ellipsis whitespace-nowrap">
                 <div class="inline-block w-full">
                     <div class="w-full overflow-hidden text-ellipsis whitespace-nowrap">
-                        <a
-                        :href="`data:application/pdf;base64,${item.file_data}`"
-                        :download="item.file_name"
-                        class="text-blue-500 hover:text-blue-600"
+                        <button
+                        @click="downloadAllFiles([item])"
+                        class="text-blue-500 hover:text-blue-600 cursor-pointer bg-transparent border-none p-0 text-left"
                         >
                         {{ item.file_name }}
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>

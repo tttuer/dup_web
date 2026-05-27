@@ -1,35 +1,41 @@
 
-import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { downloadBulkFiles, fetchFileById } from '@/api/file';
 
 export function useFileDownloader() {
-  function downloadAllFiles(files, id = '') {
-    const zip = new JSZip();
-    const nameCount = {};
-
-    files.forEach((file) => {
-      let name = file.file_name || `file-${Date.now()}.pdf`;
-      if (nameCount[name] === undefined) {
-        nameCount[name] = 0;
-      } else {
-        nameCount[name]++;
-        const extIdx = name.lastIndexOf('.');
-        if (extIdx > 0) {
-          name = name.slice(0, extIdx) + `(${nameCount[name]})` + name.slice(extIdx);
-        } else {
-          name = name + `(${nameCount[name]})`;
+  async function downloadAllFiles(files, id = '') {
+    if (!files || files.length === 0) return;
+    
+    try {
+      // 1. 단일 파일인 경우 처리 (선택사항이지만 단일 파일도 API로 받을 수 있음)
+      if (files.length === 1) {
+        // 단일 파일 다운로드도 bulk API를 사용해도 무방하며 ZIP으로 받을 수 있습니다.
+        // 또는 단일 파일을 개별로 받아 원본 포맷으로 다운받게 할 수도 있습니다.
+        // 여기서는 기존 로직과 동일하게 다중/단일 모두 bulk API를 사용해 ZIP으로 받도록 구성합니다.
+        // 원본 다운로드를 원한다면 fetchFileById를 사용할 수 있습니다.
+        
+        // 원본 그대로 다운받기:
+        const fileObj = await fetchFileById(files[0].id);
+        if (fileObj.file_data) {
+          const binary = atob(fileObj.file_data);
+          const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)));
+          const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+          const filename = fileObj.file_name || `file-${Date.now()}`;
+          saveAs(blob, filename);
+          return;
         }
       }
 
-      const binary = atob(file.file_data);
-      const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)));
-      zip.file(name, byteArray);
-    });
-
-    zip.generateAsync({ type: 'blob' }).then((content) => {
+      // 2. 여러 파일인 경우 (또는 ZIP 다운로드)
+      const ids = files.map(f => f.id);
+      const blob = await downloadBulkFiles(ids);
       const filename = id ? `${id}.zip` : '첨부파일.zip';
-      saveAs(content, filename);
-    });
+      saveAs(blob, filename);
+
+    } catch (error) {
+      console.error('파일 다운로드 실패:', error);
+      alert('파일 다운로드에 실패했습니다.');
+    }
   }
 
   return { downloadAllFiles };
