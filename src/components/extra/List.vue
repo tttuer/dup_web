@@ -262,17 +262,6 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder],
           />
         </div>
 
-        <div
-          class="flex h-9 max-w-35 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-red-500 hover:text-white"
-          v-show="hasChecked"
-        >
-          <input
-            class="h-full w-10 cursor-pointer rounded-sm"
-            type="button"
-            value="삭제"
-            @click="confirmDelete"
-          />
-        </div>
       </div>
 
       <div class="col-span-1 flex flex-row justify-end">
@@ -333,17 +322,6 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder],
         <template #header.file_name="{ header }">
             <div class="flex justify-between">
                 <div class="flex items-center justify-center">{{ header.text }}</div>
-                <div
-                    class="ml-2 flex h-6 w-20 items-center justify-center rounded-sm border border-gray-300 text-sm font-semibold hover:bg-blue-500 hover:text-white"
-                    v-show="hasChecked"
-                >
-                    <input
-                        class="h-full w-full cursor-pointer content-center rounded-sm text-sm"
-                        type="button"
-                        value="일괄 저장"
-                        @click="downloadCheckedFiles"
-                    />
-                </div>
                 <div>
                     <input id="lock-filter" v-show="false" type="checkbox" v-model="lockFilter" />
                     <label
@@ -440,6 +418,50 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder],
       @close="closeDeleteConfirmModal"
       @save="deleteFiles"
     />
+
+    <!-- Floating Action Bar -->
+    <transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform translate-y-full opacity-0"
+      enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform translate-y-full opacity-0"
+    >
+      <div
+        v-if="hasChecked"
+        class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full bg-gray-900 px-6 py-3 text-white shadow-xl"
+      >
+        <span class="text-sm font-medium">{{ checkedIds.size }}개 항목 선택됨</span>
+        <div class="h-4 w-px bg-gray-600"></div>
+        
+        <!-- 삭제 버튼 -->
+        <button
+          class="flex items-center gap-2 rounded-full bg-red-600 px-4 py-1.5 text-sm font-semibold transition-colors hover:bg-red-500"
+          @click="confirmDelete"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          삭제
+        </button>
+
+        <!-- 일괄 저장 버튼 -->
+        <button
+          class="flex items-center gap-2 rounded-full bg-blue-600 px-4 py-1.5 text-sm font-semibold transition-colors hover:bg-blue-500"
+          @click="downloadCheckedFiles"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          일괄 저장
+        </button>
+
+        <button
+          class="ml-2 text-gray-400 transition-colors hover:text-white"
+          @click="checkedIds.clear()"
+          title="선택 취소"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </transition>
   </div>
 </template>
 
