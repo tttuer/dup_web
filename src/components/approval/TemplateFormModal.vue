@@ -81,6 +81,19 @@
           </p>
         </div>
 
+        <!-- 본문 템플릿 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            본문 템플릿
+          </label>
+          <textarea
+            v-model="formData.content_template"
+            rows="6"
+            placeholder="결재 내용의 기본 템플릿을 입력하세요 (결재 작성 시 기본 내용으로 채워집니다)"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+          ></textarea>
+        </div>
+
         <!-- 기본 결재선 설정 -->
         <div>
           <div class="flex items-center justify-between mb-3">
@@ -89,11 +102,11 @@
             </label>
             <button
               type="button"
-              @click="addApprovalStep"
+              @click="openApprovalLineModal"
               class="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
             >
               <Plus class="w-4 h-4 mr-1" />
-              단계 추가
+              결재선 설정
             </button>
           </div>
           
@@ -108,65 +121,23 @@
               class="flex items-center space-x-3 p-3 bg-gray-50 rounded-md"
             >
               <!-- 순서 -->
-              <div class="flex items-center space-x-2">
-                <button
-                  type="button"
-                  @click="moveStepUp(index)"
-                  :disabled="index === 0"
-                  class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                >
-                  <ChevronUp class="w-4 h-4" />
-                </button>
-                <span class="w-6 text-center text-sm font-medium">{{ index + 1 }}</span>
-                <button
-                  type="button"
-                  @click="moveStepDown(index)"
-                  :disabled="index === formData.default_approval_steps.length - 1"
-                  class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                >
-                  <ChevronDown class="w-4 h-4" />
-                </button>
+              <div class="flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                {{ index + 1 }}
               </div>
               
               <!-- 결재자 설정 -->
-              <div class="flex-1">
-                <input
-                  v-model="step.approver_id"
-                  type="text"
-                  placeholder="결재자 ID 또는 직책명 (예: CEO, 팀장)"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div class="flex-1 text-sm">
+                <div class="font-medium">{{ step.approver_name || step.approver_id }}</div>
+                <div class="text-gray-500 text-xs" v-if="step.approver_department">{{ step.approver_department }} {{ step.approver_position }}</div>
               </div>
               
               <!-- 옵션 -->
               <div class="flex items-center space-x-2">
-                <label class="flex items-center text-sm">
-                  <input
-                    v-model="step.is_required"
-                    type="checkbox"
-                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span class="ml-1">필수</span>
-                </label>
+                <span v-if="step.is_required" class="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded">필수</span>
+                <span v-else class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded">선택</span>
                 
-                <label class="flex items-center text-sm">
-                  <input
-                    v-model="step.is_parallel"
-                    type="checkbox"
-                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span class="ml-1">병렬</span>
-                </label>
+                <span v-if="step.is_parallel" class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">병렬</span>
               </div>
-              
-              <!-- 삭제 버튼 -->
-              <button
-                type="button"
-                @click="removeApprovalStep(index)"
-                class="p-1 text-red-400 hover:text-red-600"
-              >
-                <Trash2 class="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>
@@ -204,13 +175,22 @@
         </div>
       </form>
     </div>
+    
+    <!-- 결재선 설정 모달 연동 -->
+    <ApprovalLineModal
+      :is-visible="showApprovalLineModal"
+      :initial-lines="formData.default_approval_steps"
+      @close="showApprovalLineModal = false"
+      @save="handleApprovalLineSave"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { X, Plus, ChevronUp, ChevronDown, Trash2, Loader } from 'lucide-vue-next';
+import { X, Plus, Trash2, Loader } from 'lucide-vue-next';
 import { useTemplateStore } from '@/stores/useTemplateStore';
+import ApprovalLineModal from './ApprovalLineModal.vue';
 
 const props = defineProps({
   isVisible: {
@@ -229,6 +209,7 @@ const templateStore = useTemplateStore();
 
 // 상태 관리
 const loading = ref(false);
+const showApprovalLineModal = ref(false);
 
 // 폼 데이터
 const formData = ref({
@@ -236,6 +217,7 @@ const formData = ref({
   description: '',
   category: '',
   document_prefix: '',
+  content_template: '',
   default_approval_steps: [],
   is_active: true,
 });
@@ -255,6 +237,7 @@ const resetForm = () => {
     description: '',
     category: '',
     document_prefix: '',
+    content_template: '',
     default_approval_steps: [],
     is_active: true,
   };
@@ -268,14 +251,42 @@ const initializeForm = () => {
       description: props.template.description || '',
       category: props.template.category || '',
       document_prefix: props.template.document_prefix || '',
+      content_template: props.template.content_template || '',
       default_approval_steps: props.template.default_approval_steps 
-        ? [...props.template.default_approval_steps]
+        ? JSON.parse(JSON.stringify(props.template.default_approval_steps))
         : [],
       is_active: props.template.is_active !== false,
     };
   } else {
     resetForm();
   }
+};
+
+// 결재선 모달 열기
+const openApprovalLineModal = () => {
+  // 모달을 열기 전에 기존 approvalLines가 제대로 매핑되도록 처리
+  // (ApprovalLineModal은 approver_id를 기준으로 동작하므로)
+  const lines = formData.value.default_approval_steps.map(step => ({
+    ...step,
+    approver_id: step.approver_user_id || step.approver_id
+  }));
+  formData.value.default_approval_steps = lines;
+  showApprovalLineModal.value = true;
+};
+
+// 결재선 저장 처리
+const handleApprovalLineSave = (lines) => {
+  formData.value.default_approval_steps = lines.map((line, index) => ({
+    step_order: index + 1,
+    approver_id: line.approver_id || line.approver_user_id,
+    approver_user_id: line.approver_id || line.approver_user_id,
+    approver_name: line.approver_name,
+    approver_department: line.approver_department,
+    approver_position: line.approver_position,
+    is_required: line.is_required !== false,
+    is_parallel: line.is_parallel === true
+  }));
+  showApprovalLineModal.value = false;
 };
 
 // 결재 단계 추가
@@ -325,7 +336,7 @@ const moveStepDown = (index) => {
 // 저장
 const saveTemplate = async () => {
   if (!canSave.value) return;
-  
+
   loading.value = true;
   try {
     const templateData = { ...formData.value };

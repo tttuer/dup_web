@@ -120,10 +120,6 @@
           
           <!-- 사용 통계 (가상 데이터) -->
           <div class="border-t pt-4">
-            <div class="flex justify-between text-sm text-gray-500">
-              <span>사용 횟수</span>
-              <span>{{ Math.floor(Math.random() * 100) }}회</span>
-            </div>
             <div class="flex justify-between text-sm text-gray-500 mt-1">
               <span>생성일</span>
               <span>{{ formatDate(template.created_at) }}</span>

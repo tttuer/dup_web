@@ -55,28 +55,69 @@
         <div v-if="step === 1" class="space-y-6">
           <!-- 템플릿 선택 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              결재 양식 선택 (선택사항)
-            </label>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
+              <label class="block text-sm font-medium text-gray-700">
+                결재 양식 선택 (선택사항)
+              </label>
+              <!-- 검색창 -->
+              <div class="relative max-w-xs w-full">
+                <input
+                  v-model="templateSearchQuery"
+                  type="text"
+                  placeholder="양식 이름 검색..."
+                  class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Search class="absolute left-2.5 top-2 w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+
+            <!-- 카테고리 탭 -->
+            <div class="flex space-x-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+              <button
+                @click="selectedCategory = 'all'"
+                :class="['px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors border', selectedCategory === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50']"
+              >
+                전체
+              </button>
+              <button
+                v-for="cat in templateCategories"
+                :key="cat"
+                @click="selectedCategory = cat"
+                :class="['px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors border', selectedCategory === cat ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50']"
+              >
+                {{ cat }}
+              </button>
+            </div>
+
+            <!-- 양식 목록 그리드 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-1 bg-gray-50/50 rounded-lg border border-gray-100">
               <div
                 @click="selectedTemplate = null"
-                class="p-4 border rounded-lg cursor-pointer transition-colors"
-                :class="selectedTemplate === null ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'"
+                class="p-4 bg-white border rounded-lg cursor-pointer transition-all shadow-sm hover:shadow"
+                :class="selectedTemplate === null ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300'"
               >
-                <div class="font-medium">자유 작성</div>
-                <div class="text-sm text-gray-500">템플릿 없이 자유롭게 작성</div>
+                <div class="font-medium text-gray-900 mb-1">자유 작성</div>
+                <div class="text-xs text-gray-500">템플릿 없이 자유롭게 작성</div>
               </div>
               <div
-                v-for="template in templates"
+                v-for="template in filteredTemplates"
                 :key="template.id"
                 @click="selectedTemplate = template"
-                class="p-4 border rounded-lg cursor-pointer transition-colors"
-                :class="selectedTemplate?.id === template.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'"
+                class="p-4 bg-white border rounded-lg cursor-pointer transition-all shadow-sm hover:shadow"
+                :class="selectedTemplate?.id === template.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300'"
               >
-                <div class="font-medium">{{ template.name }}</div>
-                <div class="text-sm text-gray-500">{{ template.description }}</div>
+                <div class="flex justify-between items-start mb-1 gap-2">
+                  <div class="font-medium text-gray-900 line-clamp-1">{{ template.name }}</div>
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 shrink-0">
+                    {{ template.category }}
+                  </span>
+                </div>
+                <div class="text-xs text-gray-500 line-clamp-2">{{ template.description || '설명이 없습니다.' }}</div>
               </div>
+            </div>
+            
+            <div v-if="filteredTemplates.length === 0" class="text-center py-8 text-gray-500 text-sm border border-dashed rounded-lg mt-2 bg-gray-50">
+              검색 조건에 맞는 양식이 없습니다.
             </div>
           </div>
 
@@ -108,66 +149,6 @@
             ></textarea>
           </div>
 
-          <!-- 템플릿 추가 필드들 -->
-          <div v-if="selectedTemplate && selectedTemplate.form_fields" class="space-y-4">
-            <h4 class="font-medium text-gray-900">추가 정보</h4>
-            <div
-              v-for="field in selectedTemplate.form_fields"
-              :key="field.name"
-              class="space-y-2"
-            >
-              <label class="block text-sm font-medium text-gray-700">
-                {{ field.label }}
-                <span v-if="field.required" class="text-red-500">*</span>
-              </label>
-              
-              <!-- 텍스트 입력 -->
-              <input
-                v-if="field.type === 'text'"
-                v-model="formData.form_data[field.name]"
-                type="text"
-                :placeholder="field.placeholder"
-                :required="field.required"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              
-              <!-- 숫자 입력 -->
-              <input
-                v-else-if="field.type === 'number'"
-                v-model.number="formData.form_data[field.name]"
-                type="number"
-                :placeholder="field.placeholder"
-                :required="field.required"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              
-              <!-- 날짜 입력 -->
-              <input
-                v-else-if="field.type === 'date'"
-                v-model="formData.form_data[field.name]"
-                type="date"
-                :required="field.required"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              
-              <!-- 선택 입력 -->
-              <select
-                v-else-if="field.type === 'select'"
-                v-model="formData.form_data[field.name]"
-                :required="field.required"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">선택하세요</option>
-                <option
-                  v-for="option in field.options"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-          </div>
 
           <!-- 첨부파일 -->
           <div>
@@ -268,6 +249,11 @@
                 <ArrowRight v-if="index < approvalLines.length - 1" class="w-4 h-4 text-gray-400 flex-shrink-0" />
               </div>
             </div>
+            
+            <!-- 에러 메시지 -->
+            <div v-if="hasInvalidApprovers" class="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm border border-red-200">
+              <span class="font-medium">결재선 오류:</span> 올바른 사용자가 지정되지 않은 결재 단계가 있습니다. '결재선 설정'을 눌러 실제 사용자로 다시 지정해주세요.
+            </div>
           </div>
         </div>
 
@@ -318,6 +304,10 @@
                     </div>
                     <ArrowRight v-if="index < approvalLines.length - 1" class="w-4 h-4 text-gray-400 flex-shrink-0" />
                   </div>
+                </div>
+                <!-- 에러 메시지 -->
+                <div v-if="hasInvalidApprovers" class="mt-3 text-red-600 text-sm">
+                  ⚠️ 결재선에 올바르지 않은 사용자가 있습니다. 수정을 위해 이전 단계로 돌아가주세요.
                 </div>
               </div>
 
@@ -391,7 +381,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { ChevronLeft, ChevronRight, Users, Plus, Upload, Trash2, FileText, File, Loader, ArrowRight } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, Users, Plus, Upload, Trash2, FileText, File, Loader, ArrowRight, Search } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
 import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
@@ -424,12 +414,37 @@ const isDragOver = ref(false);
 const formData = ref({
   title: '',
   content: '',
-  template_id: null,
-  form_data: {},
+  files: [],
 });
 
 const approvalLines = ref([]);
 const templates = ref([]);
+const templateSearchQuery = ref('');
+const selectedCategory = ref('all');
+
+// 템플릿 필터링 로직
+const templateCategories = computed(() => {
+  const categories = new Set(templates.value.map(t => t.category));
+  return Array.from(categories).sort();
+});
+
+const filteredTemplates = computed(() => {
+  let result = templates.value;
+  
+  if (selectedCategory.value !== 'all') {
+    result = result.filter(t => t.category === selectedCategory.value);
+  }
+  
+  if (templateSearchQuery.value.trim()) {
+    const query = templateSearchQuery.value.toLowerCase();
+    result = result.filter(t => 
+      t.name.toLowerCase().includes(query) || 
+      (t.description && t.description.toLowerCase().includes(query))
+    );
+  }
+  
+  return result;
+});
 
 // 뒤로 가기 (부모 컴포넌트에서 탭 변경으로 처리)
 const goBack = () => {
@@ -444,8 +459,7 @@ const resetForm = () => {
   formData.value = {
     title: '',
     content: '',
-    template_id: null,
-    form_data: {},
+    files: [],
   };
   approvalLines.value = [];
   selectedFiles.value = [];
@@ -460,20 +474,25 @@ const loadTemplates = async () => {
   }
 };
 
-// 템플릿 선택 시 기본 결재선 적용
+// 템플릿 선택 시 기본 결재선 및 내용 적용
 watch(selectedTemplate, async (newTemplate) => {
   if (newTemplate) {
     formData.value.template_id = newTemplate.id;
+    
+    // 내용 템플릿 적용 (기존 내용이 없을 경우에만)
+    if (newTemplate.content_template && !formData.value.content.trim()) {
+      formData.value.content = newTemplate.content_template;
+    }
+
     // 기본 결재선이 있으면 적용
     if (newTemplate.default_approval_steps?.length > 0) {
       const lines = [];
       
-      // 각 단계의 실제 사용자 정보를 조회
       for (const step of newTemplate.default_approval_steps) {
         const lineData = {
-          approver_id: step.approver_id,
-          approver_user_id: step.approver_user_id,
-          step_order: step.step_order,
+          approver_id: step.approver_user_id || step.approver_id,
+          approver_user_id: step.approver_user_id || step.approver_id,
+          step_order: lines.length + 1,
           is_required: step.is_required,
           is_parallel: step.is_parallel,
           approver_name: step.approver_name || '결재자',
@@ -486,16 +505,11 @@ watch(selectedTemplate, async (newTemplate) => {
       
       approvalLines.value = lines;
     }
-    
-    // 템플릿 필드 초기화
-    if (newTemplate.form_fields) {
-      newTemplate.form_fields.forEach(field => {
-        formData.value.form_data[field.name] = field.default_value || '';
-      });
-    }
   } else {
-    formData.value.template_id = null;
-    formData.value.form_data = {};
+    formData.value.template_id = '';
+    formData.value.title = '';
+    formData.value.content = '';
+    approvalLines.value = [];
   }
 });
 
@@ -510,10 +524,19 @@ const canProceed = computed(() => {
   return true;
 });
 
+const hasInvalidApprovers = computed(() => {
+  return approvalLines.value.some(line => {
+    const id = line.approver_user_id || line.approver_id;
+    // user_id는 보통 영문/숫자이므로, 한글(직책명 등)이 포함된 경우에만 과거 양식의 오류로 판별
+    return !id || /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(id) || id === 'CEO' || id === 'CTO';
+  });
+});
+
 const canComplete = computed(() => {
   return formData.value.title.trim() && 
          formData.value.content.trim() && 
-         approvalLines.value.length > 0;
+         approvalLines.value.length > 0 &&
+         !hasInvalidApprovers.value;
 });
 
 // 파일 관련 함수들
