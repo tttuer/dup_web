@@ -229,6 +229,23 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         ></textarea>
       </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          첨부 파일 (선택사항)
+        </label>
+        <input
+          type="file"
+          multiple
+          @change="handleQuickActionFileChange"
+          class="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-blue-50 file:text-blue-700
+            hover:file:bg-blue-100"
+        />
+      </div>
       
       <div class="flex justify-end space-x-3">
         <button
@@ -274,6 +291,23 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         ></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          첨부 파일 (선택사항)
+        </label>
+        <input
+          type="file"
+          multiple
+          @change="handleQuickActionFileChange"
+          class="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-red-50 file:text-red-700
+            hover:file:bg-red-100"
+        />
       </div>
       
       <div class="flex justify-end space-x-3">
@@ -322,6 +356,7 @@ const quickActionRequest = ref(null);
 const quickApproveComment = ref('');
 const quickRejectComment = ref('');
 const quickActionLoading = ref(false);
+const quickActionFiles = ref([]);
 
 // 무한 스크롤용 refs
 const sentinelRef = ref(null);
@@ -390,6 +425,7 @@ const viewDetail = (request) => {
 const approveRequest = (request) => {
   quickActionRequest.value = request;
   quickApproveComment.value = '';
+  quickActionFiles.value = [];
   showQuickApproveModal.value = true;
 };
 
@@ -400,7 +436,8 @@ const confirmQuickApprove = async () => {
   try {
     await approvalStore.approveRequest(
       quickActionRequest.value.id, 
-      quickApproveComment.value
+      quickApproveComment.value,
+      quickActionFiles.value
     );
     showQuickApproveModal.value = false;
     toast.success('승인 처리되었습니다.');
@@ -418,7 +455,12 @@ const confirmQuickApprove = async () => {
 const rejectRequest = (request) => {
   quickActionRequest.value = request;
   quickRejectComment.value = '';
+  quickActionFiles.value = [];
   showQuickRejectModal.value = true;
+};
+
+const handleQuickActionFileChange = (e) => {
+  quickActionFiles.value = Array.from(e.target.files);
 };
 
 const confirmQuickReject = async () => {
@@ -431,7 +473,8 @@ const confirmQuickReject = async () => {
   try {
     await approvalStore.rejectRequest(
       quickActionRequest.value.id, 
-      quickRejectComment.value
+      quickRejectComment.value,
+      quickActionFiles.value
     );
     showQuickRejectModal.value = false;
     toast.success('반려 처리되었습니다.');
@@ -505,8 +548,8 @@ const getApprovalLineStyle = (line, currentStep) => {
 const formatShortDocumentNumber = (docNum) => {
   if (!docNum) return '';
   const parts = docNum.split('-');
-  if (parts.length > 4) {
-    return parts.slice(0, 4).join('-');
+  if (parts.length > 3) {
+    return parts.slice(0, 3).join('-');
   }
   return docNum;
 };

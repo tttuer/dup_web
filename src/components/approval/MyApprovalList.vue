@@ -363,8 +363,8 @@ const getContentPreview = (content) => {
 const formatShortDocumentNumber = (docNum) => {
   if (!docNum) return '';
   const parts = docNum.split('-');
-  if (parts.length > 4) {
-    return parts.slice(0, 4).join('-');
+  if (parts.length > 3) {
+    return parts.slice(0, 3).join('-');
   }
   return docNum;
 };

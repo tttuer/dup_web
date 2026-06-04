@@ -399,16 +399,19 @@ export const useApprovalStore = defineStore('approval', () => {
   }
 
   // 결재 승인
-  async function approveRequest(requestId, comment = '') {
+  async function approveRequest(requestId, comment = '', files = []) {
     loading.value = true;
     error.value = null;
     try {
+      const formData = new FormData();
+      if (comment) formData.append('comment', comment);
+      if (files && files.length > 0) {
+        files.forEach(file => formData.append('files', file));
+      }
+
       const response = await authFetch(`${APPROVAL_API_URL}/${requestId}/approve`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ comment }),
+        body: formData,
       });
       
       if (response.ok) {
@@ -428,16 +431,19 @@ export const useApprovalStore = defineStore('approval', () => {
   }
 
   // 결재 반려
-  async function rejectRequest(requestId, comment) {
+  async function rejectRequest(requestId, comment, files = []) {
     loading.value = true;
     error.value = null;
     try {
+      const formData = new FormData();
+      if (comment) formData.append('comment', comment);
+      if (files && files.length > 0) {
+        files.forEach(file => formData.append('files', file));
+      }
+
       const response = await authFetch(`${APPROVAL_API_URL}/${requestId}/reject`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ comment }),
+        body: formData,
       });
       
       if (response.ok) {

@@ -649,7 +649,7 @@ const submitApproval = async () => {
       ...formData.value,
       approval_lines: approvalLines.value.map(line => ({
         step_order: line.step_order,
-        approver_user_id: line.approver_id || line.approver_user_id,
+        approver_user_id: line.approver_user_id || line.approver_id,
         is_required: line.is_required !== false,
         is_parallel: line.is_parallel === true
       })),

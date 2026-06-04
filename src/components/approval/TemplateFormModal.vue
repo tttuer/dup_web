@@ -278,8 +278,8 @@ const openApprovalLineModal = () => {
 const handleApprovalLineSave = (lines) => {
   formData.value.default_approval_steps = lines.map((line, index) => ({
     step_order: index + 1,
-    approver_id: line.approver_id || line.approver_user_id,
-    approver_user_id: line.approver_id || line.approver_user_id,
+    approver_id: line.approver_user_id || line.approver_id,
+    approver_user_id: line.approver_user_id || line.approver_id,
     approver_name: line.approver_name,
     approver_department: line.approver_department,
     approver_position: line.approver_position,

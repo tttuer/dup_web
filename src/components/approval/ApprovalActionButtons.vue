@@ -36,7 +36,7 @@
     <!-- 승인 버튼 -->
     <button
       v-if="canApprove"
-      @click="showApproveModal = true"
+      @click="openApproveModal"
       :disabled="loading"
       class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
     >
@@ -47,7 +47,7 @@
     <!-- 반려 버튼 -->
     <button
       v-if="canReject"
-      @click="showRejectModal = true"
+      @click="openRejectModal"
       :disabled="loading"
       class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
     >
@@ -87,6 +87,23 @@
           placeholder="승인 의견을 입력하세요..."
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         ></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          첨부 파일 (선택사항)
+        </label>
+        <input
+          type="file"
+          multiple
+          @change="handleApproveFileChange"
+          class="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-blue-50 file:text-blue-700
+            hover:file:bg-blue-100"
+        />
       </div>
       
       <div class="flex justify-end space-x-3">
@@ -128,6 +145,23 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         ></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          첨부 파일 (선택사항)
+        </label>
+        <input
+          type="file"
+          multiple
+          @change="handleRejectFileChange"
+          class="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-red-50 file:text-red-700
+            hover:file:bg-red-100"
+        />
       </div>
       
       <div class="flex justify-end space-x-3">
@@ -181,6 +215,16 @@ const showApproveModal = ref(false);
 const showRejectModal = ref(false);
 const approveComment = ref('');
 const rejectComment = ref('');
+const approveFiles = ref([]);
+const rejectFiles = ref([]);
+
+const handleApproveFileChange = (e) => {
+  approveFiles.value = Array.from(e.target.files);
+};
+
+const handleRejectFileChange = (e) => {
+  rejectFiles.value = Array.from(e.target.files);
+};
 
 // 권한 체크
 const canSubmit = computed(() => {
@@ -268,9 +312,10 @@ const handleDelete = async () => {
 const handleApprove = async () => {
   loading.value = true;
   try {
-    await approvalStore.approveRequest(props.request.id, approveComment.value);
+    await approvalStore.approveRequest(props.request.id, approveComment.value, approveFiles.value);
     showApproveModal.value = false;
     approveComment.value = '';
+    approveFiles.value = [];
     toast.success('승인 처리되었습니다.');
     emit('action-completed', 'approve');
   } catch (error) {
@@ -288,9 +333,10 @@ const handleReject = async () => {
   
   loading.value = true;
   try {
-    await approvalStore.rejectRequest(props.request.id, rejectComment.value);
+    await approvalStore.rejectRequest(props.request.id, rejectComment.value, rejectFiles.value);
     showRejectModal.value = false;
     rejectComment.value = '';
+    rejectFiles.value = [];
     toast.success('반려 처리되었습니다.');
     emit('action-completed', 'reject');
   } catch (error) {
