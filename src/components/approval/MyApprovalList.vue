@@ -81,7 +81,7 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center space-x-2 mb-1">
                 <h3 class="text-sm font-medium text-gray-900 truncate">{{ request.title }}</h3>
-                <span class="text-xs text-gray-500 flex-shrink-0">#{{ request.document_number }}</span>
+                <span class="text-xs text-gray-500 flex-shrink-0">#{{ formatShortDocumentNumber(request.document_number) }}</span>
               </div>
               
               <div class="flex items-center space-x-3 text-xs text-gray-500">
@@ -359,6 +359,15 @@ const getContentPreview = (content) => {
 };
 
 
+
+const formatShortDocumentNumber = (docNum) => {
+  if (!docNum) return '';
+  const parts = docNum.split('-');
+  if (parts.length > 4) {
+    return parts.slice(0, 4).join('-');
+  }
+  return docNum;
+};
 
 // 초기 데이터 로드
 onMounted(async () => {

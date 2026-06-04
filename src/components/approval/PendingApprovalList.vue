@@ -82,7 +82,7 @@
               <!-- 제목과 기안자 -->
               <div class="flex items-center space-x-3 mb-2">
                 <h3 class="text-lg font-medium text-gray-900">{{ request.title }}</h3>
-                <span class="text-sm text-gray-500">#{{ request.document_number }}</span>
+                <span class="text-sm text-gray-500">#{{ formatShortDocumentNumber(request.document_number) }}</span>
               </div>
               
               <!-- 기안자 정보 -->
@@ -500,6 +500,15 @@ const getApprovalLineStyle = (line, currentStep) => {
   } else {
     return 'bg-gray-100 text-gray-600';
   }
+};
+
+const formatShortDocumentNumber = (docNum) => {
+  if (!docNum) return '';
+  const parts = docNum.split('-');
+  if (parts.length > 4) {
+    return parts.slice(0, 4).join('-');
+  }
+  return docNum;
 };
 
 // 초기 데이터 로드
