@@ -388,6 +388,7 @@ import { useApprovalStore } from '@/stores/useApprovalStore';
 import { approvalUtils } from '@/utils/approvalApi';
 import { fileApi } from '@/utils/approvalApi';
 import ApprovalLineModal from './ApprovalLineModal.vue';
+import { useUserStore } from '@/stores/useUserStore';
 
 const props = defineProps({
   editRequestId: {
@@ -398,6 +399,7 @@ const props = defineProps({
 const emit = defineEmits(['created', 'cancel']);
 const templateStore = useTemplateStore();
 const approvalStore = useApprovalStore();
+const userStore = useUserStore();
 const toast = useToast();
 
 // 상태 관리
@@ -488,7 +490,31 @@ watch(selectedTemplate, async (newTemplate) => {
     if (newTemplate.default_approval_steps?.length > 0) {
       const lines = [];
       
+      const getCurrentUserFromToken = () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return null;
+        try {
+          return JSON.parse(atob(token.split('.')[1]));
+        } catch (e) {
+          return null;
+        }
+      };
+      
+      const currentUser = getCurrentUserFromToken() || userStore.currentUser || {};
+      // 토큰의 user_id, id, 혹은 sub를 사용
+      const currentUserId = String(currentUser.user_id || currentUser.id || currentUser.sub);
+      
+      let removedSelf = false;
+      
       for (const step of newTemplate.default_approval_steps) {
+        const approverId = String(step.approver_user_id || step.approver_id);
+        
+        // 기안자 본인이 결재선에 포함되어 있다면 제외
+        if (approverId === currentUserId) {
+          removedSelf = true;
+          continue;
+        }
+
         const lineData = {
           approver_id: step.approver_user_id || step.approver_id,
           approver_user_id: step.approver_user_id || step.approver_id,
@@ -501,6 +527,10 @@ watch(selectedTemplate, async (newTemplate) => {
         };
         
         lines.push(lineData);
+      }
+      
+      if (removedSelf) {
+        toast.info('기안자 본인은 양식의 결재선에서 자동 제외되었습니다.');
       }
       
       approvalLines.value = lines;
