@@ -549,67 +549,35 @@ const applyTemplate = (template) => {
     formData.value.content = template.content_template;
   }
 
-    // 기본 결재선이 있으면 적용
-    if (newTemplate.default_approval_steps?.length > 0) {
-      const lines = [];
-      
-      const getCurrentUserFromToken = () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) return null;
-        try {
-          return JSON.parse(atob(token.split('.')[1]));
-        } catch (e) {
-          return null;
-        }
-      };
-      
-      const currentUser = getCurrentUserFromToken() || userStore.currentUser || {};
-      // 토큰의 user_id, id, 혹은 sub를 사용
-      const currentUserId = String(currentUser.user_id || currentUser.id || currentUser.sub);
-      
-      let removedSelf = false;
-      
-      for (const step of newTemplate.default_approval_steps) {
-        const approverId = String(step.approver_user_id || step.approver_id);
-        
-        // 기안자 본인이 결재선에 포함되어 있다면 제외
-        if (approverId === currentUserId) {
-          removedSelf = true;
-          continue;
-        }
-
-        const lineData = {
-          approver_id: step.approver_user_id || step.approver_id,
-          approver_user_id: step.approver_user_id || step.approver_id,
-          step_order: lines.length + 1,
-          is_required: step.is_required,
-          is_parallel: step.is_parallel,
-          approver_name: step.approver_name || '결재자',
-          approver_department: step.approver_department || '',
-          approver_position: step.approver_position || '',
-        };
-        
-        lines.push(lineData);
-      }
-      
-      if (removedSelf) {
-        toast.info('기안자 본인은 양식의 결재선에서 자동 제외되었습니다.');
-      }
-      
-      approvalLines.value = lines;
-    }
-  } else {
-    formData.value.template_id = '';
-    formData.value.title = '';
-    formData.value.content = '';
-    approvalLines.value = [];
-  }
-});
   // 기본 결재선이 있으면 적용 (확인했으므로 덮어씀)
   if (template.default_approval_steps?.length > 0) {
     const lines = [];
     
+    const getCurrentUserFromToken = () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return null;
+      try {
+        return JSON.parse(atob(token.split('.')[1]));
+      } catch (e) {
+        return null;
+      }
+    };
+    
+    const currentUser = getCurrentUserFromToken() || userStore.currentUser || {};
+    // 토큰의 user_id, id, 혹은 sub를 사용
+    const currentUserId = String(currentUser.user_id || currentUser.id || currentUser.sub);
+    
+    let removedSelf = false;
+    
     for (const step of template.default_approval_steps) {
+      const approverId = String(step.approver_user_id || step.approver_id);
+      
+      // 기안자 본인이 결재선에 포함되어 있다면 제외
+      if (approverId === currentUserId) {
+        removedSelf = true;
+        continue;
+      }
+
       const lineData = {
         approver_id: step.approver_user_id || step.approver_id,
         approver_user_id: step.approver_user_id || step.approver_id,
@@ -622,6 +590,10 @@ const applyTemplate = (template) => {
       };
       
       lines.push(lineData);
+    }
+    
+    if (removedSelf) {
+      toast.info('기안자 본인은 양식의 결재선에서 자동 제외되었습니다.');
     }
     
     approvalLines.value = lines;
