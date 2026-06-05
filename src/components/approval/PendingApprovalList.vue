@@ -111,10 +111,7 @@
                   <FileText class="w-4 h-4 mr-1" />
                   {{ request.template_name }}
                 </span>
-                <span class="flex items-center">
-                  <Clock class="w-4 h-4 mr-1" />
-                  {{ getUrgencyLabel(request) }}
-                </span>
+
               </div>
             </div>
             
@@ -517,19 +514,7 @@ const getContentPreview = (content) => {
   return text.length > 150 ? text.substring(0, 150) + '...' : text;
 };
 
-const getUrgencyLabel = (request) => {
-  const createdDate = new Date(request.submitted_at || request.created_at);
-  const now = new Date();
-  const diffDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
-  
-  if (diffDays >= 3) {
-    return '긴급';
-  } else if (diffDays >= 1) {
-    return '보통';
-  } else {
-    return '신규';
-  }
-};
+
 
 const getTotalSteps = (request) => {
   return request.approval_lines ? request.approval_lines.length : 0;

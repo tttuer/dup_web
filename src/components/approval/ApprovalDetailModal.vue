@@ -125,12 +125,12 @@
           </div>
         </div>
 
-        <!-- 첨부파일 -->
+        <!-- 첨부파일 (기안자) -->
         <div>
           <div class="mb-3 flex items-center justify-between">
             <h4 class="font-semibold text-gray-900">첨부파일</h4>
             <button
-              v-if="attachedFiles.length > 1"
+              v-if="requesterFiles.length > 1"
               @click="downloadAllFiles"
               :disabled="downloadingAll"
               class="inline-flex items-center rounded bg-green-100 px-3 py-1 text-sm text-green-700 hover:bg-green-200 disabled:opacity-50"
@@ -140,9 +140,9 @@
               전체 다운로드 (ZIP)
             </button>
           </div>
-          <div v-if="attachedFiles.length > 0" class="space-y-2">
+          <div v-if="requesterFiles.length > 0" class="space-y-2">
             <div
-              v-for="file in attachedFiles"
+              v-for="file in requesterFiles"
               :key="file.id"
               class="flex items-center justify-between rounded-md bg-gray-50 p-3"
             >
@@ -179,76 +179,67 @@
           <LegalDocumentDownload :requestId="request.id" />
         </div>
 
-        <!-- 결재 의견 -->
+        <!-- 결재 이력 및 의견 (타임라인) -->
         <div v-if="request.histories && request.histories.length > 0" class="border-t pt-6">
-          <h4 class="mb-3 font-semibold text-gray-900">결재 의견</h4>
-          <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 bg-white">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th
-                    class="w-1/6 border-b px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-                  >
-                    결재자
-                  </th>
-                  <th
-                    class="w-1/6 border-b px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-                  >
-                    결재 상태
-                  </th>
-                  <th
-                    class="w-1/6 border-b px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-                  >
-                    일시
-                  </th>
-                  <th
-                    class="w-1/2 border-b px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-                  >
-                    결재 의견
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200">
-                <tr v-for="item in request.histories" :key="item.id" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="font-medium text-gray-900">{{ item.approver_name }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+          <h4 class="mb-5 font-semibold text-gray-900">결재 이력 및 의견</h4>
+          <div class="relative pl-6 ml-3 border-l-2 border-gray-200 space-y-6">
+            <div v-for="item in request.histories" :key="item.id" class="relative">
+              <!-- 타임라인 점 -->
+              <div class="absolute -left-[31px] mt-1.5 h-4 w-4 rounded-full border-4 border-white shadow-sm" :class="getTimelineDotClass(item.action)"></div>
+              
+              <!-- 타임라인 카드 -->
+              <div class="flex-1 rounded-lg border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+                <div class="mb-2 flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    <span class="font-bold text-gray-900">{{ item.approver_name }}</span>
                     <span
-                      class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
+                      class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
                       :class="getActionBadgeClass(item.action)"
                     >
                       {{ getActionLabel(item.action) }}
                     </span>
-                  </td>
-                  <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
-                    {{ formatDate(item.created_at) }}
-                  </td>
-                  <td class="px-6 py-4 text-sm text-gray-700">
-                    <div v-if="item.comment" class="break-words">
-                      <div
-                        v-if="item.comment && item.comment.length > 100"
-                        :class="expandedComments[item.id] ? '' : 'line-clamp-3'"
-                      >
-                        {{ item.comment }}
-                      </div>
-                      <div v-else>
-                        {{ item.comment }}
-                      </div>
-                      <!-- 더보기/접기 버튼 -->
-                      <button
-                        v-if="item.comment && item.comment.length > 100"
-                        @click="toggleComment(item.id)"
-                        class="mt-1 text-xs text-blue-600 underline hover:text-blue-800"
-                      >
-                        {{ expandedComments[item.id] ? '접기' : '더보기' }}
+                  </div>
+                  <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
+                </div>
+                
+                <!-- 코멘트 -->
+                <div class="text-sm text-gray-700">
+                  <div v-if="item.comment" class="break-words rounded bg-gray-50 p-3 whitespace-pre-wrap">
+                    <div :class="expandedComments[item.id] ? '' : 'line-clamp-3'">{{ item.comment }}</div>
+                    <button
+                      v-if="item.comment && item.comment.length > 100"
+                      @click="toggleComment(item.id)"
+                      class="mt-1 text-xs text-blue-600 underline hover:text-blue-800"
+                    >
+                      {{ expandedComments[item.id] ? '접기' : '더보기' }}
+                    </button>
+                  </div>
+                  <div v-else class="text-gray-400 italic">의견이 없습니다.</div>
+                </div>
+
+                <!-- 해당 결재자의 첨부파일 -->
+                <div v-if="getFilesForHistory(item).length > 0" class="mt-3 pt-3 border-t border-gray-100">
+                  <div class="mb-2 flex items-center space-x-1 text-xs font-semibold text-gray-500">
+                    <File class="h-3.5 w-3.5" />
+                    <span>첨부파일</span>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <div
+                      v-for="file in getFilesForHistory(item)"
+                      :key="file.id"
+                      class="flex items-center space-x-2 rounded border border-gray-200 bg-white px-2 py-1 shadow-sm transition-colors hover:bg-gray-50"
+                    >
+                      <component :is="getFileIcon(file.file_name)" class="h-4 w-4 text-blue-500" />
+                      <span class="text-xs font-medium text-gray-700 max-w-[150px] truncate" :title="file.file_name">{{ file.file_name }}</span>
+                      <span class="text-[10px] text-gray-400">{{ formatFileSize(file.file_size) }}</span>
+                      <button @click="downloadFile(file)" class="ml-1 rounded text-gray-400 hover:text-blue-600 focus:outline-none" title="다운로드">
+                        <Download class="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <div v-else class="text-gray-400 italic">-</div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -317,6 +308,22 @@ const expandedComments = ref({}); // 펼쳐진 댓글들 추적
 // 데이터
 const request = computed(() => approvalStore.approvalDetail);
 const approvalLines = computed(() => approvalStore.approvalLines);
+
+// 첨부파일 필터링
+const requesterFiles = computed(() => {
+  return attachedFiles.value.filter(file => !isApproverFile(file));
+});
+
+const getFilesForHistory = (historyItem) => {
+  if (!historyItem || !attachedFiles.value.length) return [];
+  if (historyItem.files && historyItem.files.length > 0) return historyItem.files;
+  
+  return attachedFiles.value.filter(file => {
+    if (!isApproverFile(file)) return false;
+    const uploaderId = file.uploader_id || file.uploaded_by || file.created_by || file.user_id;
+    return String(uploaderId) === String(historyItem.approver_id);
+  });
+};
 
 // 무결성 및 법적 문서 섹션 표시 로직
 const showIntegritySection = computed(() => {
@@ -415,6 +422,32 @@ const handleApprovalLineSave = async (lines) => {
 };
 
 // 유틸리티 함수들
+// 결재자 첨부 파일인지 확인
+const isApproverFile = (file) => {
+  if (!file) return false;
+  
+  // 백엔드에서 명시적 플래그를 주는 경우
+  if (file.is_approver_attachment === true || file.is_approver === true) return true;
+  if (file.uploader_type === 'APPROVER' || file.uploader_type === 'approver') return true;
+  if (file.role === 'APPROVER' || file.role === 'approver') return true;
+  
+  // 기안자와 업로더가 다른 경우 결재자 첨부로 간주
+  const requesterId = request.value?.requester_id;
+  const uploaderId = file.uploader_id || file.uploaded_by || file.created_by || file.user_id;
+  
+  if (uploaderId && requesterId && String(uploaderId) !== String(requesterId)) {
+    return true;
+  }
+  
+  return false;
+};
+
+// 업로더 이름 가져오기
+const getUploaderName = (file) => {
+  if (!file) return '';
+  return file.uploader_name || file.uploaded_by_name || file.created_by_name || file.user_name || '';
+};
+
 const formatDate = (dateString) => {
   if (!dateString) return '';
   return new Date(dateString).toLocaleString('ko-KR');
@@ -527,6 +560,19 @@ const getActionBadgeClass = (action) => {
       return 'bg-gray-100 text-gray-800';
     default:
       return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getTimelineDotClass = (action) => {
+  switch (action) {
+    case APPROVAL_ACTION.APPROVE:
+      return 'bg-green-500';
+    case APPROVAL_ACTION.REJECT:
+      return 'bg-red-500';
+    case APPROVAL_ACTION.SUBMIT:
+      return 'bg-blue-500';
+    default:
+      return 'bg-gray-400';
   }
 };
 
