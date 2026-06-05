@@ -92,7 +92,7 @@
             <!-- 양식 목록 그리드 -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-1 bg-gray-50/50 rounded-lg border border-gray-100">
               <div
-                @click="selectedTemplate = null"
+                @click="handleTemplateSelect(null)"
                 class="p-4 bg-white border rounded-lg cursor-pointer transition-all shadow-sm hover:shadow"
                 :class="selectedTemplate === null ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300'"
               >
@@ -102,7 +102,7 @@
               <div
                 v-for="template in filteredTemplates"
                 :key="template.id"
-                @click="selectedTemplate = template"
+                @click="handleTemplateSelect(template)"
                 class="p-4 bg-white border rounded-lg cursor-pointer transition-all shadow-sm hover:shadow"
                 :class="selectedTemplate?.id === template.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300'"
               >
@@ -376,12 +376,43 @@
       @close="showApprovalLineModal = false"
       @save="handleApprovalLineSave"
     />
+
+    <!-- 템플릿 변경 확인 모달 -->
+    <div
+      v-if="showTemplateConfirmModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 backdrop-blur-sm"
+      @click.self="showTemplateConfirmModal = false"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+        <div class="flex items-center space-x-3 text-yellow-600 mb-4">
+          <AlertTriangle class="w-6 h-6" />
+          <h3 class="text-lg font-semibold text-gray-900">양식 덮어쓰기 안내</h3>
+        </div>
+        <p class="text-gray-600 text-sm mb-6">
+          새 양식을 선택하면 현재 작성 중이던 내용과 결재선이 새 양식의 내용으로 덮어씌워집니다. 계속하시겠습니까?
+        </p>
+        <div class="flex justify-end space-x-3">
+          <button
+            @click="showTemplateConfirmModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            취소
+          </button>
+          <button
+            @click="confirmTemplateChange"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            적용
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
-import { ChevronLeft, ChevronRight, Users, Plus, Upload, Trash2, FileText, File, Loader, ArrowRight, Search } from 'lucide-vue-next';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ChevronLeft, ChevronRight, Users, Plus, Upload, Trash2, FileText, File, Loader, ArrowRight, Search, AlertTriangle } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
 import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
@@ -405,6 +436,8 @@ const step = ref(1);
 const loading = ref(false);
 const selectedTemplate = ref(null);
 const showApprovalLineModal = ref(false);
+const showTemplateConfirmModal = ref(false);
+const pendingTemplate = ref(null);
 const selectedFiles = ref([]);
 const deletedFileIds = ref([]);
 const fileInput = ref(null);
@@ -474,44 +507,68 @@ const loadTemplates = async () => {
   }
 };
 
-// 템플릿 선택 시 기본 결재선 및 내용 적용
-watch(selectedTemplate, async (newTemplate) => {
-  if (newTemplate) {
-    formData.value.template_id = newTemplate.id;
+// 템플릿 선택 핸들러 (사용자 직접 클릭 시)
+const handleTemplateSelect = (template) => {
+  if (selectedTemplate.value?.id === template?.id) return;
+
+  if (template) {
+    const hasExistingData = formData.value.content.trim().length > 0 || approvalLines.value.length > 0;
     
-    // 내용 템플릿 적용 (기존 내용이 없을 경우에만)
-    if (newTemplate.content_template && !formData.value.content.trim()) {
-      formData.value.content = newTemplate.content_template;
+    // 이미 작성된 내용이나 결재선이 있는 경우 경고창 모달 띄우기
+    if (hasExistingData) {
+      pendingTemplate.value = template;
+      showTemplateConfirmModal.value = true;
+      return;
     }
 
-    // 기본 결재선이 있으면 적용
-    if (newTemplate.default_approval_steps?.length > 0) {
-      const lines = [];
-      
-      for (const step of newTemplate.default_approval_steps) {
-        const lineData = {
-          approver_id: step.approver_user_id || step.approver_id,
-          approver_user_id: step.approver_user_id || step.approver_id,
-          step_order: lines.length + 1,
-          is_required: step.is_required,
-          is_parallel: step.is_parallel,
-          approver_name: step.approver_name || '결재자',
-          approver_department: step.approver_department || '',
-          approver_position: step.approver_position || '',
-        };
-        
-        lines.push(lineData);
-      }
-      
-      approvalLines.value = lines;
-    }
+    applyTemplate(template);
   } else {
+    // 자유 작성 선택
+    selectedTemplate.value = null;
     formData.value.template_id = '';
-    formData.value.title = '';
-    formData.value.content = '';
-    approvalLines.value = [];
+    // 기존 제목, 내용, 결재선은 유지
   }
-});
+};
+
+const confirmTemplateChange = () => {
+  if (pendingTemplate.value) {
+    applyTemplate(pendingTemplate.value);
+  }
+  showTemplateConfirmModal.value = false;
+  pendingTemplate.value = null;
+};
+
+const applyTemplate = (template) => {
+  selectedTemplate.value = template;
+  formData.value.template_id = template.id;
+  
+  // 내용 템플릿 적용
+  if (template.content_template) {
+    formData.value.content = template.content_template;
+  }
+
+  // 기본 결재선이 있으면 적용 (확인했으므로 덮어씀)
+  if (template.default_approval_steps?.length > 0) {
+    const lines = [];
+    
+    for (const step of template.default_approval_steps) {
+      const lineData = {
+        approver_id: step.approver_user_id || step.approver_id,
+        approver_user_id: step.approver_user_id || step.approver_id,
+        step_order: lines.length + 1,
+        is_required: step.is_required,
+        is_parallel: step.is_parallel,
+        approver_name: step.approver_name || '결재자',
+        approver_department: step.approver_department || '',
+        approver_position: step.approver_position || '',
+      };
+      
+      lines.push(lineData);
+    }
+    
+    approvalLines.value = lines;
+  }
+};
 
 // 단계별 진행 조건
 const canProceed = computed(() => {
@@ -706,7 +763,7 @@ const loadExistingRequest = async () => {
     if (detail.template_id) {
       const template = templates.value.find(t => t.id === detail.template_id);
       if (template) {
-        selectedTemplate.value = template;
+        selectedTemplate.value = template; // 사용자 클릭이 아니므로 오직 화면 선택만 갱신
       }
     }
     

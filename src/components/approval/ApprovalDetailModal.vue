@@ -140,26 +140,62 @@
               전체 다운로드 (ZIP)
             </button>
           </div>
-          <div v-if="attachedFiles.length > 0" class="space-y-2">
-            <div
-              v-for="file in attachedFiles"
-              :key="file.id"
-              class="flex items-center justify-between rounded-md bg-gray-50 p-3"
-            >
-              <div class="flex items-center space-x-3">
-                <component :is="getFileIcon(file.file_name)" class="h-5 w-5 text-gray-400" />
-                <div>
-                  <div class="font-medium">{{ file.file_name }}</div>
-                  <div class="text-sm text-gray-500">{{ formatFileSize(file.file_size) }}</div>
+          
+          <div v-if="attachedFiles.length > 0" class="space-y-4">
+            <!-- 기안자 첨부파일 -->
+            <div v-if="requesterFiles.length > 0">
+              <h5 class="text-sm font-medium text-gray-700 mb-2">기안자 첨부파일</h5>
+              <div class="space-y-2">
+                <div
+                  v-for="file in requesterFiles"
+                  :key="file.id"
+                  class="flex items-center justify-between rounded-md bg-gray-50 p-3"
+                >
+                  <div class="flex items-center space-x-3">
+                    <component :is="getFileIcon(file.file_name)" class="h-5 w-5 text-gray-400" />
+                    <div>
+                      <div class="font-medium">{{ file.file_name }}</div>
+                      <div class="text-sm text-gray-500">{{ formatFileSize(file.file_size) }}</div>
+                    </div>
+                  </div>
+                  <button
+                    @click="downloadFile(file)"
+                    class="inline-flex items-center rounded bg-blue-100 px-3 py-1 text-sm text-blue-700 hover:bg-blue-200"
+                  >
+                    <Download class="mr-1 h-4 w-4" />
+                    다운로드
+                  </button>
                 </div>
               </div>
-              <button
-                @click="downloadFile(file)"
-                class="inline-flex items-center rounded bg-blue-100 px-3 py-1 text-sm text-blue-700 hover:bg-blue-200"
-              >
-                <Download class="mr-1 h-4 w-4" />
-                다운로드
-              </button>
+            </div>
+
+            <!-- 결재자 첨부파일 -->
+            <div v-if="approverFiles.length > 0">
+              <h5 class="text-sm font-medium text-gray-700 mb-2">결재자 첨부파일</h5>
+              <div class="space-y-2">
+                <div
+                  v-for="file in approverFiles"
+                  :key="file.id"
+                  class="flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-100"
+                >
+                  <div class="flex items-center space-x-3">
+                    <component :is="getFileIcon(file.file_name)" class="h-5 w-5 text-blue-400" />
+                    <div>
+                      <div class="font-medium text-blue-900">{{ file.file_name }}</div>
+                      <div class="text-sm text-blue-600">
+                        {{ getApproverNameByUserId(file.uploaded_by) }} · {{ formatFileSize(file.file_size) }}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    @click="downloadFile(file)"
+                    class="inline-flex items-center rounded bg-blue-100 px-3 py-1 text-sm text-blue-700 hover:bg-blue-200"
+                  >
+                    <Download class="mr-1 h-4 w-4" />
+                    다운로드
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <div v-else class="text-sm text-gray-500">첨부파일이 없습니다.</div>
@@ -317,6 +353,22 @@ const expandedComments = ref({}); // 펼쳐진 댓글들 추적
 // 데이터
 const request = computed(() => approvalStore.approvalDetail);
 const approvalLines = computed(() => approvalStore.approvalLines);
+
+const requesterFiles = computed(() => {
+  if (!request.value || !attachedFiles.value) return [];
+  return attachedFiles.value.filter(f => f.uploaded_by === request.value.requester_id);
+});
+
+const approverFiles = computed(() => {
+  if (!request.value || !attachedFiles.value) return [];
+  return attachedFiles.value.filter(f => f.uploaded_by !== request.value.requester_id);
+});
+
+const getApproverNameByUserId = (userId) => {
+  if (!approvalLines.value) return userId;
+  const line = approvalLines.value.find(l => l.approver_id === userId);
+  return line ? line.approver_name : userId;
+};
 
 // 무결성 및 법적 문서 섹션 표시 로직
 const showIntegritySection = computed(() => {
