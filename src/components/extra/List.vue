@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch, onUnmounted, computed, onMounted, nextTick, shallowRef } from 'vue';
-import Dropdown from './Dropdown.vue';
+import { ref, watch, computed, nextTick, shallowRef } from 'vue';
+import FolderSidebar from './FolderSidebar.vue';
 import { authFetch } from '../../utils/authFetch';
 import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
@@ -233,71 +233,71 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder],
 </script>
 
 <template>
-  <div class="bg-testPink flex h-full w-full flex-col p-8">
-    <div class="grid grid-cols-2">
-      <div class="col-span-1 flex gap-1">
-        <div class="max-w-30">
-          <Dropdown
-            @select="(select) => (selectedCompany = select)"
-            :options="companyOptions"
-            :nameToEnum="companyNameToEnum"
-          />
+  <div class="flex h-full w-full overflow-hidden bg-gray-50">
+    <FolderSidebar
+      :companyOptions="companyOptions"
+      :companyNameToEnum="companyNameToEnum"
+      :groupOptions="groupOptions"
+      :groupNameToEnum="groupNameToEnum"
+      :selectedCompany="selectedCompany"
+      :selectedGroup="selectedGroup"
+      @update:selectedCompany="(select) => (selectedCompany = select)"
+      @update:selectedGroup="(select) => (selectedGroup = select)"
+      @group-created="() => loadGroupOptions(selectedCompany)"
+      @group-deleted="(deletedGroupId) => {
+        if (selectedGroup === deletedGroupId) {
+          selectedGroup = '';
+        }
+        loadGroupOptions(selectedCompany);
+      }"
+    />
+
+    <main class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
+      <div class="flex shrink-0 items-center justify-between gap-4 border-b border-gray-200 bg-white px-6 py-4">
+        <div class="min-w-0">
+          <h1 class="truncate text-xl font-bold text-gray-800">
+            {{ selectedGroup ? groupIdToName[selectedGroup] : '폴더를 선택해주세요' }}
+          </h1>
+          <p class="mt-1 text-sm text-gray-400">
+            {{ selectedCompany ? '왼쪽에서 폴더를 선택하면 업무파일을 확인할 수 있습니다.' : '회사를 먼저 선택해주세요.' }}
+          </p>
         </div>
 
-        <div class="max-w-40" v-show="selectedCompany">
-          <Dropdown
-            v-model="selectedGroup"
-            @select="(select) => (selectedGroup = select)"
-            :options="groupOptions"
-            :nameToEnum="groupNameToEnum"
-            :isGroupDropdown="true"
-            :company="selectedCompany"
-            @group-created="() => loadGroupOptions(selectedCompany)"
-            @group-deleted="(deletedGroupId) => {
-              if (selectedGroup === deletedGroupId) {
-                selectedGroup = '';
+        <div class="flex shrink-0 flex-row justify-end">
+          <DateSearch
+            @search="
+              ({ start_at: s, end_at: e }) => {
+                start_at = s;
+                end_at = e;
               }
-              loadGroupOptions(selectedCompany);
-            }"
+            "
+          />
+          <Searchbar
+            class="ml-3"
+            @search="
+              ({ search: s, searchOption: so }) => {
+                searchbar = s;
+                searchbarOption = so;
+                nextTick(() => {
+                  search();
+                });
+              }
+            "
           />
         </div>
-
       </div>
 
-      <div class="col-span-1 flex flex-row justify-end">
-        <DateSearch
-          @search="
-            ({ start_at: s, end_at: e }) => {
-              start_at = s;
-              end_at = e;
-            }
-          "
-        />
-        <Searchbar
-          class="ml-3"
-          @search="
-            ({ search: s, searchOption: so }) => {
-              searchbar = s;
-              searchbarOption = so;
-              nextTick(() => {
-                search();
-              });
-            }
-          "
-        />
-      </div>
-    </div>
-
-    <BaseList
-        :headers="headers"
-        :items="fileLists"
-        :loading="isLoading || isPdfConverting"
-        :checkedIds="checkedIds"
-        @update:checkedIds="checkedIds = $event"
-        :currentPage="currentPage"
-        :totalPage="totalPage"
-        @intersect="handleIntersect"
-    >
+      <div class="min-h-0 flex-1 overflow-y-auto p-6">
+        <BaseList
+          :headers="headers"
+          :items="fileLists"
+          :loading="isLoading || isPdfConverting"
+          :checkedIds="checkedIds"
+          @update:checkedIds="checkedIds = $event"
+          :currentPage="currentPage"
+          :totalPage="totalPage"
+          @intersect="handleIntersect"
+        >
         <template #fixed-body>
             <UserInput
                 v-show="selectedGroup"
@@ -404,7 +404,9 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder],
                 class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
             />
         </template>
-    </BaseList>
+        </BaseList>
+      </div>
+    </main>
 
     <EditModal
       :visible="isEditModalOpen"
