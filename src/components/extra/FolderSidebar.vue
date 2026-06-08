@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { Folder, Plus, Search, X } from 'lucide-vue-next';
 import { authFetch } from '@/utils/authFetch';
 import { useToast } from 'vue-toastification';
@@ -50,7 +50,10 @@ const groupUrl = `${import.meta.env.VITE_GROUP_API_URL}`;
 const searchQuery = ref('');
 const newGroupName = ref('');
 const isCreating = ref(false);
+const sidebarWidth = ref(288);
+const sidebarRef = ref(null);
 const recentGroupsByCompany = ref(loadRecentGroups());
+let isResizing = false;
 
 const companyEntries = computed(() => {
   return props.companyOptions.map((name) => ({
@@ -171,6 +174,34 @@ function isSameGroup(left, right) {
   return String(left) === String(right);
 }
 
+function startResize() {
+  isResizing = true;
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', stopResize);
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+}
+
+function handleMouseMove(event) {
+  if (!isResizing || !sidebarRef.value) return;
+
+  const rect = sidebarRef.value.getBoundingClientRect();
+  const nextWidth = event.clientX - rect.left;
+  sidebarWidth.value = Math.max(240, Math.min(nextWidth, 520));
+}
+
+function stopResize() {
+  isResizing = false;
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', stopResize);
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+}
+
+onUnmounted(() => {
+  if (isResizing) stopResize();
+});
+
 watch(
   () => props.selectedCompany,
   () => {
@@ -181,7 +212,11 @@ watch(
 </script>
 
 <template>
-  <aside class="flex h-full w-72 shrink-0 flex-col border-r border-gray-200 bg-white shadow-sm">
+  <aside
+    ref="sidebarRef"
+    class="relative flex h-full shrink-0 flex-col border-r border-gray-200 bg-white shadow-sm"
+    :style="{ width: `${sidebarWidth}px` }"
+  >
     <div class="border-b border-gray-200 p-4">
       <h2 class="mb-3 text-lg font-bold text-gray-800">업무파일</h2>
       <div class="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
@@ -314,6 +349,7 @@ watch(
                 <GroupDelete
                   :groupId="group.id"
                   :groupName="group.name"
+                  :company="selectedCompany"
                   @group-deleted="handleGroupDeleted"
                 />
               </div>
@@ -327,5 +363,11 @@ watch(
         <p class="truncate text-sm font-semibold text-gray-800">{{ selectedGroupName }}</p>
       </div>
     </div>
+
+    <div
+      class="absolute top-0 right-0 bottom-0 z-20 w-1.5 cursor-col-resize transition-colors hover:bg-blue-400 active:bg-blue-500"
+      title="사이드바 크기 조절"
+      @mousedown.stop.prevent="startResize"
+    ></div>
   </aside>
 </template>

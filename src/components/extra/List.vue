@@ -210,6 +210,17 @@ function downloadCheckedFiles() {
   checkedIds.value.clear();
 }
 
+function handleGroupDeleted(deletedGroupId) {
+  if (String(selectedGroup.value) === String(deletedGroupId)) {
+    selectedGroup.value = '';
+    fileLists.value = [];
+    totalPage.value = 0;
+    checkedIds.value = new Set();
+  }
+
+  loadGroupOptions(selectedCompany.value);
+}
+
 watch(selectedCompany, async (newCompany) => {
   selectedGroup.value = '';
   fileLists.value = [];
@@ -244,12 +255,7 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder],
       @update:selectedCompany="(select) => (selectedCompany = select)"
       @update:selectedGroup="(select) => (selectedGroup = select)"
       @group-created="() => loadGroupOptions(selectedCompany)"
-      @group-deleted="(deletedGroupId) => {
-        if (selectedGroup === deletedGroupId) {
-          selectedGroup = '';
-        }
-        loadGroupOptions(selectedCompany);
-      }"
+      @group-deleted="handleGroupDeleted"
     />
 
     <main class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">

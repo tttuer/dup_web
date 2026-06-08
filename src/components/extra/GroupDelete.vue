@@ -4,11 +4,17 @@ import { authFetch } from '@/utils/authFetch';
 
 import { ref } from 'vue';
 import GroupDeleteModal from '@/components/extra/GroupDeleteModal.vue';
+import { useTypeStore } from '@/stores/useTypeStore';
 
 const groupUrl = `${import.meta.env.VITE_GROUP_API_URL}`;
+const fileUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 const toast = useToast();
+const typeStore = useTypeStore();
 const isModalOpen = ref(false);
 const editTargetFile = ref(null);
+const folderFileCount = ref(null);
+const isCountingFiles = ref(false);
+const isDeleting = ref(false);
 const emit = defineEmits(['group-deleted']);
 
 const props = defineProps({
@@ -20,19 +26,53 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  company: {
+    type: String,
+    required: true,
+  },
 });
 
 function openModal() {
   // editTargetFile.value = file;
   isModalOpen.value = true;
+  fetchFolderFileCount();
 }
 
 function closeModal() {
   isModalOpen.value = false;
   editTargetFile.value = null;
+  folderFileCount.value = null;
+}
+
+async function fetchFolderFileCount() {
+  if (!props.company || !props.groupId || isCountingFiles.value) return;
+
+  const params = new URLSearchParams();
+  params.append('type', typeStore.currentType);
+  params.append('company', props.company);
+  params.append('group_id', props.groupId);
+  params.append('page', '1');
+
+  isCountingFiles.value = true;
+  folderFileCount.value = null;
+
+  try {
+    const response = await authFetch(`${fileUrl}?${params.toString()}`);
+    if (!response.ok) return;
+
+    const [totalCount] = await response.json();
+    folderFileCount.value = Number(totalCount) || 0;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isCountingFiles.value = false;
+  }
 }
 
 async function deleteGroup() {
+  if (isDeleting.value) return;
+
+  isDeleting.value = true;
   try {
     const response = await authFetch(`${groupUrl}/${props.groupId}`, {
       method: 'DELETE',
@@ -40,7 +80,7 @@ async function deleteGroup() {
     });
 
     if (response.ok) {
-      toast.success(`${props.groupName} 삭제 완료`);
+      toast.success(`${props.groupName} 폴더가 삭제되었습니다.`);
       emit('group-deleted', props.groupId);
       closeModal();
     } else {
@@ -55,6 +95,8 @@ async function deleteGroup() {
   } catch (error) {
     console.error(error);
     toast.error('그룹 삭제 중 오류 발생');
+  } finally {
+    isDeleting.value = false;
   }
 }
 </script>
@@ -81,6 +123,9 @@ async function deleteGroup() {
       :visible="isModalOpen"
       :groupId="props.groupId"
       :groupName="props.groupName"
+      :fileCount="folderFileCount"
+      :isCountingFiles="isCountingFiles"
+      :isDeleting="isDeleting"
       @close="closeModal"
       @save="deleteGroup"
     />

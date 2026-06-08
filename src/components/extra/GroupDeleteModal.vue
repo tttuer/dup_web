@@ -1,4 +1,3 @@
-<!-- components/EditModal.vue -->
 <template>
   <div
     v-if="visible"
@@ -7,55 +6,58 @@
     @click="handleBackgroundClick"
     class="fixed inset-0 z-50 flex cursor-default items-center justify-center bg-black/40"
   >
-    <div class="w-[450px] rounded-lg bg-white p-6 shadow-sm" @click.stop>
-      <h2 class="mb-4 text-lg font-semibold">그룹 삭제</h2>
+    <div class="w-[460px] rounded-lg bg-white p-6 shadow-sm" @click.stop>
+      <h2 class="mb-2 text-lg font-semibold text-gray-900">폴더 삭제</h2>
+      <p class="mb-4 text-sm text-gray-500">
+        삭제된 폴더와 포함된 파일은 복구할 수 없습니다.
+      </p>
 
-      <!-- 설명 -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium"
-          >삭제할 그룹 이름을 입력해주세요( {{ props.groupName }} )</label
-        >
+      <div class="mb-4 rounded-md border border-red-200 bg-red-50 p-3">
+        <div class="flex items-start gap-2">
+          <AlertTriangle class="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+          <div class="min-w-0 text-sm">
+            <p class="font-semibold text-red-700">삭제 대상</p>
+            <p class="mt-1 truncate text-red-700">{{ props.groupName }}</p>
+            <p class="mt-2 text-red-600">
+              <template v-if="isCountingFiles">포함된 파일 수를 확인하는 중입니다.</template>
+              <template v-else-if="fileCount !== null">
+                이 폴더에 포함된 파일 {{ fileCount }}개가 함께 삭제됩니다.
+              </template>
+              <template v-else>이 폴더에 포함된 모든 파일이 함께 삭제됩니다.</template>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-700">
+          최종 확인을 위해 폴더 이름을 입력해주세요.
+        </label>
         <input
           v-model="userInputGroupName"
           type="text"
-          class="mt-1 w-full cursor-default rounded border border-black-300 p-2 text-gray-800"
+          class="mt-2 w-full rounded-md border border-gray-300 p-2 text-sm text-gray-800 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
           :placeholder="props.groupName"
+          :disabled="isDeleting"
+          @keyup.enter="save"
         />
-      </div>
-
-      <div class="mb-4 flex items-center space-x-1">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-          class="size-5 text-red-500"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-          />
-        </svg>
-
-        <label class="font-xs block text-sm text-red-500"
-          >그룹 삭제 시 그룹에 포함된 파일 모두 삭제됩니다</label
-        >
       </div>
 
       <div class="flex justify-end space-x-2">
         <button
-          @click="$emit('close')"
-          class="cursor-pointer rounded border border-gray-300 px-4 py-2 hover:bg-gray-300"
+          :disabled="isDeleting"
+          @click="emit('close')"
+          class="cursor-pointer rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           취소
         </button>
         <button
+          :disabled="!canDelete || isDeleting"
           @click="save"
-          class="cursor-pointer rounded px-4 py-2 border border-gray-300 hover:bg-red-500 hover:text-white text-sm font-semibold"
+          class="flex min-w-20 cursor-pointer items-center justify-center gap-2 rounded border border-red-600 bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-200 disabled:text-gray-500"
         >
-          삭제
+          <Loader2 v-if="isDeleting" class="h-4 w-4 animate-spin" />
+          {{ isDeleting ? '삭제 중' : '삭제' }}
         </button>
       </div>
     </div>
@@ -63,8 +65,9 @@
 </template>
 
 <script setup>
-import { reactive, watch, ref, onMounted } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useToast } from 'vue-toastification';
+import { AlertTriangle, Loader2 } from 'lucide-vue-next';
 const toast = useToast();
 
 const userInputGroupName = ref('');
@@ -73,9 +76,22 @@ const props = defineProps({
   visible: Boolean,
   groupId: String,
   groupName: String,
+  fileCount: {
+    type: Number,
+    default: null,
+  },
+  isCountingFiles: {
+    type: Boolean,
+    default: false,
+  },
+  isDeleting: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['close', 'save']);
+const canDelete = computed(() => normalize(userInputGroupName.value) === normalize(props.groupName || ''));
 
 // 드래그 중 클릭 방지를 위한 상태
 let isDragging = false;
@@ -111,8 +127,8 @@ function handleBackgroundClick(event) {
 }
 
 function save() {
-  if (userInputGroupName.value.trim() !== props.groupName) {
-    toast.error('입력한 그룹 이름이 일치하지 않습니다.');
+  if (!canDelete.value) {
+    toast.error('입력한 폴더 이름이 일치하지 않습니다.');
     return;
   }
   emit('save');
