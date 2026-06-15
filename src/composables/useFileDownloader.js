@@ -6,11 +6,41 @@ function getFileId(file) {
   return file?.id ?? file?.file_id ?? file?.fileId;
 }
 
+function getBlobFromBase64(fileData) {
+  const binary = atob(fileData);
+  const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)));
+  return new Blob([byteArray], { type: 'application/octet-stream' });
+}
+
+async function downloadEmbeddedFiles(files, id) {
+  if (files.length === 1) {
+    const [file] = files;
+    saveAs(getBlobFromBase64(file.file_data), file.file_name || `file-${Date.now()}`);
+    return;
+  }
+
+  const { default: JSZip } = await import('jszip');
+  const zip = new JSZip();
+  files.forEach((file, index) => {
+    const filename = file.file_name || `file-${index + 1}`;
+    zip.file(filename, getBlobFromBase64(file.file_data));
+  });
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const filename = id ? `${id}.zip` : '첨부파일.zip';
+  saveAs(blob, filename);
+}
+
 export function useFileDownloader() {
   async function downloadAllFiles(files, id = '') {
     if (!files || files.length === 0) return;
     
     try {
+      if (files.every((file) => file?.file_data)) {
+        await downloadEmbeddedFiles(files, id);
+        return;
+      }
+
       const ids = files.map(getFileId).filter((fileId) => fileId !== undefined && fileId !== null);
       if (ids.length === 0) {
         throw new Error('다운로드할 파일 ID가 없습니다.');
@@ -26,9 +56,7 @@ export function useFileDownloader() {
         // 원본 그대로 다운받기:
         const fileObj = await fetchFileById(ids[0]);
         if (fileObj.file_data) {
-          const binary = atob(fileObj.file_data);
-          const byteArray = new Uint8Array([...binary].map((c) => c.charCodeAt(0)));
-          const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+          const blob = getBlobFromBase64(fileObj.file_data);
           const filename = fileObj.file_name || `file-${Date.now()}`;
           saveAs(blob, filename);
           return;
