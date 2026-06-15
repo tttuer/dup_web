@@ -128,16 +128,25 @@ const buildTree = (flatList) => {
 
 const validParentsForEdit = computed(() => {
   const flat = [];
-  const traverse = (nodes, prefix = '', isPersonal, skipId) => {
+  const traverse = (nodes, ancestors = [], isPersonal, skipId) => {
     nodes.forEach(n => {
       // 현재 수정 중인 문서(skipId)와 그 하위 문서들은 상위 폴더 선택지에서 제외
       if (n.id === skipId) return;
-      flat.push({ id: n.id, title: prefix + n.title, is_personal: isPersonal });
-      if (n.children) traverse(n.children, prefix + n.title + ' > ', isPersonal, skipId);
+      const pathParts = [...ancestors, n.title];
+      flat.push({
+        id: n.id,
+        title: n.title,
+        path: pathParts.join(' > '),
+        pathParts,
+        depth: ancestors.length,
+        parent_id: n.parent_id,
+        is_personal: isPersonal,
+      });
+      if (n.children) traverse(n.children, pathParts, isPersonal, skipId);
     });
   };
-  traverse(publicTree.value, '', false, selectedPageId.value);
-  traverse(personalTree.value, '', true, selectedPageId.value);
+  traverse(publicTree.value, [], false, selectedPageId.value);
+  traverse(personalTree.value, [], true, selectedPageId.value);
   return flat;
 });
 
