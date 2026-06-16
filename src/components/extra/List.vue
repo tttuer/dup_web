@@ -22,6 +22,9 @@ const typeStore = useTypeStore();
 const isLoading = ref(false);
 const selectedCompany = ref('');
 const fileLists = shallowRef([]);
+const sidebarSearch = ref('');
+const sidebarFileMatches = shallowRef([]);
+const isSidebarFileSearchLoading = ref(false);
 const totalPage = ref(0);
 const currentPage = ref(1);
 const isPdfConverting = ref(false);
@@ -51,12 +54,17 @@ const searchbar = ref('');
 const searchbarOption = ref('');
 const checkedIds = ref(new Set());
 const hasChecked = computed(() => checkedIds.value.size > 0);
+const activeSearchTerm = computed(() => searchbar.value.trim());
+const hasActiveSearch = computed(() => activeSearchTerm.value.length > 0);
 
 const fileUrl = `${import.meta.env.VITE_FILE_API_URL}`;
 const toast = useToast();
 const isEditModalOpen = ref(false);
 const editTargetFile = ref(null);
 const lockFilter = ref(false);
+let sidebarSearchTimer = null;
+let sidebarSearchController = null;
+let suppressNextAutoFetch = false;
 
 const isFileDeleteModalOpen = ref(false);
 const filesToDelete = computed(() => {
@@ -124,6 +132,130 @@ async function fetchFiles(isReset = false) {
   } finally {
     isLoading.value = false;
     isPdfConverting.value = false;
+  }
+}
+
+function getSidebarFileSearchGroups(files) {
+  const groupsById = new Map();
+
+  files.forEach((file) => {
+    if (!file.group_id) return;
+
+    const group = groupsById.get(file.group_id) || {
+      groupId: file.group_id,
+      groupName: groupIdToName.value[file.group_id] || '이름 없는 폴더',
+      matchCount: 0,
+      fileNames: [],
+    };
+
+    group.matchCount += 1;
+    if (file.file_name && group.fileNames.length < 3) {
+      group.fileNames.push(file.file_name);
+    }
+
+    groupsById.set(file.group_id, group);
+  });
+
+  return Array.from(groupsById.values()).sort((a, b) => a.groupName.localeCompare(b.groupName));
+}
+
+const sidebarFileSearchGroups = computed(() => getSidebarFileSearchGroups(sidebarFileMatches.value));
+
+function handleSidebarSearch(query) {
+  sidebarSearch.value = query;
+}
+
+function applyFileSearchGroup({ groupId, query }) {
+  suppressNextAutoFetch = true;
+  selectedGroup.value = groupId;
+  searchbar.value = query;
+  searchbarOption.value = 'DESCRIPTION_FILENAME';
+
+  nextTick(() => {
+    search();
+  });
+}
+
+function clearSearchFilter() {
+  searchbar.value = '';
+  searchbarOption.value = 'DESCRIPTION_FILENAME';
+  search();
+}
+
+function isSearchMatched(item) {
+  const query = activeSearchTerm.value.toLowerCase();
+  if (!query) return false;
+
+  return [item.name, item.file_name]
+    .filter(Boolean)
+    .some((value) => String(value).toLowerCase().includes(query));
+}
+
+function getHighlightedParts(value) {
+  const text = String(value || '');
+  const query = activeSearchTerm.value;
+  if (!query) return [{ text, isMatch: false }];
+
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const parts = [];
+  let cursor = 0;
+  let matchIndex = lowerText.indexOf(lowerQuery);
+
+  while (matchIndex !== -1) {
+    if (matchIndex > cursor) {
+      parts.push({ text: text.slice(cursor, matchIndex), isMatch: false });
+    }
+
+    const matchEnd = matchIndex + query.length;
+    parts.push({ text: text.slice(matchIndex, matchEnd), isMatch: true });
+    cursor = matchEnd;
+    matchIndex = lowerText.indexOf(lowerQuery, cursor);
+  }
+
+  if (cursor < text.length) {
+    parts.push({ text: text.slice(cursor), isMatch: false });
+  }
+
+  return parts.length ? parts : [{ text, isMatch: false }];
+}
+
+async function fetchSidebarFileMatches(query) {
+  if (sidebarSearchController) {
+    sidebarSearchController.abort();
+  }
+
+  const controller = new AbortController();
+  sidebarSearchController = controller;
+  const params = new URLSearchParams();
+  params.append('type', typeStore.currentType);
+  params.append('company', selectedCompany.value);
+  params.append('page', 1);
+  params.append('items_per_page', 50);
+  params.append('search', query);
+  params.append('search_option', 'DESCRIPTION_FILENAME');
+
+  isSidebarFileSearchLoading.value = true;
+  try {
+    const response = await authFetch(fileUrl + '?' + params.toString(), {
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      sidebarFileMatches.value = [];
+      return;
+    }
+
+    const [, , lists] = await response.json();
+    sidebarFileMatches.value = lists || [];
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error(error);
+      sidebarFileMatches.value = [];
+    }
+  } finally {
+    if (sidebarSearchController === controller) {
+      isSidebarFileSearchLoading.value = false;
+    }
   }
 }
 
@@ -235,15 +367,42 @@ function handleGroupDeleted(deletedGroupId) {
 watch(selectedCompany, async (newCompany) => {
   selectedGroup.value = '';
   fileLists.value = [];
+  sidebarFileMatches.value = [];
   if (newCompany) {
     await loadGroupOptions(newCompany);
   }
+});
+
+watch([selectedCompany, sidebarSearch], ([company, query]) => {
+  if (sidebarSearchTimer) clearTimeout(sidebarSearchTimer);
+  if (sidebarSearchController) {
+    sidebarSearchController.abort();
+    sidebarSearchController = null;
+  }
+
+  const normalizedQuery = query.trim();
+  sidebarFileMatches.value = [];
+
+  if (!company || normalizedQuery.length < 2) {
+    isSidebarFileSearchLoading.value = false;
+    return;
+  }
+
+  isSidebarFileSearchLoading.value = true;
+  sidebarSearchTimer = setTimeout(() => {
+    fetchSidebarFileMatches(normalizedQuery);
+  }, 300);
 });
 
 // 디바운스된 fetch 함수 생성  
 let debounceTimer = null;
 const debouncedFetchFiles = () => {
   if (debounceTimer) clearTimeout(debounceTimer);
+  if (suppressNextAutoFetch) {
+    suppressNextAutoFetch = false;
+    return;
+  }
+
   debounceTimer = setTimeout(() => {
     if (selectedGroup.value) {
       fetchFiles(true);
@@ -263,10 +422,14 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sor
       :groupNameToEnum="groupNameToEnum"
       :selectedCompany="selectedCompany"
       :selectedGroup="selectedGroup"
+      :fileSearchGroups="sidebarFileSearchGroups"
+      :isFileSearchLoading="isSidebarFileSearchLoading"
       @update:selectedCompany="(select) => (selectedCompany = select)"
       @update:selectedGroup="(select) => (selectedGroup = select)"
       @group-created="() => loadGroupOptions(selectedCompany)"
       @group-deleted="handleGroupDeleted"
+      @search-change="handleSidebarSearch"
+      @file-search-group-selected="applyFileSearchGroup"
     />
 
     <main class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
@@ -278,6 +441,20 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sor
           <p class="mt-1 text-sm text-gray-400">
             {{ selectedCompany ? '왼쪽에서 폴더를 선택하면 업무파일을 확인할 수 있습니다.' : '회사를 먼저 선택해주세요.' }}
           </p>
+          <div
+            v-if="hasActiveSearch && selectedGroup"
+            class="mt-2 inline-flex max-w-full items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs text-blue-700"
+          >
+            <span class="min-w-0 truncate">검색 결과: {{ activeSearchTerm }}</span>
+            <button
+              type="button"
+              class="shrink-0 rounded px-1 text-blue-500 hover:bg-blue-100 hover:text-blue-700"
+              title="검색 해제"
+              @click="clearSearchFilter"
+            >
+              X
+            </button>
+          </div>
         </div>
 
         <div class="flex shrink-0 flex-row justify-end">
@@ -291,6 +468,7 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sor
           />
           <Searchbar
             class="ml-3"
+            :modelValue="searchbar"
             @search="
               ({ search: s, searchOption: so }) => {
                 searchbar = s;
@@ -385,8 +563,25 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sor
         </template>
 
         <template #item.name="{ item }">
-            <div class="flex items-center">
-                {{ item.name }}
+            <div
+                class="flex items-center rounded px-2 py-1"
+                :class="isSearchMatched(item) ? 'border-l-4 border-blue-400 bg-blue-50/80' : ''"
+            >
+                <span>
+                  <template
+                    v-for="(part, index) in getHighlightedParts(item.name)"
+                    :key="`${item.id}-name-${index}`"
+                  >
+                    <mark v-if="part.isMatch" class="rounded bg-yellow-200 px-0.5 text-gray-900">{{ part.text }}</mark>
+                    <span v-else>{{ part.text }}</span>
+                  </template>
+                </span>
+                <span
+                    v-if="isSearchMatched(item)"
+                    class="ml-2 shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700"
+                >
+                    검색 결과
+                </span>
                 <svg
                     v-if="item.lock"
                     xmlns="http://www.w3.org/2000/svg"
@@ -409,7 +604,13 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sor
                         @click="downloadAllFiles([item])"
                         class="text-blue-500 hover:text-blue-600 cursor-pointer bg-transparent border-none p-0 text-left"
                         >
-                        {{ item.file_name }}
+                        <template
+                          v-for="(part, index) in getHighlightedParts(item.file_name)"
+                          :key="`${item.id}-file-${index}`"
+                        >
+                          <mark v-if="part.isMatch" class="rounded bg-yellow-200 px-0.5 text-gray-900">{{ part.text }}</mark>
+                          <span v-else>{{ part.text }}</span>
+                        </template>
                         </button>
                     </div>
                 </div>

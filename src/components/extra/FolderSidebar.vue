@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue';
-import { Folder, Plus, Search, X } from 'lucide-vue-next';
+import { FileText, Folder, Plus, Search, X } from 'lucide-vue-next';
 import { authFetch } from '@/utils/authFetch';
 import { useToast } from 'vue-toastification';
 import GroupDelete from './GroupDelete.vue';
@@ -34,6 +34,14 @@ const props = defineProps({
     type: [String, Number],
     default: '',
   },
+  fileSearchGroups: {
+    type: Array,
+    default: () => [],
+  },
+  isFileSearchLoading: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -42,6 +50,8 @@ const emit = defineEmits([
   'company-change',
   'group-created',
   'group-deleted',
+  'search-change',
+  'file-search-group-selected',
 ]);
 
 const toast = useToast();
@@ -128,6 +138,24 @@ function selectGroup(group) {
   rememberGroup(group.id);
 }
 
+function selectFileSearchGroup(group) {
+  emit('update:selectedGroup', group.groupId);
+  rememberGroup(group.groupId);
+  emit('file-search-group-selected', {
+    groupId: group.groupId,
+    query: searchQuery.value.trim(),
+  });
+}
+
+function updateSearchQuery(value) {
+  searchQuery.value = value;
+  emit('search-change', value);
+}
+
+function handleSearchInput(event) {
+  updateSearchQuery(event.target.value);
+}
+
 async function createGroup() {
   const name = newGroupName.value.trim();
   if (!name || !props.selectedCompany || isCreating.value) return;
@@ -205,7 +233,7 @@ onUnmounted(() => {
 watch(
   () => props.selectedCompany,
   () => {
-    searchQuery.value = '';
+    updateSearchQuery('');
     newGroupName.value = '';
   },
 );
@@ -242,18 +270,21 @@ watch(
         <div class="relative">
           <Search class="absolute top-2.5 left-2.5 h-4 w-4 text-gray-400" />
           <input
-            v-model="searchQuery"
+            :value="searchQuery"
             type="text"
             :disabled="!selectedCompany"
-            placeholder="폴더 검색..."
+            placeholder="폴더/파일 검색..."
             class="w-full rounded-md border border-gray-200 bg-gray-50 py-2 pr-8 pl-8 text-sm text-gray-800 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+            @input="handleSearchInput"
+            @compositionupdate="handleSearchInput"
+            @compositionend="handleSearchInput"
           />
           <button
             v-if="searchQuery"
             type="button"
             class="absolute top-2 right-2 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
             title="검색어 지우기"
-            @click="searchQuery = ''"
+            @click="updateSearchQuery('')"
           >
             <X class="h-4 w-4" />
           </button>
@@ -304,10 +335,48 @@ watch(
           </button>
         </section>
 
+        <section v-if="searchQuery.trim().length >= 2" class="mb-5">
+          <div class="mb-2 flex items-center justify-between px-2">
+            <h3 class="text-xs font-bold tracking-wider text-gray-400 uppercase">파일이 있는 폴더</h3>
+            <span class="text-xs text-gray-400">{{ fileSearchGroups.length }}</span>
+          </div>
+
+          <div v-if="isFileSearchLoading" class="rounded-md border border-dashed border-blue-100 bg-blue-50/50 py-4 text-center text-sm text-blue-500">
+            파일 검색 중...
+          </div>
+
+          <div v-else-if="fileSearchGroups.length === 0" class="rounded-md border border-dashed border-gray-200 py-4 text-center text-sm text-gray-400">
+            일치하는 파일이 없습니다.
+          </div>
+
+          <div v-else class="space-y-0.5">
+            <button
+              v-for="group in fileSearchGroups"
+              :key="`file-${group.groupId}`"
+              type="button"
+              class="flex w-full min-w-0 items-start gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors"
+              :class="
+                isSameGroup(selectedGroup, group.groupId)
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              "
+              @click="selectFileSearchGroup(group)"
+            >
+              <FileText class="mt-0.5 h-4 w-4 shrink-0" :class="isSameGroup(selectedGroup, group.groupId) ? 'text-blue-500' : 'text-gray-400'" />
+              <span class="min-w-0 flex-1">
+                <span class="block truncate font-semibold">{{ group.groupName }}</span>
+                <span class="block truncate text-xs text-gray-400">
+                  {{ group.fileNames.join(', ') }}{{ group.matchCount > group.fileNames.length ? ` 외 ${group.matchCount - group.fileNames.length}건` : '' }}
+                </span>
+              </span>
+            </button>
+          </div>
+        </section>
+
         <section>
           <div class="mb-2 flex items-center justify-between px-2">
             <h3 class="text-xs font-bold tracking-wider text-gray-400 uppercase">
-              {{ searchQuery ? '검색 결과' : '전체 폴더' }}
+              {{ searchQuery ? '폴더 검색 결과' : '전체 폴더' }}
             </h3>
             <span class="text-xs text-gray-400">{{ filteredGroups.length }}</span>
           </div>

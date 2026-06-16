@@ -3,12 +3,19 @@ import { ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
 
 const emit = defineEmits(['search']);
-const search = ref('');
+const props = defineProps({
+  modelValue: {
+    type: String,
+    default: '',
+  },
+});
+
+const search = ref(props.modelValue);
 const searchOptions = ['설명+첨부파일'];
 const searchToEnum = {
   '설명+첨부파일': 'DESCRIPTION_FILENAME',
 };
-const selectedOption = ref('');
+const selectedOption = ref('DESCRIPTION_FILENAME');
 
 function emitSearch() {
   emit('search', {
@@ -17,6 +24,12 @@ function emitSearch() {
   });
 }
 
+watch(
+  () => props.modelValue,
+  (nextValue) => {
+    search.value = nextValue;
+  },
+);
 </script>
 
 <template>
@@ -25,6 +38,7 @@ function emitSearch() {
       class="mr-2"
       :options="searchOptions"
       :nameToEnum="searchToEnum"
+      :modelValue="selectedOption"
       @select="(select) => (selectedOption = select)"
     />
     <input
