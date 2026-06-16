@@ -27,9 +27,17 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
+const sortBy = ref('created_at');
 const sortOrder = ref('desc');
 
 function toggleSortOrder() {
+  if (sortBy.value !== 'withdrawn_at') {
+    sortBy.value = 'withdrawn_at';
+    sortOrder.value = 'desc';
+    return;
+  }
+
+  sortBy.value = 'withdrawn_at';
   sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc';
 }
 // PDF 미리보기 기능 지연 로딩
@@ -77,6 +85,8 @@ function closeEditModal() {
 }
 
 function addCreatedFiles() {
+  sortBy.value = 'created_at';
+  sortOrder.value = 'desc';
   fetchFiles(true);
 }
 
@@ -97,6 +107,7 @@ async function fetchFiles(isReset = false) {
   params.append('search_option', searchbarOption.value);
   params.append('is_locked', lockFilter.value);
   params.append('group_id', selectedGroup.value);
+  params.append('sort_by', sortBy.value);
   params.append('order', sortOrder.value);
 
   isLoading.value = true;
@@ -240,7 +251,7 @@ const debouncedFetchFiles = () => {
   }, 300);
 };
 
-watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder], debouncedFetchFiles);
+watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sortOrder], debouncedFetchFiles);
 </script>
 
 <template>
@@ -319,7 +330,10 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortOrder],
                 @click="toggleSortOrder"
             >
                 <span>{{ header.text }}</span>
-                <span class="ml-1 text-[10px] text-gray-500 dark:text-gray-400">
+                <span
+                    v-if="sortBy === 'withdrawn_at'"
+                    class="ml-1 text-[10px] text-gray-500 dark:text-gray-400"
+                >
                     {{ sortOrder === 'desc' ? '▼' : '▲' }}
                 </span>
             </div>
