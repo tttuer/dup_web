@@ -74,7 +74,8 @@
       <div
         v-for="request in pendingRequests"
         :key="request.id"
-        class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+        class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        @click="viewDetail(request)"
       >
         <div class="p-6">
           <div class="flex items-start justify-between">
@@ -122,7 +123,7 @@
               <!-- 액션 버튼 -->
               <div class="flex items-center space-x-2">
                 <button
-                  @click="viewDetail(request)"
+                  @click.stop="viewDetail(request)"
                   class="inline-flex items-center px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                 >
                   <Eye class="w-3 h-3 mr-1" />
@@ -130,7 +131,7 @@
                 </button>
                 
                 <button
-                  @click="approveRequest(request)"
+                  @click.stop="approveRequest(request)"
                   class="inline-flex items-center px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
                 >
                   <Check class="w-3 h-3 mr-1" />
@@ -138,7 +139,7 @@
                 </button>
                 
                 <button
-                  @click="rejectRequest(request)"
+                  @click.stop="rejectRequest(request)"
                   class="inline-flex items-center px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
                 >
                   <X class="w-3 h-3 mr-1" />

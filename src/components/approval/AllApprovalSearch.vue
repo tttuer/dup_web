@@ -158,7 +158,8 @@
             <tr
               v-for="approval in searchResults"
               :key="approval.id"
-              class="hover:bg-gray-50"
+              class="hover:bg-gray-50 cursor-pointer"
+              @click="viewDetail(approval)"
             >
               <td class="px-6 py-4">
                 <div class="text-sm font-medium text-gray-900">
@@ -180,7 +181,7 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
-                  @click="viewDetail(approval)"
+                  @click.stop="viewDetail(approval)"
                   class="text-blue-600 hover:text-blue-900"
                 >
                   상세보기
