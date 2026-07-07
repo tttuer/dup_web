@@ -47,17 +47,17 @@ async function signUp() {
     const data = await response.json();
 
     if (response.ok) {
-      toast.success('회원가입이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.');
+      toast.success('회원가입 요청이 접수되었습니다. 관리자 승인 후 로그인할 수 있습니다.');
       router.push('/login');
       return;
     }
 
     if (response.status === 409) {
-      toast.error('이미 사용 중인 아이디입니다.');
+      toast.error(data.detail || '이미 사용 중인 아이디입니다.');
       return;
     }
 
-    toast.error(data.message || '회원가입에 실패했습니다.');
+    toast.error(data.detail || data.message || '회원가입에 실패했습니다.');
   } catch (error) {
     console.error('회원가입 오류:', error);
     toast.error('서버 오류가 발생했습니다.');
