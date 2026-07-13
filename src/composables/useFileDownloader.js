@@ -32,16 +32,30 @@ async function downloadEmbeddedFiles(files, id) {
 }
 
 export function useFileDownloader() {
-  async function downloadAllFiles(files, id = '') {
-    if (!files || files.length === 0) return;
-    
+  let isDownloading = false;
+
+  async function downloadAllFiles(files, id = '', downloadFiles = null) {
+    if (isDownloading || !files?.length) return;
+
+    isDownloading = true;
     try {
+      const ids = [
+        ...new Set(
+          files.map(getFileId).filter((fileId) => fileId !== undefined && fileId !== null),
+        ),
+      ];
+
+      if (downloadFiles) {
+        const blob = await downloadFiles(ids);
+        saveAs(blob, `${id || '첨부파일'}.zip`);
+        return;
+      }
+
       if (files.every((file) => file?.file_data)) {
         await downloadEmbeddedFiles(files, id);
         return;
       }
 
-      const ids = files.map(getFileId).filter((fileId) => fileId !== undefined && fileId !== null);
       if (ids.length === 0) {
         throw new Error('다운로드할 파일 ID가 없습니다.');
       }
@@ -67,10 +81,11 @@ export function useFileDownloader() {
       const blob = await downloadBulkFiles(ids);
       const filename = id ? `${id}.zip` : '첨부파일.zip';
       saveAs(blob, filename);
-
     } catch (error) {
       console.error('파일 다운로드 실패:', error);
       alert('파일 다운로드에 실패했습니다.');
+    } finally {
+      isDownloading = false;
     }
   }
 

@@ -12,6 +12,7 @@ import BaseList from '@/components/base/BaseList.vue';
 import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
+import { downloadVoucherFiles } from '@/api/voucher';
 import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
 import { companyNameToEnum, companyOptions } from '@/constants/companies';
 import VoucherAttachmentCell from '@/components/lists/VoucherAttachmentCell.vue';
@@ -277,6 +278,7 @@ onUnmounted(() => {
 });
 
 const { downloadAllFiles } = useFileDownloader();
+const downloadVoucherAttachments = (files, id) => downloadAllFiles(files, id, downloadVoucherFiles);
 
 function getBadgeClassByCode(code) {
   if (!code) {
@@ -460,7 +462,7 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
           :files="item.files || []"
           :uploading="uploadingVoucherIds.has(item.id)"
           :dropActive="isDropTarget"
-          @download="downloadAllFiles(item.files, item.nm_remark)"
+          @download="downloadVoucherAttachments(item.files, item.nm_remark)"
           @upload="(files) => handleVoucherFiles(item, files)"
         />
       </template>
@@ -514,7 +516,7 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
                 }
                 return acc;
               }, []);
-              downloadAllFiles(files);
+              downloadVoucherAttachments(files);
               if (checkedIds && checkedIds.clear) {
                 checkedIds.clear();
               }
