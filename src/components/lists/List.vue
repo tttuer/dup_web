@@ -114,6 +114,20 @@ async function fetchVouchers(isReset = false) {
 
 const isSyncing = computed(() => syncStore.syncing);
 
+async function getSyncErrorMessage(response) {
+  if (response.status === 460) {
+    return 'WEHAGO 아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해주세요.';
+  }
+
+  const errorBody = await response.json().catch(() => null);
+
+  if (typeof errorBody?.detail === 'string' && errorBody.detail) {
+    return errorBody.detail;
+  }
+
+  return `동기화에 실패했습니다. (HTTP ${response.status})`;
+}
+
 async function syncWhg(payload) {
   if (isSyncing.value) return;
 
@@ -135,13 +149,11 @@ async function syncWhg(payload) {
     if (response.ok) {
       toast.success('파일 동기화 성공');
       fetchVouchers(true);
-    } else if (response.status === 460) {
-      toast.error('로그인 정보가 올바르지 않습니다. 다시 시도해주세요.');
     } else {
-      toast.error('파일 동기화 실패');
+      toast.error(await getSyncErrorMessage(response));
     }
   } catch (error) {
-    toast.error('파일 동기화 실패');
+    toast.error('동기화 요청 중 네트워크 오류가 발생했습니다. 연결 상태를 확인해주세요.');
     console.error(error);
   }
 }
