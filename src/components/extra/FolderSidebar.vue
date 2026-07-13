@@ -247,7 +247,7 @@ watch(
   >
     <div class="border-b border-gray-200 p-4">
       <h2 class="mb-3 text-lg font-bold text-gray-800">업무파일</h2>
-      <div class="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
+      <div class="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1">
         <button
           v-for="company in companyEntries"
           :key="company.value"

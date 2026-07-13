@@ -13,6 +13,7 @@ import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
 import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
+import { companyNameToEnum, companyOptions } from '@/constants/companies';
 
 const syncStore = useSyncStatusStore();
 
@@ -33,12 +34,6 @@ const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
 
-const companyOptions = ['백성운수', '평택여객', '파란전기'];
-const companyNameToEnum = {
-  백성운수: 'BAEKSUNG',
-  평택여객: 'PYEONGTAEK',
-  파란전기: 'PARAN',
-};
 const searchbar = ref('');
 const searchbarOption = ref('');
 const checkedIds = ref(new Set());

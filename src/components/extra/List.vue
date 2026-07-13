@@ -13,6 +13,7 @@ import Searchbar from './Searchbar.vue';
 import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
 import FileDeleteModal from './FileDeleteModal.vue';
+import { companyNameToEnum, companyOptions } from '@/constants/companies';
 
 const selectedGroup = ref('');
 const roles = ref(getRoleFromLocalStorage());
@@ -44,12 +45,6 @@ function toggleSortOrder() {
   sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc';
 }
 // PDF 미리보기 기능 지연 로딩
-const companyOptions = ['백성운수', '평택여객', '파란전기'];
-const companyNameToEnum = {
-  백성운수: 'BAEKSUNG',
-  평택여객: 'PYEONGTAEK',
-  파란전기: 'PARAN',
-};
 const searchbar = ref('');
 const searchbarOption = ref('');
 const checkedIds = ref(new Set());
