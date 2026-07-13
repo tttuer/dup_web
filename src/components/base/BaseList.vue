@@ -237,7 +237,7 @@ function handleIntersect() {
           <tr
             v-for="(item, index) in displayableItems"
             :key="item.id"
-            v-memo="[item.id, checkedIds.has(item.id), item.groupIndex]"
+            v-memo="[item.id, item.files, checkedIds.has(item.id), item.groupIndex]"
             class="border-b border-gray-200 dark:border-gray-700"
             :class="
               item.groupIndex % 2 === 0

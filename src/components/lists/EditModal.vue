@@ -12,11 +12,11 @@
 
       <!-- 파일 첨부 -->
       <div class="mb-4">
-        <label class="block text-sm font-medium">새 첨부파일 (선택 시 기존 파일 대체)</label>
+        <label class="block text-sm font-medium">새 첨부파일 (기존 파일에 추가)</label>
         <input
           type="file"
           multiple
-          accept="application/pdf"
+          accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
           class="mt-1 w-full cursor-pointer border pt-1 pb-1"
           @change="handleFileChange"
         />

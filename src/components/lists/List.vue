@@ -14,6 +14,7 @@ import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
 import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
 import { companyNameToEnum, companyOptions } from '@/constants/companies';
+import VoucherAttachmentCell from '@/components/lists/VoucherAttachmentCell.vue';
 
 const syncStore = useSyncStatusStore();
 
@@ -37,6 +38,7 @@ const end_at = ref('');
 const searchbar = ref('');
 const searchbarOption = ref('');
 const checkedIds = ref(new Set());
+const uploadingVoucherIds = ref(new Set());
 const hasChecked = computed(() => checkedIds.value.size > 0);
 
 const voucherUrl = `${import.meta.env.VITE_VOUCHER_API_URL}`;
@@ -114,7 +116,7 @@ async function fetchVouchers(isReset = false) {
 
 const isSyncing = computed(() => syncStore.syncing);
 
-async function getSyncErrorMessage(response) {
+async function getErrorMessage(response, fallbackMessage) {
   if (response.status === 460) {
     return 'WEHAGO 아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해주세요.';
   }
@@ -125,7 +127,7 @@ async function getSyncErrorMessage(response) {
     return errorBody.detail;
   }
 
-  return `동기화에 실패했습니다. (HTTP ${response.status})`;
+  return `${fallbackMessage} (HTTP ${response.status})`;
 }
 
 async function syncWhg(payload) {
@@ -150,7 +152,7 @@ async function syncWhg(payload) {
       toast.success('파일 동기화 성공');
       fetchVouchers(true);
     } else {
-      toast.error(await getSyncErrorMessage(response));
+      toast.error(await getErrorMessage(response, '동기화에 실패했습니다.'));
     }
   } catch (error) {
     toast.error('동기화 요청 중 네트워크 오류가 발생했습니다. 연결 상태를 확인해주세요.');
@@ -189,6 +191,51 @@ async function editVoucher(payload) {
   } catch (e) {
     toast.error('수정 중 오류 발생');
     console.error(e);
+  }
+}
+
+function setVoucherUploading(voucherId, isUploading) {
+  const nextUploadingIds = new Set(uploadingVoucherIds.value);
+
+  if (isUploading) {
+    nextUploadingIds.add(voucherId);
+  } else {
+    nextUploadingIds.delete(voucherId);
+  }
+
+  uploadingVoucherIds.value = nextUploadingIds;
+}
+
+function replaceVoucher(updatedVoucher) {
+  voucherLists.value = voucherLists.value.map((voucher) =>
+    voucher.id === updatedVoucher.id ? updatedVoucher : voucher,
+  );
+}
+
+async function addVoucherFiles(voucher, files) {
+  if (!files.length || uploadingVoucherIds.value.has(voucher.id)) return;
+
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+  setVoucherUploading(voucher.id, true);
+
+  try {
+    const response = await authFetch(`${voucherUrl}/${voucher.id}`, {
+      method: 'PATCH',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, '첨부파일 추가에 실패했습니다.'));
+    }
+
+    replaceVoucher(await response.json());
+    toast.success(`${files.length}개 파일을 첨부했습니다.`);
+  } catch (error) {
+    toast.error(error.message || '첨부파일 추가에 실패했습니다.');
+    console.error(error);
+  } finally {
+    setVoucherUploading(voucher.id, false);
   }
 }
 
@@ -395,37 +442,20 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
       </template>
 
       <template #item.files="{ item }">
-        <div class="w-full">
-          <div class="inline-block w-full">
-            <!-- 파일 이름 리스트 -->
-            <div class="overflow-hidden text-ellipsis whitespace-nowrap">
-              <template v-if="item.files && item.files.length">
-                <a
-                  href="#"
-                  @click.prevent="downloadAllFiles(item.files, item.nm_remark)"
-                  class="block text-blue-500 hover:text-blue-600"
-                  :title="
-                    item.files.length === 1
-                      ? item.files[0].file_name
-                      : `${item.files[0].file_name} 외 ${item.files.length - 1}건`
-                  "
-                >
-                  {{
-                    item.files.length === 1
-                      ? item.files[0].file_name
-                      : `${item.files[0].file_name} 외 ${item.files.length - 1}건`
-                  }}
-                </a>
-              </template>
-            </div>
-          </div>
-        </div>
+        <VoucherAttachmentCell
+          :voucher-id="item.id"
+          :files="item.files || []"
+          :uploading="uploadingVoucherIds.has(item.id)"
+          @download="downloadAllFiles(item.files, item.nm_remark)"
+          @upload="(files) => addVoucherFiles(item, files)"
+          @invalid-files="toast.error('PDF, JPG, PNG 파일만 첨부할 수 있습니다.')"
+        />
       </template>
 
       <template #item.actions="{ item }">
         <input
           type="button"
-          value="첨부"
+          value="관리"
           @click="openEditModal(item)"
           class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
         />
