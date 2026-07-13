@@ -30,6 +30,10 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  rowDropEnabled: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 function getGroupKey(item) {
@@ -65,6 +69,7 @@ const emit = defineEmits([
   'intersect',
   'check-all',
   'request-more-items',
+  'row-drop',
 ]);
 
 const container = ref(null);
@@ -117,6 +122,8 @@ watch(
 
 
 const lastCheckedIndex = ref(null);
+const dropTargetId = ref(null);
+const rowDragDepths = new Map();
 
 const isAllChecked = computed(() => {
   if (!props.items || props.items.length === 0) return false;
@@ -167,6 +174,38 @@ function handleIntersect() {
   if (!props.loading && props.currentPage < props.totalPage) {
     emit('intersect');
   }
+}
+
+function handleRowDragEnter(itemId) {
+  if (!props.rowDropEnabled) return;
+
+  const nextDepth = (rowDragDepths.get(itemId) || 0) + 1;
+  rowDragDepths.set(itemId, nextDepth);
+  dropTargetId.value = itemId;
+}
+
+function handleRowDragLeave(itemId) {
+  if (!props.rowDropEnabled) return;
+
+  const nextDepth = (rowDragDepths.get(itemId) || 1) - 1;
+  if (nextDepth <= 0) {
+    rowDragDepths.delete(itemId);
+    if (dropTargetId.value === itemId) dropTargetId.value = null;
+    return;
+  }
+
+  rowDragDepths.set(itemId, nextDepth);
+}
+
+function handleRowDrop(item, event) {
+  if (!props.rowDropEnabled) return;
+
+  rowDragDepths.clear();
+  dropTargetId.value = null;
+  emit('row-drop', {
+    item,
+    files: Array.from(event.dataTransfer.files || []),
+  });
 }
 </script>
 
@@ -237,13 +276,19 @@ function handleIntersect() {
           <tr
             v-for="(item, index) in displayableItems"
             :key="item.id"
-            v-memo="[item.id, item.files, checkedIds.has(item.id), item.groupIndex]"
+            v-memo="[item.id, item.files, checkedIds.has(item.id), item.groupIndex, dropTargetId === item.id]"
             class="border-b border-gray-200 dark:border-gray-700"
             :class="
-              item.groupIndex % 2 === 0
+              dropTargetId === item.id
+                ? 'bg-blue-100 outline-2 outline-blue-500 outline-offset-[-2px] dark:bg-blue-900/60'
+                : item.groupIndex % 2 === 0
                 ? 'bg-white dark:bg-gray-900'
                 : 'bg-blue-50 dark:bg-gray-800'
             "
+            @dragenter.prevent="handleRowDragEnter(item.id)"
+            @dragover.prevent
+            @dragleave.prevent="handleRowDragLeave(item.id)"
+            @drop.prevent="handleRowDrop(item, $event)"
           >
             <td
               v-if="showCheckboxes"
@@ -264,7 +309,12 @@ function handleIntersect() {
               ]"
               :style="{ width: header.width }"
             >
-              <slot :name="`item.${header.value}`" :item="item" :index="index">
+              <slot
+                :name="`item.${header.value}`"
+                :item="item"
+                :index="index"
+                :isDropTarget="dropTargetId === item.id"
+              >
                 {{ item[header.value] }}
               </slot>
             </td>

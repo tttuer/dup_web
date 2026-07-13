@@ -14,28 +14,23 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  dropActive: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['download', 'upload', 'invalid-files']);
+const emit = defineEmits(['download', 'upload']);
 
-const isDragging = ref(false);
 const inputId = computed(() => `voucher-files-${props.voucherId}`);
 const fileLabel = computed(() => {
   if (!props.files.length) return '';
   if (props.files.length === 1) return props.files[0].file_name;
   return `${props.files[0].file_name} 외 ${props.files.length - 1}건`;
 });
-const acceptedFilePattern = /\.(pdf|jpe?g|png)$/i;
-
 function submitFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length || props.uploading) return;
-
-  const invalidFiles = files.filter((file) => !acceptedFilePattern.test(file.name));
-  if (invalidFiles.length) {
-    emit('invalid-files');
-    return;
-  }
 
   emit('upload', files);
 }
@@ -45,25 +40,18 @@ function handleFileChange(event) {
   event.target.value = '';
 }
 
-function handleDrop(event) {
-  isDragging.value = false;
-  submitFiles(event.dataTransfer.files);
-}
 </script>
 
 <template>
   <div
     class="group flex min-h-8 w-full items-center rounded-md border border-transparent transition-colors"
-    :class="{
-      'border-blue-400 bg-blue-50': isDragging,
-      'cursor-wait opacity-70': uploading,
-    }"
-    @dragenter.prevent="isDragging = true"
-    @dragover.prevent="isDragging = true"
-    @dragleave.prevent="isDragging = false"
-    @drop.prevent="handleDrop"
+    :class="{ 'cursor-wait opacity-70': uploading }"
   >
-    <template v-if="files.length">
+    <template v-if="dropActive">
+      <span class="w-full text-center text-sm font-semibold text-blue-700">이 전표에 첨부합니다</span>
+    </template>
+
+    <template v-else-if="files.length">
       <span v-if="uploading" class="text-xs text-gray-500">업로드 중...</span>
       <button
         v-else
@@ -111,5 +99,6 @@ function handleDrop(event) {
         @change="handleFileChange"
       />
     </label>
+
   </div>
 </template>

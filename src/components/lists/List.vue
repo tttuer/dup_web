@@ -40,6 +40,7 @@ const searchbarOption = ref('');
 const checkedIds = ref(new Set());
 const uploadingVoucherIds = ref(new Set());
 const hasChecked = computed(() => checkedIds.value.size > 0);
+const acceptedVoucherFilePattern = /\.(pdf|jpe?g|png)$/i;
 
 const voucherUrl = `${import.meta.env.VITE_VOUCHER_API_URL}`;
 const toast = useToast();
@@ -239,6 +240,16 @@ async function addVoucherFiles(voucher, files) {
   }
 }
 
+function handleVoucherFiles(voucher, files) {
+  const invalidFiles = files.filter((file) => !acceptedVoucherFilePattern.test(file.name));
+  if (invalidFiles.length) {
+    toast.error('PDF, JPG, PNG 파일만 첨부할 수 있습니다.');
+    return;
+  }
+
+  addVoucherFiles(voucher, files);
+}
+
 function formatDate(dateStr) {
   const year = dateStr.substring(0, 4);
   const month = dateStr.substring(4, 6);
@@ -388,7 +399,9 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
       @update:checkedIds="checkedIds = $event"
       :currentPage="currentPage"
       :totalPage="totalPage"
+      :rowDropEnabled="true"
       @intersect="handleIntersect"
+      @row-drop="({ item, files }) => handleVoucherFiles(item, files)"
     >
       <template #header.files="{ header }">
         <div class="flex">
@@ -441,14 +454,14 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
         </div>
       </template>
 
-      <template #item.files="{ item }">
+      <template #item.files="{ item, isDropTarget }">
         <VoucherAttachmentCell
           :voucher-id="item.id"
           :files="item.files || []"
           :uploading="uploadingVoucherIds.has(item.id)"
+          :dropActive="isDropTarget"
           @download="downloadAllFiles(item.files, item.nm_remark)"
-          @upload="(files) => addVoucherFiles(item, files)"
-          @invalid-files="toast.error('PDF, JPG, PNG 파일만 첨부할 수 있습니다.')"
+          @upload="(files) => handleVoucherFiles(item, files)"
         />
       </template>
 
