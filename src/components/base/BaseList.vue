@@ -38,6 +38,10 @@ const props = defineProps({
     type: Function,
     default: () => '',
   },
+  errorMessage: {
+    type: String,
+    default: '',
+  },
 });
 
 function getGroupKey(item) {
@@ -74,6 +78,7 @@ const emit = defineEmits([
   'check-all',
   'request-more-items',
   'row-drop',
+  'retry',
 ]);
 
 const container = ref(null);
@@ -330,8 +335,19 @@ function handleRowDrop(item, event) {
           </tr>
         </tbody>
       </table>
-      <div v-if="!loading && items.length === 0" class="flex justify-center items-center p-4">
-        <p>데이터가 없습니다.</p>
+      <div v-if="!loading && errorMessage" class="flex flex-col items-center gap-3 p-8 text-center">
+        <p class="font-medium text-red-600 dark:text-red-300">{{ errorMessage }}</p>
+        <button
+          type="button"
+          class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+          @click="emit('retry')"
+        >
+          다시 시도
+        </button>
+      </div>
+      <div v-else-if="!loading && items.length === 0" class="flex flex-col items-center gap-1 p-8 text-center">
+        <p class="font-medium">조건에 맞는 전표가 없습니다.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">회사, 기간 또는 검색어를 확인해 주세요.</p>
       </div>
     </div>
   </div>

@@ -7,9 +7,27 @@ const config = {
 };
 
 const emit = defineEmits(['search']);
+const props = defineProps({
+  startAt: {
+    type: String,
+    default: '',
+  },
+  endAt: {
+    type: String,
+    default: '',
+  },
+});
 
-const start_at = ref('');
-const end_at = ref('');
+const start_at = ref(props.startAt);
+const end_at = ref(props.endAt);
+
+watch(
+  () => [props.startAt, props.endAt],
+  ([startAt, endAt]) => {
+    start_at.value = startAt;
+    end_at.value = endAt;
+  },
+);
 
 watch([start_at, end_at], () => {
   emit('search', { start_at: start_at.value, end_at: end_at.value });

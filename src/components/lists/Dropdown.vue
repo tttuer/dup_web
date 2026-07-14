@@ -1,8 +1,5 @@
 <script setup>
-import { ref } from 'vue';
-
-const selected = ref('선택');
-const isOpen = ref(false);
+import { ref, watch } from 'vue';
 
 const props = defineProps({
   options: {
@@ -17,9 +14,22 @@ const props = defineProps({
     type: String,
     default: '선택하세요',
   },
+  selectedLabel: {
+    type: String,
+    default: '',
+  },
 });
 
+const selected = ref(props.selectedLabel || props.placeholder);
+const isOpen = ref(false);
 const emit = defineEmits(['select']);
+
+watch(
+  () => props.selectedLabel,
+  (label) => {
+    selected.value = label || props.placeholder;
+  },
+);
 
 const selectOption = (option) => {
   selected.value = option;

@@ -16,29 +16,43 @@ import { downloadVoucherFiles } from '@/api/voucher';
 import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
 import { companyNameToEnum, companyOptions } from '@/constants/companies';
 import VoucherAttachmentCell from '@/components/lists/VoucherAttachmentCell.vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const syncStore = useSyncStatusStore();
+const route = useRoute();
+const router = useRouter();
+
+function getQueryValue(key) {
+  const value = route.query[key];
+  return typeof value === 'string' ? value : '';
+}
 
 onMounted(() => {
   connectSyncStatusSocket();
+  if (selectedCompany.value) {
+    fetchVouchers(true);
+  }
 });
 
 const role = ref(getRoleFromLocalStorage());
 const typeStore = useTypeStore();
+const companyLabelByValue = Object.fromEntries(
+  Object.entries(companyNameToEnum).map(([label, value]) => [value, label]),
+);
 
 const isLoading = ref(false);
-const selectedCompany = ref(null);
+const selectedCompany = ref(getQueryValue('company'));
 const selectedDate = ref('');
 const voucherLists = shallowRef([]);
 const totalCount = ref(0);
 const totalPage = ref(0);
 const currentPage = ref(1);
 const isPdfConverting = ref(false);
-const start_at = ref('');
-const end_at = ref('');
+const start_at = ref(getQueryValue('start_at'));
+const end_at = ref(getQueryValue('end_at'));
 
-const searchbar = ref('');
-const searchbarOption = ref('');
+const searchbar = ref(getQueryValue('search'));
+const searchbarOption = ref(getQueryValue('search_option'));
 
 const voucherSearchFieldByOption = {
   NM_ACCTIT: 'nm_acctit',
@@ -89,6 +103,9 @@ const isEditModalOpen = ref(false);
 const isLoginModalOpen = ref(false);
 const editTargetVoucher = ref(null);
 const lockFilter = ref(false);
+const loadError = ref('');
+let activeRequestController = null;
+let requestSequence = 0;
 
 const headers = ref([
   { text: '날짜', value: 'voucher_date', width: '9%' },
@@ -121,12 +138,20 @@ function closeWhgLoginModal() {
 
 async function fetchVouchers(isReset = false) {
   if (!selectedCompany.value || selectedCompany.value === '') return;
+
+  activeRequestController?.abort();
+  const requestController = new AbortController();
+  activeRequestController = requestController;
+  const requestId = ++requestSequence;
+
   if (isReset) {
     voucherLists.value = [];
     totalCount.value = 0;
     totalPage.value = 0;
     currentPage.value = 1;
   }
+
+  loadError.value = '';
 
   const params = new URLSearchParams();
   params.append('company', selectedCompany.value);
@@ -140,8 +165,15 @@ async function fetchVouchers(isReset = false) {
   isLoading.value = true;
   isPdfConverting.value = true;
   try {
-    const response = await authFetch(voucherUrl + '?' + params.toString());
+    const response = await authFetch(voucherUrl + '?' + params.toString(), {
+      signal: requestController.signal,
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, '전표를 불러오지 못했습니다.'));
+    }
     const [total_count, total_page, lists] = await response.json();
+
+    if (requestId !== requestSequence) return;
 
     totalPage.value = total_page;
     totalCount.value = total_count;
@@ -149,10 +181,15 @@ async function fetchVouchers(isReset = false) {
       ...voucher,
     }));
     voucherLists.value = [...voucherLists.value, ...vouchers];
-    
+  } catch (error) {
+    if (error.name === 'AbortError' || requestId !== requestSequence) return;
+
+    loadError.value = error.message || '전표를 불러오는 중 오류가 발생했습니다.';
   } finally {
-    isLoading.value = false;
-    isPdfConverting.value = false;
+    if (requestId === requestSequence) {
+      isLoading.value = false;
+      isPdfConverting.value = false;
+    }
   }
 }
 
@@ -316,6 +353,8 @@ function search() {
 }
 
 onUnmounted(() => {
+  activeRequestController?.abort();
+  if (debounceTimer) clearTimeout(debounceTimer);
   disconnectSyncStatusSocket();
 });
 
@@ -358,17 +397,30 @@ const debouncedFetchVouchers = () => {
 };
 
 watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
+
+watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
+  const query = {
+    company: selectedCompany.value || undefined,
+    start_at: start_at.value || undefined,
+    end_at: end_at.value || undefined,
+    search: searchbar.value || undefined,
+    search_option: searchbarOption.value || undefined,
+  };
+
+  router.replace({ query }).catch(() => {});
+});
 </script>
 
 <template>
   <div class="bg-testPink flex h-full w-full flex-col p-8">
     <div class="grid grid-cols-2">
       <div class="col-span-1 flex">
-        <Dropdown
-          class="col-span-1"
-          @select="(select) => (selectedCompany = select)"
-          :options="companyOptions"
-          :nameToEnum="companyNameToEnum"
+          <Dropdown
+            class="col-span-1"
+            @select="(select) => (selectedCompany = select)"
+            :options="companyOptions"
+            :nameToEnum="companyNameToEnum"
+            :selectedLabel="companyLabelByValue[selectedCompany]"
         />
         <div
           v-show="selectedCompany"
@@ -413,6 +465,8 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
       </div>
       <div class="col-span-1 flex flex-row justify-end">
         <DateSearch
+          :startAt="start_at"
+          :endAt="end_at"
           @search="
             ({ start_at: s, end_at: e }) => {
               start_at = s;
@@ -422,6 +476,8 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
         />
         <Searchbar
           class="ml-3"
+          :searchValue="searchbar"
+          :searchOption="searchbarOption"
           @search="
             ({ search: s, searchOption: so }) => {
               searchbar = s;
@@ -436,13 +492,17 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
     </div>
 
     <div
-      v-if="searchResultSummary"
-      class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
+      v-if="selectedCompany"
+      class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
     >
-      <span class="font-semibold">검색 결과 {{ totalCount }}건</span>
-      <span>현재 불러온 {{ highlightedVouchers.length }}건 중 직접 일치 {{ searchResultSummary.matchedCount }}건</span>
-      <span v-if="searchResultSummary.relatedCount">같은 전표 묶음 {{ searchResultSummary.relatedCount }}건</span>
-      <span class="text-amber-700 dark:text-amber-300">노란색 행은 검색어와 직접 일치합니다.</span>
+      <span class="font-semibold">전체 {{ totalCount }}건</span>
+      <span>현재 {{ highlightedVouchers.length }}건 표시</span>
+      <span v-if="isLoading">추가 결과를 불러오는 중입니다.</span>
+      <template v-if="searchResultSummary">
+        <span class="text-amber-800 dark:text-amber-200">직접 일치 {{ searchResultSummary.matchedCount }}건</span>
+        <span v-if="searchResultSummary.relatedCount" class="text-slate-600 dark:text-slate-300">같은 전표 묶음 {{ searchResultSummary.relatedCount }}건</span>
+        <span class="text-amber-700 dark:text-amber-300">노란색 행은 검색어와 직접 일치합니다.</span>
+      </template>
     </div>
 
     <BaseList
@@ -455,8 +515,10 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
       :totalPage="totalPage"
       :rowDropEnabled="true"
       :rowClass="getVoucherRowClass"
+      :errorMessage="loadError"
       @intersect="handleIntersect"
       @row-drop="({ item, files }) => handleVoucherFiles(item, files)"
+      @retry="search"
     >
       <template #header.files="{ header }">
         <div class="flex">
