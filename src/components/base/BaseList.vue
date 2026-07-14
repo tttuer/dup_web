@@ -34,6 +34,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  rowClass: {
+    type: Function,
+    default: () => '',
+  },
 });
 
 function getGroupKey(item) {
@@ -276,15 +280,16 @@ function handleRowDrop(item, event) {
           <tr
             v-for="(item, index) in displayableItems"
             :key="item.id"
-            v-memo="[item.id, item.files, checkedIds.has(item.id), item.groupIndex, dropTargetId === item.id]"
+            v-memo="[item.id, item.files, checkedIds.has(item.id), item.groupIndex, item.isSearchMatch, dropTargetId === item.id]"
             class="border-b border-gray-200 dark:border-gray-700"
-            :class="
+            :class="[
               dropTargetId === item.id
                 ? 'bg-blue-100 outline-2 outline-blue-500 outline-offset-[-2px] dark:bg-blue-900/60'
                 : item.groupIndex % 2 === 0
                 ? 'bg-white dark:bg-gray-900'
-                : 'bg-blue-50 dark:bg-gray-800'
-            "
+                : 'bg-blue-50 dark:bg-gray-800',
+              props.rowClass(item),
+            ]"
             @dragenter.prevent="handleRowDragEnter(item.id)"
             @dragover.prevent
             @dragleave.prevent="handleRowDragLeave(item.id)"

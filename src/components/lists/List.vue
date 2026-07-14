@@ -30,6 +30,7 @@ const isLoading = ref(false);
 const selectedCompany = ref(null);
 const selectedDate = ref('');
 const voucherLists = shallowRef([]);
+const totalCount = ref(0);
 const totalPage = ref(0);
 const currentPage = ref(1);
 const isPdfConverting = ref(false);
@@ -38,6 +39,45 @@ const end_at = ref('');
 
 const searchbar = ref('');
 const searchbarOption = ref('');
+
+const voucherSearchFieldByOption = {
+  NM_ACCTIT: 'nm_acctit',
+  NM_TRADE: 'nm_trade',
+  NM_REMARK: 'nm_remark',
+};
+
+const hasActiveSearch = computed(() => Boolean(searchbar.value.trim() && searchbarOption.value));
+
+function normalizeSearchValue(value) {
+  return String(value ?? '').toLocaleLowerCase();
+}
+
+const highlightedVouchers = computed(() => {
+  const searchField = voucherSearchFieldByOption[searchbarOption.value];
+  const searchTerm = normalizeSearchValue(searchbar.value.trim());
+
+  return voucherLists.value.map((voucher) => ({
+    ...voucher,
+    isSearchMatch: Boolean(
+      searchField && searchTerm && normalizeSearchValue(voucher[searchField]).includes(searchTerm),
+    ),
+  }));
+});
+
+const searchResultSummary = computed(() => {
+  if (!hasActiveSearch.value) return null;
+
+  const matchedCount = highlightedVouchers.value.filter((voucher) => voucher.isSearchMatch).length;
+  return {
+    matchedCount,
+    relatedCount: highlightedVouchers.value.length - matchedCount,
+  };
+});
+
+function getVoucherRowClass(voucher) {
+  return voucher.isSearchMatch ? '!bg-amber-50 dark:!bg-amber-950/40' : '';
+}
+
 const checkedIds = ref(new Set());
 const uploadingVoucherIds = ref(new Set());
 const hasChecked = computed(() => checkedIds.value.size > 0);
@@ -83,6 +123,7 @@ async function fetchVouchers(isReset = false) {
   if (!selectedCompany.value || selectedCompany.value === '') return;
   if (isReset) {
     voucherLists.value = [];
+    totalCount.value = 0;
     totalPage.value = 0;
     currentPage.value = 1;
   }
@@ -103,6 +144,7 @@ async function fetchVouchers(isReset = false) {
     const [total_count, total_page, lists] = await response.json();
 
     totalPage.value = total_page;
+    totalCount.value = total_count;
     const vouchers = lists.map((voucher) => ({
       ...voucher,
     }));
@@ -393,15 +435,26 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
       </div>
     </div>
 
+    <div
+      v-if="searchResultSummary"
+      class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
+    >
+      <span class="font-semibold">검색 결과 {{ totalCount }}건</span>
+      <span>현재 불러온 {{ highlightedVouchers.length }}건 중 직접 일치 {{ searchResultSummary.matchedCount }}건</span>
+      <span v-if="searchResultSummary.relatedCount">같은 전표 묶음 {{ searchResultSummary.relatedCount }}건</span>
+      <span class="text-amber-700 dark:text-amber-300">노란색 행은 검색어와 직접 일치합니다.</span>
+    </div>
+
     <BaseList
       :headers="headers"
-      :items="voucherLists"
+      :items="highlightedVouchers"
       :loading="isLoading || isPdfConverting"
       :checkedIds="checkedIds"
       @update:checkedIds="checkedIds = $event"
       :currentPage="currentPage"
       :totalPage="totalPage"
       :rowDropEnabled="true"
+      :rowClass="getVoucherRowClass"
       @intersect="handleIntersect"
       @row-drop="({ item, files }) => handleVoucherFiles(item, files)"
     >
@@ -468,12 +521,26 @@ watch([selectedCompany, start_at, end_at, lockFilter], debouncedFetchVouchers);
       </template>
 
       <template #item.actions="{ item }">
-        <input
-          type="button"
-          value="관리"
-          @click="openEditModal(item)"
-          class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white pr-1.5 pl-1.5 text-sm hover:bg-black hover:text-white"
-        />
+        <div class="flex flex-col items-center gap-1">
+          <span
+            v-if="hasActiveSearch"
+            :class="[
+              'whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold',
+              item.isSearchMatch
+                ? 'bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-50'
+                : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-100',
+            ]"
+          >
+            {{ item.isSearchMatch ? '검색 일치' : '같은 전표' }}
+          </span>
+          <button
+            type="button"
+            @click="openEditModal(item)"
+            class="h-6 w-14 cursor-pointer rounded-sm border border-gray-300 bg-white px-1.5 text-sm hover:bg-black hover:text-white dark:bg-gray-800"
+          >
+            관리
+          </button>
+        </div>
       </template>
     </BaseList>
 
