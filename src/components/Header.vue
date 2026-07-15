@@ -41,18 +41,8 @@ onMounted(() => {
   pendingUsersStore.connectWebSocket();
   approvalNotificationStore.connectWebSocket();
   
-  // 웹소켓 연결 확인 후 카운트 새로고침
-  const checkAndRefresh = () => {
-    if (approvalNotificationStore.isConnected) {
-      approvalNotificationStore.refreshPendingCount();
-    } else {
-      // 연결이 안되었다면 잠시 후 다시 시도
-      setTimeout(checkAndRefresh, 500);
-    }
-  };
-  
-  // 초기 연결 확인 시작 (1초 후)
-  setTimeout(checkAndRefresh, 1000);
+  // WebSocket 상태와 무관하게 초기 배지 값을 HTTP로 조회한다.
+  approvalNotificationStore.refreshPendingCount();
 });
 
 function goToVoucher() {

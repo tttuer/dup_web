@@ -1,6 +1,7 @@
 // src/stores/useApprovalNotificationStore.js
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { authFetch } from '@/utils/authFetch';
 
 export const useApprovalNotificationStore = defineStore('approvalNotification', () => {
   // 상태 관리
@@ -12,6 +13,7 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
 
   // WebSocket URL
   const wsUrl = import.meta.env.VITE_WS_URL_APPROVAL_NOTIFICATIONS;
+  const approvalApiUrl = import.meta.env.VITE_APPROVAL_API_URL;
 
   // WebSocket 연결
   const connectWebSocket = () => {
@@ -185,9 +187,22 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
   };
 
   // 대기 건수 새로고침
-  const refreshPendingCount = () => {
+  const refreshPendingCount = async () => {
     if (websocket.value?.readyState === WebSocket.OPEN) {
       websocket.value.send('get_pending_count');
+    }
+
+    // WebSocket이 연결되지 않았거나 서버 메시지가 지연되어도 배지가 비지 않도록
+    // 로그인한 사용자의 현재 대기 건수를 HTTP로 한 번 더 확인한다.
+    if (!localStorage.getItem('access_token')) return;
+    try {
+      const response = await authFetch(`${approvalApiUrl}/pending/count`);
+      if (!response.ok) return;
+
+      const data = await response.json();
+      pendingApprovalCount.value = Number.isFinite(data.count) ? data.count : 0;
+    } catch (error) {
+      console.error('결재 대기 건수 조회 실패:', error);
     }
   };
 
