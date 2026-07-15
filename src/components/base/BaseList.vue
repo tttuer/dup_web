@@ -219,7 +219,7 @@ function handleRowDrop(item, event) {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50 relative">
+  <div class="relative flex flex-1 flex-col overflow-hidden rounded-lg border-2 border-gray-200 bg-white outline outline-white/5 dark:border-gray-700 dark:bg-gray-950/50">
     <!-- 로딩 오버레이 -->
     <div 
       v-if="loading" 
@@ -253,17 +253,17 @@ function handleRowDrop(item, event) {
     <!-- 고정 헤더 테이블 -->
     <div
       ref="container"
-      class="min-w-[1300px] flex-1 overflow-x-hidden overflow-y-auto no-scrollbar"
+      class="flex-1 overflow-x-auto overflow-y-auto"
       :class="{ 'pointer-events-none': loading }"
     >
-      <table class="w-full min-w-[1300px] table-fixed">
+      <table class="responsive-list-table w-full min-w-[1300px] table-fixed">
         <thead class="sticky top-0 z-10 bg-gray-100 dark:bg-gray-700">
           <tr>
             <th
               v-if="showCheckboxes"
               class="w-[4%] border-r border-gray-200 px-4 py-2 text-center dark:border-gray-600"
             >
-              <input type="checkbox" :checked="isAllChecked" @change="handleCheckAll" />
+              <input type="checkbox" aria-label="현재 목록 전체 선택" :checked="isAllChecked" @change="handleCheckAll" />
             </th>
             <th
               v-for="header in headers"
@@ -302,10 +302,12 @@ function handleRowDrop(item, event) {
           >
             <td
               v-if="showCheckboxes"
+              data-label="선택"
               class="w-[4%] border-r border-gray-200 px-4 py-2 dark:border-gray-600"
             >
               <input
                 type="checkbox"
+                :aria-label="`${item.id} 선택`"
                 :checked="checkedIds.has(item.id)"
                 @click="handleCheckboxClick($event, index)"
               />
@@ -318,6 +320,7 @@ function handleRowDrop(item, event) {
                 header.align === 'right' ? 'text-right' : 'text-left',
               ]"
               :style="{ width: header.width }"
+              :data-label="header.text"
             >
               <slot
                 :name="`item.${header.value}`"
@@ -354,5 +357,55 @@ function handleRowDrop(item, event) {
 </template>
 
 <style scoped>
-/* 필요한 경우 스타일 추가 */
+@media (max-width: 767px) {
+  .responsive-list-table,
+  .responsive-list-table tbody,
+  .responsive-list-table tr,
+  .responsive-list-table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .responsive-list-table {
+    min-width: 0;
+  }
+
+  .responsive-list-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .responsive-list-table tr {
+    margin: 0.75rem;
+    width: calc(100% - 1.5rem) !important;
+    overflow: hidden;
+    border: 1px solid rgb(229 231 235);
+    border-radius: 0.5rem;
+  }
+
+  .responsive-list-table td {
+    display: grid;
+    grid-template-columns: minmax(6rem, 35%) 1fr;
+    gap: 0.75rem;
+    border-right: 0;
+    border-bottom: 1px solid rgb(229 231 235);
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+  }
+
+  .responsive-list-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .responsive-list-table td::before {
+    content: attr(data-label);
+    color: rgb(75 85 99);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
 </style>

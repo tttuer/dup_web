@@ -5,6 +5,7 @@ import router from './router.js';
 import Toast from 'vue-toastification';
 import 'vue-toastification/dist/index.css';
 import { createPinia } from 'pinia';
+import modalAccessibility from './plugins/modalAccessibility';
 
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css'
@@ -27,4 +28,4 @@ const pinia = createPinia();
 
 app.component('VueDatePicker', VueDatePicker);
 
-app.use(router).use(pinia).use(Toast, options).mount('#app');
+app.use(router).use(pinia).use(Toast, options).use(modalAccessibility).mount('#app');

@@ -134,6 +134,7 @@
   <div 
     v-if="showDeleteModal" 
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    @click.self="showDeleteModal = false"
   >
     <div class="bg-white rounded-lg p-6 w-full max-w-md">
       <div class="flex items-center mb-4">

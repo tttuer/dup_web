@@ -142,34 +142,31 @@ watchEffect(() => {
               typeStore.currentType == TYPE.VOUCHER ? 'border-b-2 border-black font-bold' : ''
             "
           >
-            <input
+            <button
               class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
               type="button"
-              value="전표 증빙자료"
               @click="goToVoucher"
-            />
+            >전표 증빙자료</button>
           </div>
           <div
             class="ml-5 content-center"
             :class="typeStore.currentType == TYPE.EXTRA ? 'border-b-2 border-black font-bold' : ''"
           >
-            <input
+            <button
               class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
               type="button"
-              value="업무 파일"
               @click="goToExtra"
-            />
+            >업무 파일</button>
           </div>
           <div
             class="ml-5 content-center relative"
             :class="route.path === '/approval' ? 'border-b-2 border-black font-bold' : ''"
           >
-            <input
+            <button
               class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
               type="button"
-              value="전자결재"
               @click="goToApproval"
-            />
+            >전자결재</button>
             <span
               v-if="approvalNotificationStore.pendingApprovalCount > 0"
               class="absolute top-1.5 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full"
@@ -181,24 +178,22 @@ watchEffect(() => {
             class="ml-5 content-center relative"
             :class="route.path.startsWith('/wiki') ? 'border-b-2 border-black font-bold' : ''"
           >
-            <input
+            <button
               class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
               type="button"
-              value="사내 위키"
               @click="goToWiki"
-            />
+            >사내 위키</button>
           </div>
           <div
             class="ml-5 content-center relative"
             v-if="hasAdminRole"
             :class="route.path === '/user-approval' ? 'border-b-2 border-black font-bold' : ''"
           >
-            <input
+            <button
               class="cursor-pointer rounded-lg p-1 hover:bg-gray-200/75"
               type="button"
-              value="회원 승인"
               @click="goToUserApproval"
-            />
+            >회원 승인</button>
             <span
               v-if="pendingUsersCount > 0"
               class="absolute top-1.5 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full"

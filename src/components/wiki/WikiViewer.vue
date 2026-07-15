@@ -75,12 +75,11 @@
             첨부파일 ({{ page.attachments.length }})
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <a 
+            <button
               v-for="file in page.attachments" 
               :key="file.id" 
-              :href="getDownloadUrl(file.url)" 
-              download
-              target="_blank"
+              type="button"
+              @click="downloadAttachment(file)"
               class="flex items-center p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-md transition-all group"
             >
               <div class="w-10 h-10 rounded bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 mr-3 shrink-0 transition-colors">
@@ -93,7 +92,7 @@
               <div class="text-gray-300 group-hover:text-blue-500 ml-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               </div>
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -160,6 +159,9 @@
 import { computed, ref, watch, nextTick, onMounted } from 'vue';
 import { marked } from 'marked';
 import Prism from 'prismjs';
+import { authFetch } from '@/utils/authFetch';
+import { sanitizeWikiHtml } from '@/utils/sanitizeWikiHtml';
+import { useToast } from 'vue-toastification';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
@@ -180,6 +182,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['edit', 'delete', 'navigate']);
+const toast = useToast();
 
 const scrollContainer = ref(null);
 
@@ -213,7 +216,7 @@ const processed = computed(() => {
   });
   
   return {
-    html: div.innerHTML,
+    html: sanitizeWikiHtml(div.innerHTML),
     headings: headingsList
   };
 });
@@ -221,8 +224,10 @@ const processed = computed(() => {
 const scrollToHeading = (id) => {
   const el = document.getElementById(id);
   if (el && scrollContainer.value) {
+    const container = scrollContainer.value;
+    const headingTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top;
     scrollContainer.value.scrollTo({
-      top: el.offsetTop - 30,
+      top: container.scrollTop + headingTop - 24,
       behavior: 'smooth'
     });
   }
@@ -249,9 +254,34 @@ const formatSize = (bytes) => {
 
 const getDownloadUrl = (url) => {
   if (!url) return '#';
-  if (url.startsWith('http')) return url;
   const baseUrl = import.meta.env.VITE_WIKI_API_URL.split('/api')[0];
-  return baseUrl + url;
+  try {
+    const downloadUrl = new URL(url, baseUrl);
+    return downloadUrl.origin === new URL(baseUrl).origin ? downloadUrl.href : '#';
+  } catch {
+    return '#';
+  }
+};
+
+const downloadAttachment = async (file) => {
+  try {
+    const url = getDownloadUrl(file.url);
+    if (url === '#') throw new Error('유효하지 않은 첨부파일 주소입니다.');
+
+    const response = await authFetch(url);
+    if (!response.ok) throw new Error('첨부파일을 다운로드할 수 없습니다.');
+
+    const objectUrl = URL.createObjectURL(await response.blob());
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = file.file_name || 'attachment';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    toast.error(error.message || '첨부파일을 다운로드할 수 없습니다.');
+  }
 };
 
 const confirmDelete = () => {

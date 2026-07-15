@@ -160,10 +160,10 @@
 
 ### 15. 반응형·접근성 개선
 
-- [ ] 표 화면을 작은 화면에서 카드 또는 열 선택 방식으로 제공한다.
-- [ ] 모든 모달에 `role="dialog"`, `aria-modal`, 포커스 트랩, Escape 닫기를 적용한다.
+- [x] 표 화면을 작은 화면에서 카드 또는 열 선택 방식으로 제공한다. (2026-07-15, `BaseList` 모바일 카드 레이아웃)
+- [x] 모든 모달에 `role="dialog"`, `aria-modal`, 포커스 트랩, Escape 닫기를 적용한다. (2026-07-15, 앱 전역 모달 접근성 처리)
 - [ ] 아이콘 버튼의 접근성 이름과 입력 필드의 명시적 label을 추가한다.
-- [ ] 메뉴는 `input type="button"` 대신 `button` 또는 `RouterLink`로 통일한다.
+- [x] 메뉴는 `input type="button"` 대신 `button` 또는 `RouterLink`로 통일한다. (2026-07-15, 헤더 메뉴)
 
 관련 코드: `dup_web/src/components/base/BaseList.vue`, `dup_web/src/components/Header.vue`
 
