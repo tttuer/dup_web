@@ -35,7 +35,7 @@ watch([start_at, end_at], () => {
 </script>
 
 <template>
-  <div class="flex flex-row">
+  <div class="flex shrink-0 flex-row">
     <div>
       <Flatpickr
         class="h-9 w-24 rounded-sm border border-gray-300 pl-2"

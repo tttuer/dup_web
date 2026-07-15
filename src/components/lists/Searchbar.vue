@@ -51,7 +51,7 @@ watch(selectedOption, (newValue) => {
 </script>
 
 <template>
-  <div class="flex">
+  <div class="flex min-w-0">
       <Dropdown
         class="mr-2"
         :options="searchOptions"
@@ -60,7 +60,7 @@ watch(selectedOption, (newValue) => {
       @select="(select) => (selectedOption = select)"
     />
     <input
-      class="h-9 rounded-sm border border-gray-300 pl-2"
+      class="h-9 min-w-0 flex-1 rounded-sm border border-gray-300 pl-2"
       type="text"
       placeholder="검색어 입력 후 Enter"
       v-model="search"

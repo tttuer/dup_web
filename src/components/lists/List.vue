@@ -413,10 +413,9 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
 
 <template>
   <div class="bg-testPink flex h-full w-full flex-col p-8">
-    <div class="grid grid-cols-2">
-      <div class="col-span-1 flex">
+    <div class="flex flex-col gap-2 min-[760px]:flex-row min-[760px]:items-start">
+      <div class="flex shrink-0">
           <Dropdown
-            class="col-span-1"
             @select="(select) => (selectedCompany = select)"
             :options="companyOptions"
             :nameToEnum="companyNameToEnum"
@@ -463,8 +462,9 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
           </button>
         </div>
       </div>
-      <div class="col-span-1 flex flex-row justify-end">
+      <div class="flex min-w-0 flex-col gap-2 min-[560px]:flex-row min-[760px]:ml-auto min-[760px]:self-start">
         <DateSearch
+          class="shrink-0"
           :startAt="start_at"
           :endAt="end_at"
           @search="
@@ -475,7 +475,7 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
           "
         />
         <Searchbar
-          class="ml-3"
+          class="min-w-0 min-[560px]:ml-1 min-[560px]:min-w-[16rem]"
           :searchValue="searchbar"
           :searchOption="searchbarOption"
           @search="
