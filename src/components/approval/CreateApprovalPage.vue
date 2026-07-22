@@ -12,7 +12,7 @@
       <h2 class="text-xl font-semibold text-gray-900">결재 요청 작성</h2>
     </div>
     <!-- 진행 단계 표시 -->
-    <div class="mb-8">
+    <div v-if="!isPaymentRequest" class="mb-8">
         <div class="flex items-center space-x-4">
           <div 
             class="flex items-center"
@@ -54,7 +54,7 @@
         <!-- Step 1: 기본 정보 -->
         <div v-if="step === 1" class="space-y-6">
           <!-- 템플릿 선택 -->
-          <div>
+          <div v-if="!isPaymentRequest">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
               <label class="block text-sm font-medium text-gray-700">
                 결재 양식 선택 (선택사항)
@@ -92,9 +92,17 @@
             <!-- 양식 목록 그리드 -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-1 bg-gray-50/50 rounded-lg border border-gray-100">
               <div
+                @click="selectPaymentRequest"
+                class="p-4 bg-white border rounded-lg cursor-pointer transition-all shadow-sm hover:shadow"
+                :class="isPaymentRequest ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300'"
+              >
+                <div class="font-medium text-gray-900 mb-1">납부 요청</div>
+                <div class="text-xs text-gray-500">기한·금액·납부 담당자를 지정하는 간편 결재</div>
+              </div>
+              <div
                 @click="handleTemplateSelect(null)"
                 class="p-4 bg-white border rounded-lg cursor-pointer transition-all shadow-sm hover:shadow"
-                :class="selectedTemplate === null ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300'"
+                :class="selectedTemplate === null && !isPaymentRequest ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300'"
               >
                 <div class="font-medium text-gray-900 mb-1">자유 작성</div>
                 <div class="text-xs text-gray-500">템플릿 없이 자유롭게 작성</div>
@@ -121,6 +129,44 @@
             </div>
           </div>
 
+          <div v-if="isPaymentRequest" class="space-y-4 rounded-lg border border-blue-100 bg-blue-50/50 p-5">
+            <div>
+              <h3 class="font-medium text-gray-900">납부 정보</h3>
+              <p class="mt-1 text-sm text-gray-600">최종 승인되면 지정 담당자의 ‘납부할 업무’에 자동으로 생성됩니다.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label class="block text-sm font-medium text-gray-700">
+                납부 업무명
+                <input v-model="paymentRequest.name" type="text" placeholder="예: 2026년 1기 부가세" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+              </label>
+              <label class="block text-sm font-medium text-gray-700">
+                분류
+                <input v-model="paymentRequest.category" type="text" placeholder="예: 세금, 거래처 지급" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+              </label>
+              <label class="block text-sm font-medium text-gray-700">
+                요청 금액
+                <input v-model.number="paymentRequest.amount" min="0" type="number" placeholder="0" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+              </label>
+              <label class="block text-sm font-medium text-gray-700">
+                납부 기한
+                <input v-model="paymentRequest.due_date" type="date" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+              </label>
+              <label class="block text-sm font-medium text-gray-700 md:col-span-2">
+                납부 담당자 <span class="text-red-500">*</span>
+                <select v-model="paymentRequest.assignee_id" class="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2">
+                  <option value="">담당자를 선택하세요</option>
+                  <option v-for="user in userStore.users" :key="user.user_id" :value="user.user_id">
+                    {{ user.name }} ({{ user.user_id }})
+                  </option>
+                </select>
+                <span class="mt-1 block text-xs font-normal text-gray-500">처음 선택한 담당자는 다음 납부 요청에도 기본값으로 적용됩니다.</span>
+              </label>
+            </div>
+            <p class="rounded-md bg-white px-3 py-2 text-sm text-gray-600">
+              자동 제목: <span class="font-medium text-gray-900">{{ paymentTitlePreview }}</span>
+            </p>
+          </div>
+
           <!-- 제목 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -129,8 +175,9 @@
             <input
               v-model="formData.title"
               type="text"
-              placeholder="결재 제목을 입력하세요"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              :placeholder="isPaymentRequest ? '납부 정보 입력 시 자동 생성됩니다' : '결재 제목을 입력하세요'"
+              :readonly="isPaymentRequest"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-gray-50"
               required
             />
           </div>
@@ -138,14 +185,14 @@
           <!-- 내용 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              내용 <span class="text-red-500">*</span>
+              {{ isPaymentRequest ? '요청 사유·참고사항 (선택)' : '내용' }}<span v-if="!isPaymentRequest" class="text-red-500"> *</span>
             </label>
             <textarea
               v-model="formData.content"
               rows="8"
-              placeholder="결재 내용을 입력하세요"
+              :placeholder="isPaymentRequest ? '납부 근거, 고지서 안내 등 필요한 내용을 입력하세요' : '결재 내용을 입력하세요'"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
+              :required="!isPaymentRequest"
             ></textarea>
           </div>
 
@@ -335,7 +382,7 @@
         <!-- 하단 버튼 -->
         <div class="flex justify-between items-center mt-8 pt-6 border-t">
           <button
-            v-if="step > 1"
+            v-if="step > 1 && !isPaymentRequest"
             @click="step--"
             class="flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
           >
@@ -347,7 +394,16 @@
           <div class="flex space-x-3">
             <!-- 다음/완료 버튼 -->
             <button
-              v-if="step < 3"
+              v-if="isPaymentRequest"
+              @click="submitPaymentRequest"
+              :disabled="loading || !hasValidPaymentRequest"
+              class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              <Loader v-if="loading" class="w-4 h-4 animate-spin mr-2" />
+              납부 요청 등록
+            </button>
+            <button
+              v-else-if="step < 3"
               @click="nextStep"
               :disabled="!canProceed"
               class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
@@ -416,8 +472,7 @@ import { ChevronLeft, ChevronRight, Users, Plus, Upload, Trash2, FileText, File,
 import { useToast } from 'vue-toastification';
 import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
-import { approvalUtils } from '@/utils/approvalApi';
-import { fileApi } from '@/utils/approvalApi';
+import { approvalUtils, fileApi, paymentTaskApi } from '@/utils/approvalApi';
 import ApprovalLineModal from './ApprovalLineModal.vue';
 import { useUserStore } from '@/stores/useUserStore';
 
@@ -444,6 +499,16 @@ const selectedFiles = ref([]);
 const deletedFileIds = ref([]);
 const fileInput = ref(null);
 const isDragOver = ref(false);
+const isPaymentRequest = ref(false);
+const PAYMENT_ASSIGNEE_STORAGE_KEY = 'payment_request_default_assignee_id';
+const createPaymentRequest = () => ({
+  name: '',
+  category: '',
+  amount: null,
+  due_date: '',
+  assignee_id: localStorage.getItem(PAYMENT_ASSIGNEE_STORAGE_KEY) || '',
+});
+const paymentRequest = ref(createPaymentRequest());
 
 // 폼 데이터
 const formData = ref({
@@ -456,6 +521,17 @@ const approvalLines = ref([]);
 const templates = ref([]);
 const templateSearchQuery = ref('');
 const selectedCategory = ref('all');
+
+const paymentTitlePreview = computed(() => {
+  const parts = ['납부 요청'];
+  if (paymentRequest.value.name.trim()) parts.push(paymentRequest.value.name.trim());
+  if (paymentRequest.value.due_date) parts.push(paymentRequest.value.due_date);
+  return parts.join(' - ');
+});
+
+const hasValidPaymentRequest = computed(() => {
+  return Boolean(paymentRequest.value.assignee_id);
+});
 
 // 템플릿 필터링 로직
 const templateCategories = computed(() => {
@@ -491,6 +567,8 @@ const goBack = () => {
 const resetForm = () => {
   step.value = 1;
   selectedTemplate.value = null;
+  isPaymentRequest.value = false;
+  paymentRequest.value = createPaymentRequest();
   formData.value = {
     title: '',
     content: '',
@@ -527,8 +605,29 @@ const handleTemplateSelect = (template) => {
   } else {
     // 자유 작성 선택
     selectedTemplate.value = null;
+    isPaymentRequest.value = false;
     formData.value.template_id = '';
     // 기존 제목, 내용, 결재선은 유지
+  }
+};
+
+const selectPaymentRequest = async () => {
+  if (!isPaymentRequest.value) {
+    const hasExistingData = formData.value.content.trim().length > 0 || approvalLines.value.length > 0;
+    if (hasExistingData && !confirm('납부 요청으로 전환하면 기존 제목과 내용을 납부 요청 형식으로 사용합니다. 계속하시겠습니까?')) {
+      return;
+    }
+  }
+  selectedTemplate.value = null;
+  formData.value.template_id = '';
+  isPaymentRequest.value = true;
+  await userStore.fetchAllUsers();
+  syncPaymentTitle();
+};
+
+const syncPaymentTitle = () => {
+  if (isPaymentRequest.value) {
+    formData.value.title = paymentTitlePreview.value;
   }
 };
 
@@ -541,6 +640,7 @@ const confirmTemplateChange = () => {
 };
 
 const applyTemplate = (template) => {
+  isPaymentRequest.value = false;
   selectedTemplate.value = template;
   formData.value.template_id = template.id;
   
@@ -603,7 +703,8 @@ const applyTemplate = (template) => {
 // 단계별 진행 조건
 const canProceed = computed(() => {
   if (step.value === 1) {
-    return formData.value.title.trim() && formData.value.content.trim();
+    return formData.value.title.trim() &&
+      (isPaymentRequest.value ? hasValidPaymentRequest.value : formData.value.content.trim());
   }
   if (step.value === 2) {
     return approvalLines.value.length > 0;
@@ -621,9 +722,10 @@ const hasInvalidApprovers = computed(() => {
 
 const canComplete = computed(() => {
   return formData.value.title.trim() && 
-         formData.value.content.trim() && 
+         (isPaymentRequest.value || formData.value.content.trim()) && 
          approvalLines.value.length > 0 &&
-         !hasInvalidApprovers.value;
+         !hasInvalidApprovers.value &&
+         (!isPaymentRequest.value || hasValidPaymentRequest.value);
 });
 
 // 파일 관련 함수들
@@ -734,6 +836,16 @@ const submitApproval = async () => {
   try {
     const requestData = {
       ...formData.value,
+      form_data: isPaymentRequest.value ? {
+        workflow_type: 'PAYMENT_REQUEST',
+        payment_request: {
+          ...paymentRequest.value,
+          amount: paymentRequest.value.amount === null || paymentRequest.value.amount === ''
+            ? null
+            : Number(paymentRequest.value.amount),
+          description: formData.value.content.trim(),
+        },
+      } : (formData.value.form_data || {}),
       approval_lines: approvalLines.value.map(line => ({
         step_order: line.step_order,
         approver_user_id: line.approver_user_id || line.approver_id,
@@ -762,6 +874,31 @@ const submitApproval = async () => {
   }
 };
 
+const submitPaymentRequest = async () => {
+  if (!hasValidPaymentRequest.value) {
+    toast.error('납부 담당자를 선택해주세요.');
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const task = await paymentTaskApi.createTask({
+      ...paymentRequest.value,
+      amount: paymentRequest.value.amount === null || paymentRequest.value.amount === ''
+        ? null
+        : Number(paymentRequest.value.amount),
+      description: formData.value.content.trim(),
+      files: selectedFiles.value.filter(file => !file.id),
+    });
+    toast.success('납부 담당자에게 요청을 전달했습니다.');
+    emit('created', task);
+  } catch (error) {
+    toast.error('처리 중 오류가 발생했습니다: ' + error.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
 // 기존 데이터 로드 (수정 모드)
 const loadExistingRequest = async () => {
   if (!props.editRequestId) return;
@@ -778,6 +915,17 @@ const loadExistingRequest = async () => {
       template_id: detail.template_id,
       form_data: detail.form_data || {},
     };
+
+    if (detail.form_data?.workflow_type === 'PAYMENT_REQUEST') {
+      isPaymentRequest.value = true;
+      paymentRequest.value = {
+        name: detail.form_data.payment_request?.name || '',
+        category: detail.form_data.payment_request?.category || '',
+        amount: detail.form_data.payment_request?.amount ?? null,
+        due_date: detail.form_data.payment_request?.due_date || '',
+        assignee_id: detail.form_data.payment_request?.assignee_id || '',
+      };
+    }
     
     approvalLines.value = lines.map(line => ({
       ...line,
@@ -809,9 +957,14 @@ const loadExistingRequest = async () => {
 // 초기 로드
 onMounted(async () => {
   resetForm();
-  await loadTemplates();
+  await Promise.all([loadTemplates(), userStore.fetchAllUsers()]);
   if (props.editRequestId) {
     await loadExistingRequest();
   }
+});
+
+watch(paymentRequest, syncPaymentTitle, { deep: true });
+watch(() => paymentRequest.value.assignee_id, assigneeId => {
+  if (assigneeId) localStorage.setItem(PAYMENT_ASSIGNEE_STORAGE_KEY, assigneeId);
 });
 </script>
