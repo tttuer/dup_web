@@ -1,12 +1,19 @@
 <script setup>
-import { ref, watch, computed, nextTick, shallowRef } from 'vue';
+import { ref, watch, computed, nextTick, onMounted, onUnmounted, shallowRef } from 'vue';
 import FolderSidebar from './FolderSidebar.vue';
 import { authFetch } from '../../utils/authFetch';
 import DateSearch from './DateSearch.vue';
 import EditModal from './EditModal.vue';
 import { useTypeStore } from '@/stores/useTypeStore';
 import { getRoleFromLocalStorage } from '@/utils/token';
-import { groupOptions, groupNameToEnum, groupIdToName, loadGroupOptions } from '@/stores/useGroupStore';
+import {
+  groupOptions,
+  groupNameToEnum,
+  groupIdToName,
+  groupHasUnreadChangesById,
+  loadGroupOptions,
+  markGroupAsRead,
+} from '@/stores/useGroupStore';
 import BaseList from '@/components/base/BaseList.vue';
 import UserInput from './UserInput.vue';
 import Searchbar from './Searchbar.vue';
@@ -60,6 +67,9 @@ const lockFilter = ref(false);
 let sidebarSearchTimer = null;
 let sidebarSearchController = null;
 let suppressNextAutoFetch = false;
+let groupRefreshTimer = null;
+
+const GROUP_REFRESH_INTERVAL_MS = 60_000;
 
 const isFileDeleteModalOpen = ref(false);
 const filesToDelete = computed(() => {
@@ -101,6 +111,7 @@ async function fetchFiles(isReset = false) {
   }
 
   const params = new URLSearchParams();
+  const requestedGroupId = selectedGroup.value;
   params.append('type', typeStore.currentType);
   params.append('company', selectedCompany.value);
   params.append('start_at', start_at.value ? start_at.value : '');
@@ -124,9 +135,33 @@ async function fetchFiles(isReset = false) {
       ...file,
     }));
     fileLists.value = [...fileLists.value, ...newFiles];
+
+    if (isReset && requestedGroupId && String(requestedGroupId) === String(selectedGroup.value)) {
+      await markOpenedGroupAsRead(requestedGroupId);
+    }
   } finally {
     isLoading.value = false;
     isPdfConverting.value = false;
+  }
+}
+
+async function refreshGroupIndicators() {
+  if (selectedCompany.value) {
+    await loadGroupOptions(selectedCompany.value);
+  }
+}
+
+async function markOpenedGroupAsRead(groupId) {
+  try {
+    await markGroupAsRead(groupId);
+  } catch (error) {
+    console.error('폴더 확인 상태 저장 실패:', error);
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    refreshGroupIndicators();
   }
 }
 
@@ -406,6 +441,16 @@ const debouncedFetchFiles = () => {
 };
 
 watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sortOrder], debouncedFetchFiles);
+
+onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  groupRefreshTimer = window.setInterval(refreshGroupIndicators, GROUP_REFRESH_INTERVAL_MS);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  window.clearInterval(groupRefreshTimer);
+});
 </script>
 
 <template>
@@ -417,6 +462,7 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sor
       :groupNameToEnum="groupNameToEnum"
       :selectedCompany="selectedCompany"
       :selectedGroup="selectedGroup"
+      :groupHasUnreadChangesById="groupHasUnreadChangesById"
       :fileSearchGroups="sidebarFileSearchGroups"
       :isFileSearchLoading="isSidebarFileSearchLoading"
       @update:selectedCompany="(select) => (selectedCompany = select)"

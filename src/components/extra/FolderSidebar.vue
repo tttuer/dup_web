@@ -42,6 +42,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  groupHasUnreadChangesById: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 
 const emit = defineEmits([
@@ -202,6 +206,10 @@ function isSameGroup(left, right) {
   return String(left) === String(right);
 }
 
+function hasUnreadChanges(groupId) {
+  return Boolean(props.groupHasUnreadChangesById[groupId]);
+}
+
 function startResize() {
   isResizing = true;
   document.addEventListener('mousemove', handleMouseMove);
@@ -332,6 +340,11 @@ watch(
           >
             <Folder class="h-4 w-4 shrink-0" :class="isSameGroup(selectedGroup, group.id) ? 'text-blue-500' : 'text-gray-400'" />
             <span class="truncate">{{ group.name }}</span>
+            <span
+              v-if="hasUnreadChanges(group.id)"
+              class="h-2 w-2 shrink-0 rounded-full bg-blue-500"
+              title="확인하지 않은 파일 변경이 있습니다"
+            ></span>
           </button>
         </section>
 
@@ -369,6 +382,11 @@ watch(
                   {{ group.fileNames.join(', ') }}{{ group.matchCount > group.fileNames.length ? ` 외 ${group.matchCount - group.fileNames.length}건` : '' }}
                 </span>
               </span>
+              <span
+                v-if="hasUnreadChanges(group.groupId)"
+                class="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-500"
+                title="확인하지 않은 파일 변경이 있습니다"
+              ></span>
             </button>
           </div>
         </section>
@@ -403,6 +421,11 @@ watch(
                   :class="isSameGroup(selectedGroup, group.id) ? 'text-blue-500' : 'text-gray-400'"
                 />
                 <span class="truncate">{{ group.name }}</span>
+                <span
+                  v-if="hasUnreadChanges(group.id)"
+                  class="h-2 w-2 shrink-0 rounded-full bg-blue-500"
+                  title="확인하지 않은 파일 변경이 있습니다"
+                ></span>
               </button>
 
               <div
