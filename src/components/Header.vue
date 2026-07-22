@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watchEffect } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue';
 import LoginButton from './LoginButton.vue';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
@@ -18,6 +18,27 @@ const approvalStore = useApprovalStore();
 
 const hasVoucherRole = ref(false);
 const hasAdminRole = ref(false);
+
+// 탭을 열자마자 "이곳에서 무엇을 해야 하는지" 알 수 있도록 짧은 역할 안내를 제공합니다.
+// 설명은 파일 목록이나 문서 본문보다 먼저 보이되, 작업 공간을 많이 차지하지 않게 한 줄로 유지합니다.
+const currentTabGuide = computed(() => {
+  const guides = {
+    '/extra': {
+      title: '업무 파일',
+      description: '업무에 쓰는 원본과 최종 파일을 회사·폴더별로 보관하세요.',
+    },
+    '/approval': {
+      title: '전자결재',
+      description: '승인이 필요한 일을 올리고, 승인 결과를 공식 기록으로 남기세요.',
+    },
+    '/wiki': {
+      title: '사내 위키',
+      description: '반복 업무 방법과 팀 지식을 누구나 찾기 쉽게 정리하세요.',
+    },
+  };
+
+  return guides[route.path] || null;
+});
 
 // 스토어에서 pendingUsersCount 가져오기
 const { pendingUsersCount } = pendingUsersStore;
@@ -194,6 +215,16 @@ watchEffect(() => {
         </div>
       </div>
       <LoginButton />
+    </div>
+    <div
+      v-if="currentTabGuide"
+      class="flex items-center gap-3 border-t border-gray-100 bg-blue-50 px-6 py-2 text-sm text-gray-700"
+      role="note"
+      aria-label="현재 탭 사용 안내"
+    >
+      <span class="shrink-0 rounded bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">안내</span>
+      <span class="font-semibold text-gray-900">{{ currentTabGuide.title }}</span>
+      <span class="text-gray-500">{{ currentTabGuide.description }}</span>
     </div>
   </header>
 </template>
