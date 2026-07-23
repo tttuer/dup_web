@@ -49,6 +49,23 @@
           결재함
         </button>
         <button
+          @click="activeTab = 'payment-tasks'"
+          :class="[
+            'w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-md transition-colors text-left',
+            activeTab === 'payment-tasks'
+              ? 'bg-blue-100 text-blue-700'
+              : 'text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          <span>납부 업무</span>
+          <span v-if="paymentTaskSummary.today_count > 0" class="ml-1 rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
+            오늘 {{ paymentTaskSummary.today_count }}
+          </span>
+          <span v-else-if="paymentTaskSummary.confirmation_count > 0" class="ml-1 rounded-full bg-indigo-500 px-2 py-0.5 text-xs text-white">
+            확인 {{ paymentTaskSummary.confirmation_count }}
+          </span>
+        </button>
+        <button
           @click="activeTab = 'search-all'"
           v-if="userStore.isAdmin"
           :class="[
@@ -104,6 +121,10 @@
           <CompletedApprovalList @view-detail="handleViewDetail" />
         </div>
 
+        <div v-if="activeTab === 'payment-tasks'">
+          <PaymentTaskList @summary-changed="handlePaymentTaskSummary" />
+        </div>
+
         <!-- 전체 검색 -->
         <div v-if="activeTab === 'search-all'">
           <AllApprovalSearch @view-detail="handleViewDetail" />
@@ -156,6 +177,8 @@ import CompletedApprovalList from './CompletedApprovalList.vue';
 import AllApprovalSearch from './AllApprovalSearch.vue';
 import TemplateManagement from './TemplateManagement.vue';
 import FavoriteGroupManagement from './FavoriteGroupManagement.vue';
+import PaymentTaskList from './PaymentTaskList.vue';
+import { paymentTaskApi } from '@/utils/approvalApi';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -167,6 +190,7 @@ const activeTab = ref('my-requests');
 const showDetailModal = ref(false);
 const selectedApproval = ref(null);
 const editRequestId = ref(null);
+const paymentTaskSummary = ref({ today_count: 0, confirmation_count: 0 });
 
 // 새 결재 생성 탭으로 이동
 const goToCreateApproval = () => {
@@ -197,6 +221,7 @@ onMounted(async () => {
   try {
     await userStore.fetchCurrentUser();
     await approvalStore.fetchPendingApprovals();
+    await refreshPaymentTaskSummary();
     
     // 웹소켓 연결 (결재 알림용)
     approvalNotificationStore.connectWebSocket();
@@ -205,8 +230,24 @@ onMounted(async () => {
   }
 });
 
+const refreshPaymentTaskSummary = async () => {
+  try {
+    paymentTaskSummary.value = await paymentTaskApi.getSummary();
+  } catch (error) {
+    console.error('납부 업무 요약 조회 오류:', error);
+  }
+};
+
+const handlePaymentTaskSummary = (summary) => {
+  paymentTaskSummary.value = summary;
+};
+
 // 새 결재 요청 생성 완료 핸들러
-const handleRequestCreated = () => {
+const handleRequestCreated = (createdItem) => {
+  if (createdItem?.assignee_id && !createdItem?.document_number) {
+    activeTab.value = 'payment-tasks';
+    return;
+  }
   approvalStore.fetchMyApprovalRequests();
   activeTab.value = 'my-requests';
 };

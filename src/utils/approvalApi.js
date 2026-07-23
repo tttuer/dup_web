@@ -3,6 +3,9 @@ import { authFetch } from '@/utils/authFetch';
 
 const FILE_API_URL = import.meta.env.VITE_FILE_API_URL;
 const API_URL = import.meta.env.VITE_API_URL;
+const APPROVAL_API_URL = import.meta.env.VITE_APPROVAL_API_URL;
+const PAYMENT_TASK_API_URL = import.meta.env.VITE_PAYMENT_TASK_API_URL ||
+  `${APPROVAL_API_URL.replace(/\/approvals\/?$/, '')}/payment-tasks`;
 
 // API 에러 처리 래퍼
 const handleApiError = async (response) => {
@@ -143,6 +146,133 @@ export const approvalLineApi = {
     }
     
     return await response.json();
+  },
+};
+
+// 결재 승인 뒤 실제 납부를 처리하는 후속 업무 API
+export const paymentTaskApi = {
+  async createTask(taskData) {
+    const formData = new FormData();
+    formData.append('assignee_id', taskData.assignee_id);
+    ['name', 'category', 'amount', 'due_date', 'description'].forEach(key => {
+      if (taskData[key] !== null && taskData[key] !== undefined && taskData[key] !== '') {
+        formData.append(key, String(taskData[key]));
+      }
+    });
+    taskData.files.forEach(file => formData.append('files', file));
+
+    const response = await authFetch(PAYMENT_TASK_API_URL, {
+      method: 'POST',
+      body: formData,
+    });
+    await handleApiError(response);
+    return response.json();
+  },
+
+  async getMyTasks(status) {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/my${query}`);
+    await handleApiError(response);
+    return response.json();
+  },
+
+  async getSummary() {
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/summary`);
+    await handleApiError(response);
+    return response.json();
+  },
+
+  async setDueDate(taskId, dueDate) {
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}/due-date`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ due_date: dueDate }),
+    });
+    await handleApiError(response);
+    return response.json();
+  },
+
+  async confirmTask(taskId) {
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}/confirm`, {
+      method: 'POST',
+    });
+    await handleApiError(response);
+    return response.json();
+  },
+
+  async updateTask(taskId, taskData) {
+    const formData = new FormData();
+    ['assignee_id', 'name', 'category', 'amount', 'due_date', 'description'].forEach(key => {
+      if (taskData[key] !== undefined && taskData[key] !== null) {
+        formData.append(key, String(taskData[key]));
+      }
+    });
+    if (taskData.deletedFileIds?.length) {
+      formData.append('deleted_file_ids', JSON.stringify(taskData.deletedFileIds));
+    }
+    taskData.files?.forEach(file => formData.append('files', file));
+
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}`, {
+      method: 'PATCH',
+      body: formData,
+    });
+    await handleApiError(response);
+    return response.json();
+  },
+
+  async updateCompletion(taskId, { paidAt, paidAmount, note, receiptFiles, deletedFileIds }) {
+    const formData = new FormData();
+    formData.append('paid_at', paidAt);
+    formData.append('paid_amount', paidAmount === null || paidAmount === undefined ? '' : String(paidAmount));
+    formData.append('note', note);
+    if (deletedFileIds.length) {
+      formData.append('deleted_file_ids', JSON.stringify(deletedFileIds));
+    }
+    receiptFiles.forEach(file => formData.append('receipt_files', file));
+
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}/completion`, {
+      method: 'PATCH',
+      body: formData,
+    });
+    await handleApiError(response);
+    return response.json();
+  },
+
+  async getTaskFiles(taskId) {
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}/files`);
+    await handleApiError(response);
+    return (await response.json()).map(file => ({ ...file, id: file.id || file._id }));
+  },
+
+  async downloadTaskFile(taskId, fileId, fileName) {
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}/files/${fileId}/download`);
+    await handleApiError(response);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(anchor);
+  },
+
+  async completeTask(taskId, { paidAt, paidAmount, note, receiptFiles }) {
+    const formData = new FormData();
+    formData.append('paid_at', paidAt);
+    if (paidAmount !== null && paidAmount !== undefined && paidAmount !== '') {
+      formData.append('paid_amount', String(paidAmount));
+    }
+    if (note) formData.append('note', note);
+    receiptFiles.forEach(file => formData.append('receipt_files', file));
+
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}/complete`, {
+      method: 'POST',
+      body: formData,
+    });
+    await handleApiError(response);
+    return response.json();
   },
 };
 

@@ -148,6 +148,19 @@ export const useApprovalNotificationStore = defineStore('approvalNotification', 
         };
         notifications.value.unshift(completedNotification);
         break;
+
+      case 'payment_task_assigned':
+        const paymentTaskNotification = {
+          id: Date.now(),
+          type: 'payment_task',
+          title: '새로운 납부 업무',
+          message: `${data.data.title}${data.data.due_date ? ` · 기한 ${data.data.due_date}` : ' · 기한 설정 필요'}`,
+          timestamp: new Date(),
+          data: data.data
+        };
+        notifications.value.unshift(paymentTaskNotification);
+        showBrowserNotification(paymentTaskNotification);
+        break;
         
       case 'approval_rejected':
         // 결재 반려 알림
