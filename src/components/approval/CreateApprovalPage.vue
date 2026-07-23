@@ -145,7 +145,7 @@
               </label>
               <label class="block text-sm font-medium text-gray-700">
                 요청 금액
-                <input v-model.number="paymentRequest.amount" min="0" type="number" placeholder="0" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+                <input :value="formatAmountInput(paymentRequest.amount)" inputmode="numeric" type="text" placeholder="금액을 입력하세요" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" @input="updateAmountInput($event, value => (paymentRequest.amount = value))" />
               </label>
               <label class="block text-sm font-medium text-gray-700">
                 납부 기한
@@ -805,6 +805,38 @@ const getFileIcon = (fileName) => {
 
 const formatFileSize = (bytes) => {
   return approvalUtils.formatFileSize(bytes);
+};
+
+const formatAmountInput = (value) => {
+  if (value === null || value === undefined || value === '') return '';
+  return Number(value).toLocaleString('ko-KR');
+};
+
+const parseAmountInput = (value) => {
+  const digits = String(value).replace(/[^0-9]/g, '');
+  return digits ? Number(digits) : '';
+};
+
+const updateAmountInput = (event, updateValue) => {
+  const input = event.target;
+  const digitPosition = input.value.slice(0, input.selectionStart ?? input.value.length).replace(/[^0-9]/g, '').length;
+  const amount = parseAmountInput(input.value);
+  updateValue(amount);
+
+  nextTick(() => {
+    const formatted = formatAmountInput(amount);
+    let digitsSeen = 0;
+    let caretPosition = formatted.length;
+    for (let index = 0; index < formatted.length; index += 1) {
+      if (/\d/.test(formatted[index])) digitsSeen += 1;
+      if (digitsSeen === digitPosition) {
+        caretPosition = index + 1;
+        break;
+      }
+    }
+    input.value = formatted;
+    input.setSelectionRange(caretPosition, caretPosition);
+  });
 };
 
 // 단계 이동
