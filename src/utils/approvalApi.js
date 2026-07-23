@@ -220,6 +220,24 @@ export const paymentTaskApi = {
     return response.json();
   },
 
+  async updateCompletion(taskId, { paidAt, paidAmount, note, receiptFiles, deletedFileIds }) {
+    const formData = new FormData();
+    formData.append('paid_at', paidAt);
+    formData.append('paid_amount', paidAmount === null || paidAmount === undefined ? '' : String(paidAmount));
+    formData.append('note', note);
+    if (deletedFileIds.length) {
+      formData.append('deleted_file_ids', JSON.stringify(deletedFileIds));
+    }
+    receiptFiles.forEach(file => formData.append('receipt_files', file));
+
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}/completion`, {
+      method: 'PATCH',
+      body: formData,
+    });
+    await handleApiError(response);
+    return response.json();
+  },
+
   async getTaskFiles(taskId) {
     const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}/files`);
     await handleApiError(response);
@@ -243,7 +261,9 @@ export const paymentTaskApi = {
   async completeTask(taskId, { paidAt, paidAmount, note, receiptFiles }) {
     const formData = new FormData();
     formData.append('paid_at', paidAt);
-    formData.append('paid_amount', String(paidAmount));
+    if (paidAmount !== null && paidAmount !== undefined && paidAmount !== '') {
+      formData.append('paid_amount', String(paidAmount));
+    }
     if (note) formData.append('note', note);
     receiptFiles.forEach(file => formData.append('receipt_files', file));
 
