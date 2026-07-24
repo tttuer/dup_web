@@ -34,7 +34,8 @@ async function login() {
 
   if (response.ok) {
     localStorage.setItem('access_token', data.access_token);
-    router.push('/');
+    const redirect = router.currentRoute.value.query.redirect;
+    router.push(typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/');
     return;
   }
 

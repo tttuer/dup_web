@@ -122,7 +122,7 @@
         </div>
 
         <div v-if="activeTab === 'payment-tasks'">
-          <PaymentTaskList @summary-changed="handlePaymentTaskSummary" />
+          <PaymentTaskList :highlighted-task-id="highlightedTaskId" @summary-changed="handlePaymentTaskSummary" />
         </div>
 
         <!-- 전체 검색 -->
@@ -163,8 +163,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Plus } from 'lucide-vue-next';
 import { useUserStore } from '@/stores/useUserStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
@@ -181,6 +181,7 @@ import PaymentTaskList from './PaymentTaskList.vue';
 import { paymentTaskApi } from '@/utils/approvalApi';
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const approvalStore = useApprovalStore();
 const approvalNotificationStore = useApprovalNotificationStore();
@@ -191,6 +192,7 @@ const showDetailModal = ref(false);
 const selectedApproval = ref(null);
 const editRequestId = ref(null);
 const paymentTaskSummary = ref({ today_count: 0, confirmation_count: 0 });
+const highlightedTaskId = computed(() => route.params.taskId || null);
 
 // 새 결재 생성 탭으로 이동
 const goToCreateApproval = () => {
@@ -229,6 +231,10 @@ onMounted(async () => {
     console.error('초기 데이터 로드 오류:', error);
   }
 });
+
+watch(highlightedTaskId, taskId => {
+  if (taskId) activeTab.value = 'payment-tasks';
+}, { immediate: true });
 
 const refreshPaymentTaskSummary = async () => {
   try {
