@@ -44,7 +44,13 @@
       조건에 맞는 납부 업무가 없습니다.
     </div>
     <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <article v-for="task in filteredTasks" :key="task.id" class="flex min-w-0 flex-col rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <article
+        v-for="task in filteredTasks"
+        :key="task.id"
+        :ref="element => setTaskElement(task.id, element)"
+        class="flex min-w-0 flex-col rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+        :class="task.id === highlightedTaskId ? 'border-2 border-blue-500 ring-4 ring-blue-100' : ''"
+      >
         <div class="min-w-0">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="statusClass(task)">
@@ -279,16 +285,20 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { File, FileText, Upload, X } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
 import { paymentTaskApi } from '@/utils/approvalApi';
 import { useUserStore } from '@/stores/useUserStore';
 
+const props = defineProps({
+  highlightedTaskId: { type: String, default: null },
+});
 const emit = defineEmits(['summary-changed']);
 const toast = useToast();
 const userStore = useUserStore();
 const tasks = ref([]);
+const taskElements = new Map();
 const loading = ref(false);
 const completing = ref(false);
 const settingDueDate = ref(false);
@@ -337,6 +347,30 @@ const filteredTasks = computed(() => {
   if (selectedFilter.value === 'COMPLETED') return completedTasks.value;
   return scopedTasks.value;
 });
+
+const highlightedTaskId = computed(() => props.highlightedTaskId);
+const setTaskElement = (taskId, element) => {
+  if (element) taskElements.set(taskId, element);
+  else taskElements.delete(taskId);
+};
+
+const showHighlightedTask = async () => {
+  const taskId = highlightedTaskId.value;
+  if (!taskId) return;
+
+  try {
+    const task = await paymentTaskApi.getTask(taskId);
+    const index = tasks.value.findIndex(item => item.id === task.id);
+    if (index >= 0) tasks.value[index] = task;
+    else tasks.value = [task, ...tasks.value];
+    selectedScope.value = task.assignee_id === currentUserId.value ? 'ASSIGNED' : 'REQUESTED';
+    selectedFilter.value = 'ALL';
+    await nextTick();
+    taskElements.get(task.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (error) {
+    toast.error(error.message || '이 납부 업무를 열 수 없습니다.');
+  }
+};
 
 const loadTasks = async () => {
   loading.value = true;
@@ -604,6 +638,9 @@ const setDueDate = async () => {
 onMounted(async () => {
   if (!userStore.currentUser) await userStore.fetchCurrentUser();
   await loadTasks();
+  await showHighlightedTask();
   await refreshSummary();
 });
+
+watch(highlightedTaskId, showHighlightedTask);
 </script>
