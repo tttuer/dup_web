@@ -15,6 +15,11 @@ const routes = [
   { path: '/', component: HomeView, meta: { requiresAuth: true } },
   { path: '/extra', component: ExtraView, meta: { requiresAuth: true } },
   { path: '/approval', component: ApprovalView, meta: { requiresAuth: true } },
+  {
+    path: '/approval/payment-tasks/:taskId',
+    component: ApprovalView,
+    meta: { requiresAuth: true },
+  },
   { path: '/user-approval', component: UserApprovalView, meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/wiki', component: WikiApp, meta: { requiresAuth: true } },
   { path: '/login', component: LoginView },
@@ -55,17 +60,17 @@ router.beforeEach(async (to) => {
             credentials: 'include', // 쿠키 전송
           });
           // refresh도 실패 → 로그인 페이지로
-          return '/login';
+          return { path: '/login', query: { redirect: to.fullPath } };
         }
       }
     } catch (err) {
       console.error('토큰 에러:', err);
-      return '/login';
+      return { path: '/login', query: { redirect: to.fullPath } };
     }
   }
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    return '/login';
+    return { path: '/login', query: { redirect: to.fullPath } };
   }
 
   if (to.path === '/' && !(roles.includes('VOUCHER') || roles.includes('ADMIN'))) {

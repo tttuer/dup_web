@@ -151,6 +151,12 @@ export const approvalLineApi = {
 
 // 결재 승인 뒤 실제 납부를 처리하는 후속 업무 API
 export const paymentTaskApi = {
+  async getTask(taskId) {
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/${taskId}`);
+    await handleApiError(response);
+    return response.json();
+  },
+
   async createTask(taskData) {
     const formData = new FormData();
     formData.append('assignee_id', taskData.assignee_id);
