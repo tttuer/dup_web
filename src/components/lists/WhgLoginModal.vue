@@ -8,7 +8,7 @@
     class="fixed inset-0 z-50 flex cursor-default items-center justify-center bg-black/40"
   >
     <div class="w-[450px] rounded-lg bg-white p-6 shadow-sm" @click.stop>
-      <h2 class="mb-4 text-lg font-semibold">동기화</h2>
+      <h2 class="mb-4 text-lg font-semibold">{{ title }}</h2>
 
       <!-- 연도 선택용 Flatpickr -->
       <div class="mb-4">
@@ -84,6 +84,10 @@ const showPassword = ref(false);
 const props = defineProps({
   visible: Boolean,
   company: String,
+  title: {
+    type: String,
+    default: '동기화',
+  },
 });
 
 const emit = defineEmits(['close', 'save', 'whgId', 'whgPassword']);
