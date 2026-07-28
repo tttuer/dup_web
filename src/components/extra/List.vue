@@ -38,7 +38,7 @@ const currentPage = ref(1);
 const isPdfConverting = ref(false);
 const start_at = ref('');
 const end_at = ref('');
-const sortBy = ref('created_at');
+const sortBy = ref('withdrawn_at');
 const sortOrder = ref('desc');
 
 function toggleSortOrder() {
@@ -98,7 +98,7 @@ function closeEditModal() {
 }
 
 function addCreatedFiles() {
-  sortBy.value = 'created_at';
+  sortBy.value = 'withdrawn_at';
   sortOrder.value = 'desc';
   fetchFiles(true);
 }

@@ -214,6 +214,8 @@ async function getErrorMessage(response, fallbackMessage) {
 async function syncWhg(payload) {
   if (isSyncing.value) return;
 
+  const companies = Object.values(companyNameToEnum);
+
   try {
     syncStore.setSyncing(true);
     const response = await authFetch(`${voucherUrl}/sync`, {
@@ -222,7 +224,7 @@ async function syncWhg(payload) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        company: selectedCompany.value,
+        companies,
         wehago_id: payload.whgId,
         wehago_password: payload.whgPassword,
         year: payload.selectedYear,
@@ -230,7 +232,7 @@ async function syncWhg(payload) {
     });
 
     if (response.ok) {
-      toast.success('파일 동기화 성공');
+      toast.success('전체 회사 동기화 성공');
       fetchVouchers(true);
     } else {
       toast.error(await getErrorMessage(response, '동기화에 실패했습니다.'));
@@ -422,9 +424,8 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
             :selectedLabel="companyLabelByValue[selectedCompany]"
         />
         <div
-          v-show="selectedCompany"
           :class="[
-            'mb-2 ml-2 flex w-18 items-center justify-center rounded-xl border border-gray-300 font-semibold transition-colors',
+            'mb-2 ml-2 flex items-center justify-center rounded-xl border border-gray-300 font-semibold transition-colors',
             isSyncing
               ? 'cursor-not-allowed bg-gray-200 text-gray-500'
               : 'cursor-pointer hover:bg-blue-500 hover:text-white',
@@ -432,7 +433,7 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
         >
           <button
             :class="[
-              'flex w-full items-center justify-center rounded-xl px-2 py-1 font-semibold transition-colors',
+              'flex w-full items-center justify-center whitespace-nowrap rounded-xl px-2 py-1 font-semibold transition-colors',
               isSyncing
                 ? 'cursor-not-allowed bg-gray-200 text-gray-500'
                 : 'cursor-pointer hover:bg-blue-500 hover:text-white',
@@ -447,18 +448,11 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
                 fill="none"
                 viewBox="0 0 24 24"
               >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                />
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
             </template>
-            <template v-else>동기화</template>
+            <template v-else>전체 동기화</template>
           </button>
         </div>
       </div>
@@ -615,6 +609,7 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
     <WhgLoginModal
       :visible="isLoginModalOpen"
       :company="selectedCompany"
+      title="전체 회사 동기화"
       @close="closeWhgLoginModal"
       @save="syncWhg"
     />
