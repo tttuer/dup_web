@@ -11,6 +11,7 @@ import {
   groupNameToEnum,
   groupIdToName,
   groupHasUnreadChangesById,
+  loadAccessibleCompanyOptions,
   loadGroupOptions,
   markGroupAsRead,
 } from '@/stores/useGroupStore';
@@ -24,6 +25,11 @@ import { companyNameToEnum, companyOptions } from '@/constants/companies';
 
 const selectedGroup = ref('');
 const roles = ref(getRoleFromLocalStorage());
+const accessibleCompanyCodes = ref([]);
+
+const accessibleCompanyOptions = computed(() => {
+  return companyOptions.filter((name) => accessibleCompanyCodes.value.includes(companyNameToEnum[name]));
+});
 
 const typeStore = useTypeStore();
 
@@ -101,6 +107,20 @@ function addCreatedFiles() {
   sortBy.value = 'withdrawn_at';
   sortOrder.value = 'desc';
   fetchFiles(true);
+}
+
+async function loadAccessibleCompanies() {
+  try {
+    accessibleCompanyCodes.value = await loadAccessibleCompanyOptions();
+
+    if (!accessibleCompanyCodes.value.includes(selectedCompany.value)) {
+      selectedCompany.value = accessibleCompanyCodes.value.length === 1 ? accessibleCompanyCodes.value[0] : '';
+    }
+  } catch (error) {
+    accessibleCompanyCodes.value = [];
+    toast.error('접근 가능한 회사 목록을 불러오지 못했습니다.');
+    console.error(error);
+  }
 }
 
 async function fetchFiles(isReset = false) {
@@ -445,6 +465,7 @@ watch([selectedCompany, start_at, end_at, lockFilter, selectedGroup, sortBy, sor
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange);
   groupRefreshTimer = window.setInterval(refreshGroupIndicators, GROUP_REFRESH_INTERVAL_MS);
+  loadAccessibleCompanies();
 });
 
 onUnmounted(() => {
@@ -456,7 +477,7 @@ onUnmounted(() => {
 <template>
   <div class="flex h-full w-full overflow-hidden bg-gray-50">
     <FolderSidebar
-      :companyOptions="companyOptions"
+      :companyOptions="accessibleCompanyOptions"
       :companyNameToEnum="companyNameToEnum"
       :groupOptions="groupOptions"
       :groupNameToEnum="groupNameToEnum"
