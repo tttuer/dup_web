@@ -9,6 +9,13 @@ export const groupNameToId = ref({}); // 추가된 부분
 export const groupHasUnreadChangesById = ref({});
 const groupUrl = `${import.meta.env.VITE_GROUP_API_URL}`;
 
+export async function loadAccessibleCompanyOptions() {
+  const response = await authFetch(`${groupUrl}/companies`);
+  if (!response.ok) throw new Error('접근 가능한 회사 목록을 불러오지 못했습니다.');
+
+  return response.json();
+}
+
 export async function loadGroupOptions(company = 'BAEKSUNG') {
   try {
     const res = await authFetch(`${groupUrl}?company=${company}`);
