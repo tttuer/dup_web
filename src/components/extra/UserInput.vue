@@ -29,7 +29,7 @@
                 ? 'border-blue-500 bg-blue-50 text-blue-700'
                 : 'border-gray-300 bg-white text-gray-500 hover:border-blue-400 hover:bg-blue-50',
             ]"
-            title="PDF, 이미지, 엑셀, 한글 파일을 드래그하거나 클릭해서 선택"
+            title="문서, 이미지, 엑셀, 한글 파일을 드래그하거나 클릭해서 선택"
             @click="openFilePicker"
             @dragover.prevent="isDragging = true"
             @dragleave.prevent="isDragging = false"
@@ -45,7 +45,7 @@
             class="hidden"
             type="file"
             multiple
-            accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx,.hwp,.hwpx"
+            :accept="ACCEPT_ATTRIBUTE"
             @change="handleFileChange"
           />
 
@@ -140,14 +140,22 @@ const props = defineProps({
 });
 const ACCEPTED_EXTENSIONS = new Set([
   'pdf',
+  'doc',
+  'docx',
   'jpg',
   'jpeg',
   'png',
+  'gif',
   'xls',
   'xlsx',
+  'xlsb',
+  'ppt',
+  'pptx',
+  'txt',
   'hwp',
   'hwpx',
 ]);
+const ACCEPT_ATTRIBUTE = [...ACCEPTED_EXTENSIONS].map((extension) => `.${extension}`).join(',');
 
 function getTodayDateValue() {
   const today = new Date();
@@ -192,7 +200,7 @@ function addFiles(fileList) {
   });
 
   if (validFiles.length !== incomingFiles.length) {
-    toast.warning('PDF, 이미지, 엑셀(XLS, XLSX), 한글(HWP, HWPX) 파일만 업로드할 수 있습니다.');
+    toast.warning('PDF, Word, PowerPoint, 이미지, 엑셀, 텍스트, 한글 파일만 업로드할 수 있습니다.');
   }
 
   files.value = [...files.value, ...validFiles];
