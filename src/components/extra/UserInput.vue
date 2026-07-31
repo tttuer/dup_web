@@ -148,7 +148,6 @@ const ACCEPTED_EXTENSIONS = new Set([
   'gif',
   'xls',
   'xlsx',
-  'xlsb',
   'ppt',
   'pptx',
   'txt',
