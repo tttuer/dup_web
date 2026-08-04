@@ -175,6 +175,28 @@ export const paymentTaskApi = {
     return response.json();
   },
 
+  async createSeries(taskData) {
+    const formData = new FormData();
+    formData.append('assignee_id', taskData.assignee_id);
+    formData.append('due_date', taskData.due_date);
+    formData.append('recurrence', JSON.stringify(taskData.recurrence));
+    ['name', 'category', 'amount', 'description'].forEach(key => {
+      if (taskData[key] !== null && taskData[key] !== undefined && taskData[key] !== '') {
+        formData.append(key, String(taskData[key]));
+      }
+    });
+    taskData.files.forEach(file => formData.append('files', file));
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/series`, { method: 'POST', body: formData });
+    await handleApiError(response);
+    return response.json();
+  },
+
+  async cancelSeries(seriesId) {
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/series/${seriesId}/cancel`, { method: 'POST' });
+    await handleApiError(response);
+    return response.json();
+  },
+
   async getMyTasks(status) {
     const query = status ? `?status=${encodeURIComponent(status)}` : '';
     const response = await authFetch(`${PAYMENT_TASK_API_URL}/my${query}`);
