@@ -228,11 +228,19 @@ async function syncWhg(payload) {
         wehago_id: payload.whgId,
         wehago_password: payload.whgPassword,
         year: payload.selectedYear,
+        ...(payload.startMonth != null && {
+          start_month: payload.startMonth,
+          end_month: payload.endMonth,
+        }),
       }),
     });
 
     if (response.ok) {
-      toast.success('전체 회사 동기화 성공');
+      toast.success(
+        payload.startMonth != null
+          ? `${payload.selectedYear}년 ${payload.startMonth}~${payload.endMonth}월 전체 회사 동기화 성공`
+          : '전체 회사 동기화 성공',
+      );
       fetchVouchers(true);
     } else {
       toast.error(await getErrorMessage(response, '동기화에 실패했습니다.'));
@@ -454,7 +462,7 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
             </template>
-            <template v-else>전체 동기화</template>
+            <template v-else>동기화</template>
           </button>
         </div>
       </div>
