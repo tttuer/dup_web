@@ -240,6 +240,8 @@ async function syncWhg(payload) {
   } catch (error) {
     toast.error('동기화 요청 중 네트워크 오류가 발생했습니다. 연결 상태를 확인해주세요.');
     console.error(error);
+  } finally {
+    syncStore.setSyncing(false);
   }
 }
 
