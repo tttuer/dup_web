@@ -57,6 +57,7 @@
               {{ statusLabel(task) }}
             </span>
             <span v-if="task.category" class="text-sm text-gray-500">{{ task.category }}</span>
+            <span v-if="task.series_id" class="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-700">반복 · {{ task.occurrence_number }}회차</span>
           </div>
           <h3 class="truncate text-lg font-semibold text-gray-900" :title="task.title">{{ task.title }}</h3>
           <p class="mt-1 min-h-10 text-sm leading-5 text-gray-600 line-clamp-2">{{ task.description || '등록된 요청 사유가 없습니다.' }}</p>
@@ -104,6 +105,14 @@
             @click="openEditModal(task)"
           >
             요청 수정
+          </button>
+          <button
+            v-if="canCancelSeries(task)"
+            type="button"
+            class="rounded-md border border-violet-300 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100"
+            @click="cancelSeries(task)"
+          >
+            반복 종료
           </button>
           <button
             v-if="canManageCompletedFiles(task)"
@@ -316,6 +325,7 @@ const selectedFilter = ref('ALL');
 const editingTask = ref(null);
 const editingFilesOnly = ref(false);
 const updating = ref(false);
+const cancelledSeriesIds = ref(new Set());
 const editFiles = ref([]);
 const editForm = ref({ name: '', category: '', amount: '', dueDate: '', description: '', paidAt: '', paidAmount: '', completionNote: '', newFiles: [], deletedFileIds: [] });
 
@@ -430,8 +440,20 @@ const dueLabel = task => {
   return diff < 0 ? '-' : diff === 0 ? 'D-day' : `D-${diff}`;
 };
 const canProcessTask = task => task.assignee_id === currentUserId.value;
-const canEditTask = task => task.requester_id === currentUserId.value && !task.is_request_confirmed && task.status !== 'COMPLETED';
+const canEditTask = task => task.requester_id === currentUserId.value && !task.series_id && !task.is_request_confirmed && task.status !== 'COMPLETED';
 const canManageCompletedFiles = task => canProcessTask(task) && task.status === 'COMPLETED';
+const canCancelSeries = task => task.series_id && task.requester_id === currentUserId.value && !cancelledSeriesIds.value.has(task.series_id);
+
+const cancelSeries = async task => {
+  if (!confirm('반복을 종료할까요? 이미 만들어진 납부 업무는 남고, 새 업무만 더 이상 만들어지지 않습니다.')) return;
+  try {
+    await paymentTaskApi.cancelSeries(task.series_id);
+    cancelledSeriesIds.value = new Set([...cancelledSeriesIds.value, task.series_id]);
+    toast.success('반복 납부 요청을 종료했습니다.');
+  } catch (error) {
+    toast.error(error.message || '반복 납부 요청을 종료하지 못했습니다.');
+  }
+};
 
 const openCompleteModal = task => {
   selectedTask.value = task;

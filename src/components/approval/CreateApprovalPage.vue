@@ -151,6 +151,9 @@
                 납부 기한
                 <input v-model="paymentRequest.due_date" type="date" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
               </label>
+              <div class="md:col-span-2">
+                <PaymentRecurrenceField v-model="paymentRecurrence" :start-date="paymentRequest.due_date" />
+              </div>
               <label class="block text-sm font-medium text-gray-700 md:col-span-2">
                 납부 담당자 <span class="text-red-500">*</span>
                 <select v-model="paymentRequest.assignee_id" class="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2">
@@ -400,7 +403,7 @@
               class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               <Loader v-if="loading" class="w-4 h-4 animate-spin mr-2" />
-              납부 요청 등록
+              {{ paymentRecurrence ? '반복 납부 요청 등록' : '납부 요청 등록' }}
             </button>
             <button
               v-else-if="step < 3"
@@ -474,7 +477,9 @@ import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { approvalUtils, fileApi, paymentTaskApi } from '@/utils/approvalApi';
 import ApprovalLineModal from './ApprovalLineModal.vue';
+import PaymentRecurrenceField from './PaymentRecurrenceField.vue';
 import { useUserStore } from '@/stores/useUserStore';
+import { isValidRecurrence } from '@/utils/paymentRecurrence';
 
 const props = defineProps({
   editRequestId: {
@@ -509,6 +514,7 @@ const createPaymentRequest = () => ({
   assignee_id: localStorage.getItem(PAYMENT_ASSIGNEE_STORAGE_KEY) || '',
 });
 const paymentRequest = ref(createPaymentRequest());
+const paymentRecurrence = ref(null);
 
 // 폼 데이터
 const formData = ref({
@@ -530,7 +536,8 @@ const paymentTitlePreview = computed(() => {
 });
 
 const hasValidPaymentRequest = computed(() => {
-  return Boolean(paymentRequest.value.assignee_id);
+  return Boolean(paymentRequest.value.assignee_id)
+    && (!paymentRecurrence.value || (paymentRequest.value.due_date && isValidRecurrence(paymentRecurrence.value)));
 });
 
 // 템플릿 필터링 로직
@@ -569,6 +576,7 @@ const resetForm = () => {
   selectedTemplate.value = null;
   isPaymentRequest.value = false;
   paymentRequest.value = createPaymentRequest();
+  paymentRecurrence.value = null;
   formData.value = {
     title: '',
     content: '',
@@ -914,16 +922,19 @@ const submitPaymentRequest = async () => {
 
   loading.value = true;
   try {
-    const task = await paymentTaskApi.createTask({
+    const data = {
       ...paymentRequest.value,
       amount: paymentRequest.value.amount === null || paymentRequest.value.amount === ''
         ? null
         : Number(paymentRequest.value.amount),
       description: formData.value.content.trim(),
       files: selectedFiles.value.filter(file => !file.id),
-    });
-    toast.success('납부 담당자에게 요청을 전달했습니다.');
-    emit('created', task);
+    };
+    const result = paymentRecurrence.value
+      ? await paymentTaskApi.createSeries({ ...data, recurrence: paymentRecurrence.value })
+      : await paymentTaskApi.createTask(data);
+    toast.success(paymentRecurrence.value ? '반복 납부 요청을 등록했습니다.' : '납부 담당자에게 요청을 전달했습니다.');
+    emit('created', result.task || result);
   } catch (error) {
     toast.error('처리 중 오류가 발생했습니다: ' + error.message);
   } finally {
