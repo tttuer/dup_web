@@ -18,6 +18,15 @@ const handleApiError = async (response) => {
 
 // 파일 업로드 관련 API
 export const fileApi = {
+  async setCompleted(fileId, isCompleted) {
+    const response = await authFetch(`${FILE_API_URL}/approvals/${fileId}/completion`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_completed: isCompleted }),
+    });
+    await handleApiError(response);
+  },
+
   // 첨부파일 업로드
   async uploadFile(requestId, file) {
     const formData = new FormData();

@@ -140,19 +140,28 @@
               전체 다운로드 (ZIP)
             </button>
           </div>
+          <p v-if="attachedFiles.length" class="mb-2 text-xs text-gray-500">
+            처리 완료 체크는 나에게만 보이며 자동 저장됩니다.
+          </p>
           <div v-if="requesterFiles.length > 0" class="space-y-2">
             <div
               v-for="file in requesterFiles"
               :key="file.id"
-              class="flex items-center justify-between rounded-md bg-gray-50 p-3"
+              class="flex flex-wrap items-center justify-between gap-3 rounded-md bg-gray-50 p-3"
             >
-              <div class="flex items-center space-x-3">
+              <div class="flex min-w-0 items-center space-x-3">
                 <component :is="getFileIcon(file.file_name)" class="h-5 w-5 text-gray-400" />
-                <div>
-                  <div class="font-medium">{{ file.file_name }}</div>
+                <div class="min-w-0">
+                  <div class="break-all font-medium">{{ file.file_name }}</div>
                   <div class="text-sm text-gray-500">{{ formatFileSize(file.file_size) }}</div>
                 </div>
               </div>
+              <FileCompletionCheckbox
+                :file-name="file.file_name"
+                :completed="completedFileIds.has(file.id)"
+                :saving="savingFileIds.has(file.id)"
+                @change="setFileCompleted(file.id, $event)"
+              />
               <button
                 @click="downloadFile(file)"
                 class="inline-flex items-center rounded bg-blue-100 px-3 py-1 text-sm text-blue-700 hover:bg-blue-200"
@@ -232,6 +241,12 @@
                       <component :is="getFileIcon(file.file_name)" class="h-4 w-4 text-blue-500" />
                       <span class="text-xs font-medium text-gray-700 max-w-[150px] truncate" :title="file.file_name">{{ file.file_name }}</span>
                       <span class="text-[10px] text-gray-400">{{ formatFileSize(file.file_size) }}</span>
+                      <FileCompletionCheckbox
+                        :file-name="file.file_name"
+                        :completed="completedFileIds.has(file.id)"
+                        :saving="savingFileIds.has(file.id)"
+                        @change="setFileCompleted(file.id, $event)"
+                      />
                       <button @click="downloadFile(file)" class="ml-1 rounded text-gray-400 hover:text-blue-600 focus:outline-none" title="다운로드">
                         <Download class="h-3.5 w-3.5" />
                       </button>
@@ -275,6 +290,7 @@ import { useUserStore } from '@/stores/useUserStore';
 import { fileApi, approvalUtils } from '@/utils/approvalApi';
 import { APPROVAL_STATUS, APPROVAL_ACTION, DOCUMENT_STATUS } from '@/stores/useTypeStore';
 import ApprovalStatus from './ApprovalStatus.vue';
+import FileCompletionCheckbox from './FileCompletionCheckbox.vue';
 import ApprovalHistory from './ApprovalHistory.vue';
 import ApprovalActionButtons from './ApprovalActionButtons.vue';
 import ApprovalLineModal from './ApprovalLineModal.vue';
@@ -304,6 +320,25 @@ const showApprovalLineModal = ref(false);
 const attachedFiles = ref([]);
 const downloadingAll = ref(false);
 const expandedComments = ref({}); // 펼쳐진 댓글들 추적
+const savingFileIds = ref(new Set());
+const completedFileIds = computed(() => new Set(
+  attachedFiles.value.filter(file => file.is_completed).map(file => file.id),
+));
+
+const setFileCompleted = async (fileId, completed) => {
+  if (savingFileIds.value.has(fileId)) return;
+  const files = attachedFiles.value;
+  savingFileIds.value.add(fileId);
+  try {
+    await fileApi.setCompleted(fileId, completed);
+    const file = files.find(file => file.id === fileId);
+    if (file) file.is_completed = completed;
+  } catch (error) {
+    alert('처리 완료 표시를 저장하지 못했습니다. 다시 시도해 주세요.');
+  } finally {
+    savingFileIds.value.delete(fileId);
+  }
+};
 
 // 데이터
 const request = computed(() => approvalStore.approvalDetail);
