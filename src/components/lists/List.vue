@@ -14,11 +14,15 @@ import { useToast } from 'vue-toastification';
 import { useFileDownloader } from '@/composables/useFileDownloader';
 import { downloadVoucherFiles } from '@/api/voucher';
 import WhgLoginModal from '@/components/lists/WhgLoginModal.vue';
+import WhgEmailAuthModal from '@/components/lists/WhgEmailAuthModal.vue';
+import { useManualSyncAuth } from '@/composables/useManualSyncAuth';
 import { companyNameToEnum, companyOptions } from '@/constants/companies';
 import VoucherAttachmentCell from '@/components/lists/VoucherAttachmentCell.vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const syncStore = useSyncStatusStore();
+const { status: authStatus, remaining: authRemaining, error: authError, sending: authSending,
+  begin: beginSyncAuth, finish: finishSyncAuth, submit: submitSyncCode, cancel: cancelSyncAuth } = useManualSyncAuth();
 const route = useRoute();
 const router = useRouter();
 
@@ -218,12 +222,14 @@ async function syncWhg(payload) {
 
   try {
     syncStore.setSyncing(true);
+    const authRequestId = beginSyncAuth();
     const response = await authFetch(`${voucherUrl}/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        auth_request_id: authRequestId,
         companies,
         wehago_id: payload.whgId,
         wehago_password: payload.whgPassword,
@@ -249,6 +255,7 @@ async function syncWhg(payload) {
     toast.error('동기화 요청 중 네트워크 오류가 발생했습니다. 연결 상태를 확인해주세요.');
     console.error(error);
   } finally {
+    finishSyncAuth();
     syncStore.setSyncing(false);
   }
 }
@@ -622,6 +629,14 @@ watch([selectedCompany, start_at, end_at, searchbar, searchbarOption], () => {
       title="전체 회사 동기화"
       @close="closeWhgLoginModal"
       @save="syncWhg"
+    />
+    <WhgEmailAuthModal
+      :status="authStatus"
+      :remaining="authRemaining"
+      :error="authError"
+      :sending="authSending"
+      @submit="submitSyncCode"
+      @cancel="cancelSyncAuth"
     />
 
     <!-- Floating Action Bar -->
