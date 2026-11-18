@@ -4,9 +4,9 @@
     class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
     @click.self="closeModal"
   >
-    <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white">
+    <div class="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-lg bg-white">
       <!-- 헤더 -->
-      <div class="flex items-center justify-between border-b p-6">
+      <div class="flex shrink-0 items-center justify-between border-b p-6">
         <h3 class="text-xl font-semibold">결재 상세</h3>
         <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
           <X class="h-6 w-6" />
@@ -19,7 +19,7 @@
       </div>
 
       <!-- 콘텐츠 -->
-      <div v-else-if="request" class="space-y-6 p-6">
+      <div v-else-if="request" class="min-h-0 overflow-y-auto p-6 space-y-6">
         <!-- 기본 정보 -->
         <div class="grid grid-cols-1 gap-6">
           <div>
@@ -258,16 +258,17 @@
           </div>
         </div>
 
-        <!-- 액션 버튼 -->
-        <div class="border-t pt-6">
-          <ApprovalActionButtons
-            :request="request"
-            :approval-lines="approvalLines"
-            @action-completed="handleActionCompleted"
-            @edit-approval-line="showApprovalLineModal = true"
-            @edit-document="emit('edit-document', $event)"
-          />
-        </div>
+      </div>
+
+      <!-- 문서를 스크롤해도 결재 버튼은 항상 표시 -->
+      <div v-if="!loading && request" class="shrink-0 border-t bg-white p-4 sm:p-6">
+        <ApprovalActionButtons
+          :request="request"
+          :approval-lines="approvalLines"
+          @action-completed="handleActionCompleted"
+          @edit-approval-line="showApprovalLineModal = true"
+          @edit-document="emit('edit-document', $event)"
+        />
       </div>
     </div>
   </div>
