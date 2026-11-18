@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center space-x-3">
+  <div class="flex flex-wrap items-center gap-3">
     <!-- 상신 버튼 (임시저장 상태일 때) -->
     <button
       v-if="canSubmit"
@@ -241,13 +241,16 @@ const canApprove = computed(() => {
     return false;
   }
   
-  // 현재 단계의 결재자인지 확인
-  const currentStepLines = props.approvalLines.filter(line => 
-    line.step_order === props.request.current_step && 
-    line.status === 'PENDING'
+  const userIds = [userStore.currentUser.id, userStore.currentUser.user_id]
+    .filter(id => id != null)
+    .map(String);
+
+  return props.approvalLines.some(line =>
+    String(line.step_order) === String(props.request.current_step) &&
+    line.status === 'PENDING' &&
+    line.approver_id != null &&
+    userIds.includes(String(line.approver_id))
   );
-  
-  return currentStepLines.some(line => line.approver_id === userStore.currentUser.id);
 });
 
 const canReject = computed(() => {
@@ -275,6 +278,20 @@ const canEditOrDelete = computed(() => {
 });
 
 // 액션 핸들러들
+const openApproveModal = () => {
+  if (loading.value || !canApprove.value) return;
+  approveComment.value = '';
+  approveFiles.value = [];
+  showApproveModal.value = true;
+};
+
+const openRejectModal = () => {
+  if (loading.value || !canReject.value) return;
+  rejectComment.value = '';
+  rejectFiles.value = [];
+  showRejectModal.value = true;
+};
+
 const handleSubmit = async () => {
   if (!confirm('결재를 상신하시겠습니까?')) return;
   
@@ -310,6 +327,7 @@ const handleDelete = async () => {
 };
 
 const handleApprove = async () => {
+  if (loading.value || !canApprove.value) return;
   loading.value = true;
   try {
     await approvalStore.approveRequest(props.request.id, approveComment.value, approveFiles.value);
@@ -326,6 +344,7 @@ const handleApprove = async () => {
 };
 
 const handleReject = async () => {
+  if (loading.value || !canReject.value) return;
   if (!rejectComment.value.trim()) {
     toast.warning('반려 사유를 입력해주세요.');
     return;
