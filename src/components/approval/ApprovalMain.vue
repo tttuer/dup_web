@@ -187,7 +187,7 @@ const approvalStore = useApprovalStore();
 const approvalNotificationStore = useApprovalNotificationStore();
 
 // 상태 관리
-const activeTab = ref('my-requests');
+const activeTab = ref('pending');
 const showDetailModal = ref(false);
 const selectedApproval = ref(null);
 const editRequestId = ref(null);
