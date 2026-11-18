@@ -190,6 +190,7 @@ import { Send, Check, X, Users, Loader, Edit, Trash2 } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { DOCUMENT_STATUS } from '@/stores/useTypeStore';
+import { canApproveRequest } from '@/utils/approvalPermissions';
 import { useToast } from 'vue-toastification';
 
 const props = defineProps({
@@ -236,22 +237,9 @@ const canSubmit = computed(() => {
          props.approvalLines.length > 0;
 });
 
-const canApprove = computed(() => {
-  if (!userStore.currentUser || props.request.status !== DOCUMENT_STATUS.IN_PROGRESS) {
-    return false;
-  }
-  
-  const userIds = [userStore.currentUser.id, userStore.currentUser.user_id]
-    .filter(id => id != null)
-    .map(String);
-
-  return props.approvalLines.some(line =>
-    String(line.step_order) === String(props.request.current_step) &&
-    line.status === 'PENDING' &&
-    line.approver_id != null &&
-    userIds.includes(String(line.approver_id))
-  );
-});
+const canApprove = computed(() =>
+  canApproveRequest(props.request, props.approvalLines, userStore.currentUser)
+);
 
 const canReject = computed(() => {
   return canApprove.value;
