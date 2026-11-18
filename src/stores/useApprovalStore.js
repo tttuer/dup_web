@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, shallowRef } from 'vue';
 import { authFetch } from '@/utils/authFetch';
 import { DOCUMENT_STATUS, APPROVAL_STATUS } from '@/stores/useTypeStore';
+import { canApproveRequest } from '@/utils/approvalPermissions';
 
 const APPROVAL_API_URL = import.meta.env.VITE_APPROVAL_API_URL;
 
@@ -519,20 +520,7 @@ export const useApprovalStore = defineStore('approval', () => {
   // 권한 체크 함수들
   const canApprove = computed(() => {
     return (requestId, currentUser) => {
-      const lines = approvalLines.value;
-      const detail = approvalDetail.value;
-      
-      if (!detail || !lines || detail.status !== DOCUMENT_STATUS.IN_PROGRESS) {
-        return false;
-      }
-      
-      // 현재 단계의 결재자인지 확인
-      const currentStepLines = lines.filter(line => 
-        line.step_order === detail.current_step && 
-        line.status === APPROVAL_STATUS.PENDING
-      );
-      
-      return currentStepLines.some(line => line.approver_id === currentUser.id);
+      return canApproveRequest(approvalDetail.value, approvalLines.value, currentUser);
     };
   });
 
