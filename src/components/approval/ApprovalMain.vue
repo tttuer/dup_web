@@ -13,17 +13,6 @@
       </div>
       <nav class="flex-1 overflow-y-auto p-4 space-y-2">
         <button
-          @click="activeTab = 'my-requests'"
-          :class="[
-            'w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors text-left',
-            activeTab === 'my-requests' 
-              ? 'bg-blue-100 text-blue-700' 
-              : 'text-gray-700 hover:bg-gray-200'
-          ]"
-        >
-          기안함
-        </button>
-        <button
           @click="activeTab = 'pending'"
           :class="[
             'w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-md transition-colors text-left',
@@ -36,6 +25,17 @@
           <span v-if="pendingCount > 0" class="ml-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
             {{ pendingCount }}
           </span>
+        </button>
+        <button
+          @click="activeTab = 'my-requests'"
+          :class="[
+            'w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors text-left',
+            activeTab === 'my-requests'
+              ? 'bg-blue-100 text-blue-700'
+              : 'text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          기안함
         </button>
         <button
           @click="activeTab = 'completed'"
@@ -187,7 +187,7 @@ const approvalStore = useApprovalStore();
 const approvalNotificationStore = useApprovalNotificationStore();
 
 // 상태 관리
-const activeTab = ref('my-requests');
+const activeTab = ref('pending');
 const showDetailModal = ref(false);
 const selectedApproval = ref(null);
 const editRequestId = ref(null);
