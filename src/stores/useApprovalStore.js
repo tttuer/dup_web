@@ -45,6 +45,7 @@ export const useApprovalStore = defineStore('approval', () => {
       }
 
       const queryParams = new URLSearchParams();
+      if (params.company) queryParams.set('company', params.company);
       if (params.status) queryParams.append('status', params.status);
       if (params.sort) queryParams.append('sort', params.sort);
       if (params.start_date) queryParams.append('start_date', params.start_date);
@@ -93,7 +94,7 @@ export const useApprovalStore = defineStore('approval', () => {
   }
 
   // 내가 결재할 요청 목록 조회
-  async function fetchPendingApprovals(params = {}, isReset = false) {
+  async function fetchPendingApprovals(params = lastPendingParams.value, isReset = true) {
     loading.value = true;
     error.value = null;
     try {
@@ -105,6 +106,7 @@ export const useApprovalStore = defineStore('approval', () => {
       }
 
       const queryParams = new URLSearchParams();
+      if (params.company) queryParams.set('company', params.company);
       if (params.sort) queryParams.append('sort', params.sort);
       if (params.start_date) queryParams.append('start_date', params.start_date);
       if (params.end_date) queryParams.append('end_date', params.end_date);
@@ -162,6 +164,7 @@ export const useApprovalStore = defineStore('approval', () => {
       }
 
       const queryParams = new URLSearchParams();
+      if (params.company) queryParams.set('company', params.company);
       if (params.sort) queryParams.append('sort', params.sort);
       if (params.start_date) queryParams.append('start_date', params.start_date);
       if (params.end_date) queryParams.append('end_date', params.end_date);
@@ -282,7 +285,7 @@ export const useApprovalStore = defineStore('approval', () => {
       
       if (response.ok) {
         const data = await response.json();
-        await fetchMyApprovalRequests(); // 목록 새로고침
+        await fetchMyApprovalRequests(lastMyApprovalParams.value, true); // 목록 새로고침
         return data;
       } else {
         const errorData = await response.json();
@@ -334,7 +337,7 @@ export const useApprovalStore = defineStore('approval', () => {
       
       if (response.ok) {
         const data = await response.json();
-        await fetchMyApprovalRequests({}, true);
+        await fetchMyApprovalRequests(lastMyApprovalParams.value, true);
         return data;
       } else {
         const errorData = await response.json();
@@ -359,7 +362,7 @@ export const useApprovalStore = defineStore('approval', () => {
       });
       
       if (response.ok) {
-        await fetchMyApprovalRequests({}, true);
+        await fetchMyApprovalRequests(lastMyApprovalParams.value, true);
         return true;
       } else {
         const errorData = await response.json();
@@ -384,7 +387,7 @@ export const useApprovalStore = defineStore('approval', () => {
       });
       
       if (response.ok) {
-        await fetchMyApprovalRequests(); // 목록 새로고침
+        await fetchMyApprovalRequests(lastMyApprovalParams.value, true); // 목록 새로고침
         return true;
       } else {
         const errorData = await response.json();
@@ -473,7 +476,7 @@ export const useApprovalStore = defineStore('approval', () => {
       });
       
       if (response.ok) {
-        await fetchMyApprovalRequests(); // 목록 새로고침
+        await fetchMyApprovalRequests(lastMyApprovalParams.value, true); // 목록 새로고침
         return true;
       } else {
         const errorData = await response.json();

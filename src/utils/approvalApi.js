@@ -169,7 +169,7 @@ export const paymentTaskApi = {
   async createTask(taskData) {
     const formData = new FormData();
     formData.append('assignee_id', taskData.assignee_id);
-    ['name', 'category', 'amount', 'due_date', 'description'].forEach(key => {
+    ['name', 'category', 'amount', 'due_date', 'description', 'company'].forEach(key => {
       if (taskData[key] !== null && taskData[key] !== undefined && taskData[key] !== '') {
         formData.append(key, String(taskData[key]));
       }
@@ -184,9 +184,11 @@ export const paymentTaskApi = {
     return response.json();
   },
 
-  async getMyTasks(status) {
-    const query = status ? `?status=${encodeURIComponent(status)}` : '';
-    const response = await authFetch(`${PAYMENT_TASK_API_URL}/my${query}`);
+  async getMyTasks(status, company) {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (company) params.set('company', company);
+    const response = await authFetch(`${PAYMENT_TASK_API_URL}/my${params.size ? `?${params}` : ''}`);
     await handleApiError(response);
     return response.json();
   },

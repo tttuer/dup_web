@@ -1,5 +1,6 @@
 <template>
   <div>
+    <ApprovalCompanyFilter v-model="selectedCompany" :disabled="approvalStore.loading" @change="refreshList" />
     <!-- 헤더 -->
     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
       <div>
@@ -101,7 +102,7 @@
             >
               <td class="px-6 py-4">
                 <div class="text-sm font-medium text-gray-900">
-                  {{ approval.title }}
+                  <span v-if="companyName(approval.form_data?.company)" class="mr-2 rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-800">{{ companyName(approval.form_data?.company) }}</span>{{ approval.title }}
                 </div>
                 <div class="text-sm text-gray-500 truncate max-w-xs">
                   {{ approval.content }}
@@ -148,6 +149,8 @@
 </template>
 
 <script setup>
+import ApprovalCompanyFilter from './ApprovalCompanyFilter.vue';
+import { companyName } from '@/constants/companies';
 import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue';
 import { Loader, CheckCircle, RefreshCw } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';
@@ -168,9 +171,12 @@ const completedApprovals = computed(() => approvalStore.completedApprovals);
 const emit = defineEmits(['view-detail']);
 
 // 완료한 결재 목록 조회
+const selectedCompany = ref('');
+
 const refreshList = async () => {
   try {
     const params = {
+      company: selectedCompany.value,
       sort: sortBy.value,
       start_date: startDate.value || undefined,
       end_date: endDate.value || undefined,
@@ -211,6 +217,7 @@ watch(sentinelRef, (newSentinel, oldSentinel) => {
 
 // 필터 초기화
 const resetFilters = () => {
+  selectedCompany.value = '';
   sortBy.value = 'completed_at_desc';
   startDate.value = '';
   endDate.value = '';
