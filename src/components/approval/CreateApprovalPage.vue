@@ -136,6 +136,7 @@
                 :class="index === activePaymentIndex ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
                 :aria-expanded="index === activePaymentIndex" :disabled="loading" @click="openPaymentDraft(index)">
                 {{ index + 1 }}. {{ paymentSummary(index === activePaymentIndex ? currentPaymentDraft() : draft) }}
+                <span v-if="index === activePaymentIndex" class="ml-2 font-medium text-blue-700">{{ draft.id === newPaymentDraftId ? '새 요청 작성 중' : '작성 중' }}</span>
               </button>
               <button v-if="paymentDrafts.length > 1" type="button" :disabled="loading"
                 class="rounded-md px-2 py-2 text-sm text-red-700" :aria-label="`${index + 1}번 납부 요청 삭제`"
@@ -144,6 +145,9 @@
           </div>
 
           <div v-if="!isBatchPayment || activePaymentIndex !== null" :inert="loading" class="space-y-6">
+          <h3 v-if="isBatchPayment" class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 font-semibold text-blue-900" aria-live="polite">
+            {{ activePaymentIndex + 1 }}번 납부 요청 · {{ paymentDrafts[activePaymentIndex]?.id === newPaymentDraftId ? '새 요청 작성 중' : '작성 중' }}
+          </h3>
           <fieldset>
             <legend class="mb-2 text-sm font-medium text-gray-700">회사 <span class="text-red-500">*</span></legend>
             <div class="hidden flex-wrap gap-2 sm:flex">
@@ -548,6 +552,7 @@ const company = ref(companyOptions.length === 1 ? companyNameToEnum[companyOptio
 const isBatchPayment = computed(() => isPaymentRequest.value && !props.editRequestId);
 const paymentDrafts = ref([]);
 const activePaymentIndex = ref(null);
+const newPaymentDraftId = ref(null);
 let nextPaymentId = 0;
 
 // 폼 데이터
@@ -593,9 +598,11 @@ const openPaymentDraft = (index) => {
 
 const addPaymentDraft = () => {
   savePaymentDraft();
+  const id = ++nextPaymentId;
   paymentDrafts.value.push({
-    id: ++nextPaymentId, request: createPaymentRequest(), company: company.value, content: '', files: [],
+    id, request: createPaymentRequest(), company: company.value, content: '', files: [],
   });
+  newPaymentDraftId.value = id;
   showPaymentDraft(paymentDrafts.value.length - 1);
 };
 
