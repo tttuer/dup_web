@@ -135,7 +135,8 @@
             :class="draft && (index === activePaymentIndex ? 'rounded-lg border border-blue-400 bg-white' : 'rounded-lg border border-gray-200 bg-gray-50')">
             <div v-if="draft" class="flex items-center gap-1 rounded-t-lg"
               :class="{ 'border-b border-blue-200 bg-blue-50': index === activePaymentIndex }">
-              <button type="button" class="flex min-w-0 flex-1 items-center gap-2 px-3 py-3 text-left text-sm"
+              <button type="button" class="flex min-w-0 flex-1 scroll-mt-20 items-center gap-2 px-3 py-3 text-left text-sm"
+                :id="`payment-draft-header-${draft.id}`"
                 :aria-expanded="index === activePaymentIndex" :disabled="loading" @click="openPaymentDraft(index)">
                 <span class="min-w-0 flex-1 break-words font-medium text-gray-900">
                   {{ index + 1 }}번 {{ index === activePaymentIndex ? (draft.id === newPaymentDraftId ? '새 납부 요청' : '납부 요청') : paymentSummary(draft) }}
@@ -605,7 +606,7 @@ const openPaymentDraft = (index) => {
   }
 };
 
-const addPaymentDraft = () => {
+const addPaymentDraft = async () => {
   savePaymentDraft();
   const id = ++nextPaymentId;
   paymentDrafts.value.push({
@@ -613,6 +614,10 @@ const addPaymentDraft = () => {
   });
   newPaymentDraftId.value = id;
   showPaymentDraft(paymentDrafts.value.length - 1);
+  await nextTick();
+  const header = document.getElementById(`payment-draft-header-${id}`);
+  header?.scrollIntoView({ block: 'start' });
+  header?.focus({ preventScroll: true });
 };
 
 const removePaymentDraft = (index) => {
