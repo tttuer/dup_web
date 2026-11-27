@@ -130,24 +130,28 @@
             </div>
           </div>
 
-          <div v-if="isBatchPayment" class="space-y-2" aria-label="납부 요청 목록">
-            <div v-for="(draft, index) in paymentDrafts" :key="draft.id" class="flex items-center gap-2">
-              <button type="button" class="min-w-0 flex-1 truncate rounded-md border px-3 py-2 text-left text-sm"
-                :class="index === activePaymentIndex ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+          <div class="space-y-3">
+          <section v-for="(draft, index) in editorCards" :key="draft?.id ?? 'approval'"
+            :class="draft && (index === activePaymentIndex ? 'rounded-lg border border-blue-400 bg-white' : 'rounded-lg border border-gray-200 bg-gray-50')">
+            <div v-if="draft" class="flex items-center gap-1 rounded-t-lg"
+              :class="{ 'border-b border-blue-200 bg-blue-50': index === activePaymentIndex }">
+              <button type="button" class="flex min-w-0 flex-1 items-center gap-2 px-3 py-3 text-left text-sm"
                 :aria-expanded="index === activePaymentIndex" :disabled="loading" @click="openPaymentDraft(index)">
-                {{ index + 1 }}. {{ paymentSummary(index === activePaymentIndex ? currentPaymentDraft() : draft) }}
-                <span v-if="index === activePaymentIndex" class="ml-2 font-medium text-blue-700">{{ draft.id === newPaymentDraftId ? '새 요청 작성 중' : '작성 중' }}</span>
+                <span class="min-w-0 flex-1 break-words font-medium text-gray-900">
+                  {{ index + 1 }}번 {{ index === activePaymentIndex ? (draft.id === newPaymentDraftId ? '새 납부 요청' : '납부 요청') : paymentSummary(draft) }}
+                </span>
+                <span v-if="index === activePaymentIndex" class="shrink-0 font-semibold text-blue-700">작성 중</span>
+                <span v-else-if="isPaymentDraftReady(draft)" class="shrink-0 font-medium text-emerald-700">✓ 입력 완료</span>
+                <span v-else class="shrink-0 font-medium text-amber-800">입력 필요</span>
+                <ChevronDown aria-hidden="true" class="h-4 w-4 shrink-0 text-gray-500"
+                  :class="{ 'rotate-180': index === activePaymentIndex }" />
               </button>
               <button v-if="paymentDrafts.length > 1" type="button" :disabled="loading"
                 class="rounded-md px-2 py-2 text-sm text-red-700" :aria-label="`${index + 1}번 납부 요청 삭제`"
                 @click="removePaymentDraft(index)">삭제</button>
             </div>
-          </div>
 
-          <div v-if="!isBatchPayment || activePaymentIndex !== null" :inert="loading" class="space-y-6">
-          <h3 v-if="isBatchPayment" class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 font-semibold text-blue-900" aria-live="polite">
-            {{ activePaymentIndex + 1 }}번 납부 요청 · {{ paymentDrafts[activePaymentIndex]?.id === newPaymentDraftId ? '새 요청 작성 중' : '작성 중' }}
-          </h3>
+          <div v-if="!draft || index === activePaymentIndex" :inert="loading" class="space-y-6" :class="{ 'p-4': draft }">
           <fieldset>
             <legend class="mb-2 text-sm font-medium text-gray-700">회사 <span class="text-red-500">*</span></legend>
             <div class="hidden flex-wrap gap-2 sm:flex">
@@ -285,6 +289,8 @@
               </button>
             </div>
           </div>
+          </div>
+          </section>
           </div>
           <button v-if="isBatchPayment" type="button" :disabled="loading"
             class="rounded-md border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700"
@@ -506,7 +512,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import { ChevronLeft, ChevronRight, Users, Plus, Upload, Trash2, FileText, File, Loader, ArrowRight, Search, AlertTriangle } from 'lucide-vue-next';
+import { ChevronDown, ChevronLeft, ChevronRight, Users, Plus, Upload, Trash2, FileText, File, Loader, ArrowRight, Search, AlertTriangle } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
 import { useTemplateStore } from '@/stores/useTemplateStore';
 import { useApprovalStore } from '@/stores/useApprovalStore';
@@ -551,6 +557,7 @@ const paymentRequest = ref(createPaymentRequest());
 const company = ref(companyOptions.length === 1 ? companyNameToEnum[companyOptions[0]] : '');
 const isBatchPayment = computed(() => isPaymentRequest.value && !props.editRequestId);
 const paymentDrafts = ref([]);
+const editorCards = computed(() => isBatchPayment.value ? paymentDrafts.value : [null]);
 const activePaymentIndex = ref(null);
 const newPaymentDraftId = ref(null);
 let nextPaymentId = 0;
@@ -577,6 +584,8 @@ const paymentSummary = ({ request, company }) => [
 const savePaymentDraft = () => {
   if (activePaymentIndex.value !== null) paymentDrafts.value[activePaymentIndex.value] = currentPaymentDraft();
 };
+
+const isPaymentDraftReady = (draft) => Boolean(draft.company && draft.request.assignee_id);
 
 const showPaymentDraft = (index) => {
   const draft = paymentDrafts.value[index];
@@ -1010,7 +1019,7 @@ const submitApproval = async () => {
 const submitPaymentRequest = async () => {
   if (loading.value) return;
   savePaymentDraft();
-  const invalidIndex = paymentDrafts.value.findIndex(draft => !draft.company || !draft.request.assignee_id);
+  const invalidIndex = paymentDrafts.value.findIndex(draft => !isPaymentDraftReady(draft));
   if (invalidIndex !== -1) {
     showPaymentDraft(invalidIndex);
     toast.error(`${invalidIndex + 1}번 요청의 회사와 납부 담당자를 선택해주세요.`);
