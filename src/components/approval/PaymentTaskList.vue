@@ -15,6 +15,7 @@
       </button>
     </div>
 
+    <ApprovalCompanyFilter v-model="selectedCompany" :disabled="loading" @change="loadTasks" />
     <div class="mb-5 border-b border-gray-200">
       <div class="flex gap-5" role="tablist" aria-label="납부 업무 구분">
         <button
@@ -58,7 +59,7 @@
             </span>
             <span v-if="task.category" class="text-sm text-gray-500">{{ task.category }}</span>
           </div>
-          <h3 class="truncate text-lg font-semibold text-gray-900" :title="task.title">{{ task.title }}</h3>
+          <h3 class="truncate text-lg font-semibold text-gray-900" :title="task.title"><span v-if="companyName(task.company)" class="mr-2 rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-800">{{ companyName(task.company) }}</span>{{ task.title }}</h3>
           <p class="mt-1 min-h-10 text-sm leading-5 text-gray-600 line-clamp-2">{{ task.description || '등록된 요청 사유가 없습니다.' }}</p>
         </div>
 
@@ -144,7 +145,7 @@
     <div v-if="selectedTask" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @mousedown.self="closeModal">
       <form class="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl" @submit.prevent="completeTask">
         <h3 class="text-lg font-semibold text-gray-900">납부 완료 처리</h3>
-        <p class="mt-1 text-sm text-gray-500">{{ selectedTask.title }}</p>
+        <p class="mt-1 text-sm text-gray-500">{{ [companyName(selectedTask.company), selectedTask.title].filter(Boolean).join(' · ') }}</p>
         <div class="mt-5 space-y-4">
           <label class="block text-sm font-medium text-gray-700">실제 납부일
             <input v-model="completionForm.paidAt" required type="date" class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2" />
@@ -203,7 +204,7 @@
     <div v-if="dueDateTask" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @mousedown.self="closeDueDateModal">
       <form class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" @submit.prevent="setDueDate">
         <h3 class="text-lg font-semibold text-gray-900">납부 기한 설정</h3>
-        <p class="mt-1 text-sm text-gray-500">{{ dueDateTask.title }}</p>
+        <p class="mt-1 text-sm text-gray-500">{{ [companyName(dueDateTask.company), dueDateTask.title].filter(Boolean).join(' · ') }}</p>
         <label class="mt-5 block text-sm font-medium text-gray-700">실제 납부 기한
           <input v-model="dueDateInput" required type="date" class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2" />
         </label>
@@ -285,6 +286,8 @@
 </template>
 
 <script setup>
+import ApprovalCompanyFilter from './ApprovalCompanyFilter.vue';
+import { companyName } from '@/constants/companies';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { File, FileText, Upload, X } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
@@ -299,6 +302,7 @@ const toast = useToast();
 const userStore = useUserStore();
 const tasks = ref([]);
 const taskElements = new Map();
+const selectedCompany = ref('');
 const loading = ref(false);
 const completing = ref(false);
 const settingDueDate = ref(false);
@@ -360,6 +364,10 @@ const showHighlightedTask = async () => {
 
   try {
     const task = await paymentTaskApi.getTask(taskId);
+    if (selectedCompany.value && selectedCompany.value !== task.company) {
+      selectedCompany.value = '';
+      await loadTasks();
+    }
     const index = tasks.value.findIndex(item => item.id === task.id);
     if (index >= 0) tasks.value[index] = task;
     else tasks.value = [task, ...tasks.value];
@@ -375,9 +383,10 @@ const showHighlightedTask = async () => {
 const loadTasks = async () => {
   loading.value = true;
   try {
-    const loadedTasks = await paymentTaskApi.getMyTasks();
+    const loadedTasks = await paymentTaskApi.getMyTasks(undefined, selectedCompany.value);
     tasks.value = [...loadedTasks].sort((left, right) => Number(left.status === 'COMPLETED') - Number(right.status === 'COMPLETED'));
   } catch (error) {
+    tasks.value = [];
     toast.error(error.message || '납부 업무를 불러오지 못했습니다.');
   } finally {
     loading.value = false;

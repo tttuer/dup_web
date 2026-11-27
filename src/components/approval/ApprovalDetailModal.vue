@@ -112,7 +112,7 @@
         <!-- 제목 -->
         <div>
           <h4 class="mb-2 font-semibold text-gray-900">제목</h4>
-          <p class="text-lg">{{ request.title }}</p>
+          <p class="text-lg"><span v-if="companyName(request.form_data?.company)" class="mr-2 rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-800">{{ companyName(request.form_data?.company) }}</span>{{ request.title }}</p>
         </div>
 
         <!-- 내용 -->
@@ -284,6 +284,7 @@
 </template>
 
 <script setup>
+import { companyName } from '@/constants/companies';
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { X, Loader, Download, FileText, File, Clock, Check, ArrowRight } from 'lucide-vue-next';
 import { useApprovalStore } from '@/stores/useApprovalStore';

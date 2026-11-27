@@ -1,5 +1,6 @@
 <template>
   <div class="space-y-6">
+    <ApprovalCompanyFilter v-model="selectedCompany" :disabled="approvalStore.loading" @change="refreshList" />
     <!-- 헤더 -->
     <div class="flex justify-between items-center flex-wrap gap-4">
       <div>
@@ -82,7 +83,7 @@
             <div class="flex-1">
               <!-- 제목과 기안자 -->
               <div class="flex items-center space-x-3 mb-2">
-                <h3 class="text-lg font-medium text-gray-900">{{ request.title }}</h3>
+                <h3 class="text-lg font-medium text-gray-900"><span v-if="companyName(request.form_data?.company)" class="mr-2 rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-800">{{ companyName(request.form_data?.company) }}</span>{{ request.title }}</h3>
                 <span class="text-sm text-gray-500">#{{ formatShortDocumentNumber(request.document_number) }}</span>
               </div>
               
@@ -329,6 +330,8 @@
 </template>
 
 <script setup>
+import ApprovalCompanyFilter from './ApprovalCompanyFilter.vue';
+import { companyName } from '@/constants/companies';
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { 
   RefreshCw, Loader, Clock, User, Calendar, FileText, Eye, Check, X 
@@ -364,9 +367,12 @@ let observer = null;
 const pendingRequests = computed(() => approvalStore.pendingApprovals);
 
 // 데이터 새로고침
+const selectedCompany = ref('');
+
 const refreshList = async () => {
   try {
     const params = {
+      company: selectedCompany.value,
       sort: sortBy.value,
       start_date: startDate.value || undefined,
       end_date: endDate.value || undefined,
@@ -407,6 +413,7 @@ watch(sentinelRef, (newSentinel, oldSentinel) => {
 
 // 필터 초기화
 const resetFilters = () => {
+  selectedCompany.value = '';
   sortBy.value = 'created_at_desc';
   startDate.value = '';
   endDate.value = '';

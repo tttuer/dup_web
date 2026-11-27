@@ -7,3 +7,5 @@ export const companyNameToEnum = {
   평택마을: 'PYEONGTAEK_MAUL',
   백성평택지점: 'BAEKSUNG_PYEONGTAEK_BRANCH',
 };
+
+export const companyName = (code) => companyOptions.find(name => companyNameToEnum[name] === code) || '';

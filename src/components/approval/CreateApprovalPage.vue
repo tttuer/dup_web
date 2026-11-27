@@ -4,6 +4,7 @@
     <div class="flex items-center space-x-4 mb-6">
       <button
         @click="goBack"
+        :disabled="loading"
         class="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
       >
         <ChevronLeft class="w-4 h-4 mr-1" />
@@ -12,7 +13,7 @@
       <h2 class="text-xl font-semibold text-gray-900">결재 요청 작성</h2>
     </div>
     <!-- 진행 단계 표시 -->
-    <div v-if="!isPaymentRequest" class="mb-8">
+    <div v-if="!isBatchPayment" class="mb-8">
         <div class="flex items-center space-x-4">
           <div 
             class="flex items-center"
@@ -129,10 +130,38 @@
             </div>
           </div>
 
+          <div v-if="isBatchPayment" class="space-y-2" aria-label="납부 요청 목록">
+            <div v-for="(draft, index) in paymentDrafts" :key="draft.id" class="flex items-center gap-2">
+              <button type="button" class="min-w-0 flex-1 truncate rounded-md border px-3 py-2 text-left text-sm"
+                :class="index === activePaymentIndex ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+                :aria-expanded="index === activePaymentIndex" :disabled="loading" @click="openPaymentDraft(index)">
+                {{ index + 1 }}. {{ paymentSummary(index === activePaymentIndex ? currentPaymentDraft() : draft) }}
+              </button>
+              <button v-if="paymentDrafts.length > 1" type="button" :disabled="loading"
+                class="rounded-md px-2 py-2 text-sm text-red-700" :aria-label="`${index + 1}번 납부 요청 삭제`"
+                @click="removePaymentDraft(index)">삭제</button>
+            </div>
+          </div>
+
+          <div v-if="!isBatchPayment || activePaymentIndex !== null" :inert="loading" class="space-y-6">
+          <fieldset>
+            <legend class="mb-2 text-sm font-medium text-gray-700">회사 <span class="text-red-500">*</span></legend>
+            <div class="hidden flex-wrap gap-2 sm:flex">
+              <label v-for="name in companyOptions" :key="name" class="cursor-pointer">
+                <input v-model="company" type="radio" name="approval-company" :value="companyNameToEnum[name]" class="peer sr-only" />
+                <span class="block rounded-md border border-gray-300 px-3 py-2 text-sm peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-800 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500">{{ name }}</span>
+              </label>
+            </div>
+            <select v-model="company" aria-label="회사" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 sm:hidden">
+              <option disabled value="">회사를 선택하세요</option>
+              <option v-for="name in companyOptions" :key="name" :value="companyNameToEnum[name]">{{ name }}</option>
+            </select>
+          </fieldset>
+
           <div v-if="isPaymentRequest" class="space-y-4 rounded-lg border border-blue-100 bg-blue-50/50 p-5">
             <div>
               <h3 class="font-medium text-gray-900">납부 정보</h3>
-              <p class="mt-1 text-sm text-gray-600">최종 승인되면 지정 담당자의 ‘납부할 업무’에 자동으로 생성됩니다.</p>
+              <p class="mt-1 text-sm text-gray-600">{{ isBatchPayment ? '등록하면 지정한 담당자의 납부 업무에 표시됩니다.' : '최종 승인되면 지정 담당자의 납부 업무에 표시됩니다.' }}</p>
             </div>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label class="block text-sm font-medium text-gray-700">
@@ -252,6 +281,10 @@
               </button>
             </div>
           </div>
+          </div>
+          <button v-if="isBatchPayment" type="button" :disabled="loading"
+            class="rounded-md border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700"
+            @click="addPaymentDraft">+ 납부 요청 추가</button>
         </div>
 
         <!-- Step 2: 결재선 설정 -->
@@ -323,6 +356,7 @@
                     <span class="text-gray-500">제목:</span>
                     <span class="ml-2">{{ formData.title }}</span>
                   </div>
+                  <div><span class="text-gray-500">회사</span><span class="ml-2">{{ companyName(company) }}</span></div>
                 </div>
                 <div class="mt-2">
                   <span class="text-gray-500">내용:</span>
@@ -382,7 +416,7 @@
         <!-- 하단 버튼 -->
         <div class="flex justify-between items-center mt-8 pt-6 border-t">
           <button
-            v-if="step > 1 && !isPaymentRequest"
+            v-if="step > 1 && !isBatchPayment"
             @click="step--"
             class="flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
           >
@@ -394,13 +428,13 @@
           <div class="flex space-x-3">
             <!-- 다음/완료 버튼 -->
             <button
-              v-if="isPaymentRequest"
+              v-if="isBatchPayment"
               @click="submitPaymentRequest"
-              :disabled="loading || !hasValidPaymentRequest"
+              :disabled="loading"
               class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               <Loader v-if="loading" class="w-4 h-4 animate-spin mr-2" />
-              납부 요청 등록
+              {{ paymentDrafts.length === 1 ? '납부 요청 등록' : `${paymentDrafts.length}건 등록` }}
             </button>
             <button
               v-else-if="step < 3"
@@ -475,6 +509,7 @@ import { useApprovalStore } from '@/stores/useApprovalStore';
 import { approvalUtils, fileApi, paymentTaskApi } from '@/utils/approvalApi';
 import ApprovalLineModal from './ApprovalLineModal.vue';
 import { useUserStore } from '@/stores/useUserStore';
+import { companyName, companyNameToEnum, companyOptions } from '@/constants/companies';
 
 const props = defineProps({
   editRequestId: {
@@ -509,6 +544,11 @@ const createPaymentRequest = () => ({
   assignee_id: localStorage.getItem(PAYMENT_ASSIGNEE_STORAGE_KEY) || '',
 });
 const paymentRequest = ref(createPaymentRequest());
+const company = ref(companyOptions.length === 1 ? companyNameToEnum[companyOptions[0]] : '');
+const isBatchPayment = computed(() => isPaymentRequest.value && !props.editRequestId);
+const paymentDrafts = ref([]);
+const activePaymentIndex = ref(null);
+let nextPaymentId = 0;
 
 // 폼 데이터
 const formData = ref({
@@ -516,6 +556,55 @@ const formData = ref({
   content: '',
   files: [],
 });
+
+const currentPaymentDraft = () => ({
+  id: paymentDrafts.value[activePaymentIndex.value]?.id ?? ++nextPaymentId,
+  request: paymentRequest.value,
+  company: company.value,
+  content: formData.value.content,
+  files: selectedFiles.value,
+});
+
+const paymentSummary = ({ request, company }) => [
+  companyName(company), request.name.trim(), request.amount == null || request.amount === '' ? '' : `${formatAmountInput(request.amount)}원`, request.due_date,
+].filter(Boolean).join(' · ') || '새 납부 요청';
+
+const savePaymentDraft = () => {
+  if (activePaymentIndex.value !== null) paymentDrafts.value[activePaymentIndex.value] = currentPaymentDraft();
+};
+
+const showPaymentDraft = (index) => {
+  const draft = paymentDrafts.value[index];
+  activePaymentIndex.value = index;
+  paymentRequest.value = draft.request;
+  company.value = draft.company;
+  formData.value.content = draft.content;
+  selectedFiles.value = draft.files;
+};
+
+const openPaymentDraft = (index) => {
+  savePaymentDraft();
+  if (index === activePaymentIndex.value) {
+    activePaymentIndex.value = null;
+  } else {
+    showPaymentDraft(index);
+  }
+};
+
+const addPaymentDraft = () => {
+  savePaymentDraft();
+  paymentDrafts.value.push({
+    id: ++nextPaymentId, request: createPaymentRequest(), company: company.value, content: '', files: [],
+  });
+  showPaymentDraft(paymentDrafts.value.length - 1);
+};
+
+const removePaymentDraft = (index) => {
+  if (!confirm(`${index + 1}번 납부 요청을 삭제하시겠습니까?`)) return;
+  savePaymentDraft();
+  paymentDrafts.value.splice(index, 1);
+  showPaymentDraft(Math.min(index, paymentDrafts.value.length - 1));
+};
 
 const approvalLines = ref([]);
 const templates = ref([]);
@@ -621,6 +710,10 @@ const selectPaymentRequest = async () => {
   selectedTemplate.value = null;
   formData.value.template_id = '';
   isPaymentRequest.value = true;
+  if (isBatchPayment.value && !paymentDrafts.value.length) {
+    paymentDrafts.value.push(currentPaymentDraft());
+    activePaymentIndex.value = 0;
+  }
   await userStore.fetchAllUsers();
   syncPaymentTitle();
 };
@@ -703,7 +796,7 @@ const applyTemplate = (template) => {
 // 단계별 진행 조건
 const canProceed = computed(() => {
   if (step.value === 1) {
-    return formData.value.title.trim() &&
+    return company.value && formData.value.title.trim() &&
       (isPaymentRequest.value ? hasValidPaymentRequest.value : formData.value.content.trim());
   }
   if (step.value === 2) {
@@ -721,7 +814,7 @@ const hasInvalidApprovers = computed(() => {
 });
 
 const canComplete = computed(() => {
-  return formData.value.title.trim() && 
+  return company.value && formData.value.title.trim() &&
          (isPaymentRequest.value || formData.value.content.trim()) && 
          approvalLines.value.length > 0 &&
          !hasInvalidApprovers.value &&
@@ -869,6 +962,7 @@ const submitApproval = async () => {
     const requestData = {
       ...formData.value,
       form_data: isPaymentRequest.value ? {
+        company: company.value,
         workflow_type: 'PAYMENT_REQUEST',
         payment_request: {
           ...paymentRequest.value,
@@ -877,7 +971,7 @@ const submitApproval = async () => {
             : Number(paymentRequest.value.amount),
           description: formData.value.content.trim(),
         },
-      } : (formData.value.form_data || {}),
+      } : { ...formData.value.form_data, company: company.value },
       approval_lines: approvalLines.value.map(line => ({
         step_order: line.step_order,
         approver_user_id: line.approver_user_id || line.approver_id,
@@ -907,25 +1001,40 @@ const submitApproval = async () => {
 };
 
 const submitPaymentRequest = async () => {
-  if (!hasValidPaymentRequest.value) {
-    toast.error('납부 담당자를 선택해주세요.');
+  if (loading.value) return;
+  savePaymentDraft();
+  const invalidIndex = paymentDrafts.value.findIndex(draft => !draft.company || !draft.request.assignee_id);
+  if (invalidIndex !== -1) {
+    showPaymentDraft(invalidIndex);
+    toast.error(`${invalidIndex + 1}번 요청의 회사와 납부 담당자를 선택해주세요.`);
     return;
   }
 
   loading.value = true;
+  const failed = [];
+  let lastCreated;
   try {
-    const task = await paymentTaskApi.createTask({
-      ...paymentRequest.value,
-      amount: paymentRequest.value.amount === null || paymentRequest.value.amount === ''
-        ? null
-        : Number(paymentRequest.value.amount),
-      description: formData.value.content.trim(),
-      files: selectedFiles.value.filter(file => !file.id),
-    });
-    toast.success('납부 담당자에게 요청을 전달했습니다.');
-    emit('created', task);
-  } catch (error) {
-    toast.error('처리 중 오류가 발생했습니다: ' + error.message);
+    for (const draft of paymentDrafts.value) {
+      try {
+        lastCreated = await paymentTaskApi.createTask({
+          ...draft.request,
+          company: draft.company,
+          description: draft.content.trim(),
+          files: draft.files.filter(file => !file.id),
+        });
+      } catch (error) {
+        failed.push(draft);
+        toast.error(`${paymentSummary(draft)} 등록 실패 · ${error.message}`);
+      }
+    }
+    const createdCount = paymentDrafts.value.length - failed.length;
+    if (createdCount) toast.success(`납부 요청 ${createdCount}건을 등록했습니다.`);
+    if (failed.length) {
+      paymentDrafts.value = failed;
+      showPaymentDraft(0);
+    } else {
+      emit('created', lastCreated);
+    }
   } finally {
     loading.value = false;
   }
@@ -940,6 +1049,7 @@ const loadExistingRequest = async () => {
     const detail = await approvalStore.fetchApprovalDetail(props.editRequestId);
     const lines = await approvalStore.fetchApprovalLines(props.editRequestId);
     const files = await fileApi.getFiles(props.editRequestId);
+    company.value = detail.form_data?.company || company.value;
     
     formData.value = {
       title: detail.title,

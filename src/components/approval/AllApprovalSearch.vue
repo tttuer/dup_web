@@ -1,5 +1,6 @@
 <template>
   <div class="space-y-6">
+    <ApprovalCompanyFilter v-model="selectedCompany" :disabled="loading" @change="searchApprovals" />
     <!-- 검색 필터 -->
     <div class="bg-white p-6 rounded-lg shadow">
       <h3 class="text-lg font-medium text-gray-900 mb-4">전자결재 목록</h3>
@@ -163,7 +164,7 @@
             >
               <td class="px-6 py-4">
                 <div class="text-sm font-medium text-gray-900">
-                  {{ approval.title }}
+                  <span v-if="companyName(approval.form_data?.company)" class="mr-2 rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-800">{{ companyName(approval.form_data?.company) }}</span>{{ approval.title }}
                 </div>
                 <div class="text-sm text-gray-500 truncate max-w-xs">
                   {{ approval.content }}
@@ -204,12 +205,15 @@
 </template>
 
 <script setup>
+import ApprovalCompanyFilter from './ApprovalCompanyFilter.vue';
+import { companyName } from '@/constants/companies';
 import { ref, reactive, onMounted } from 'vue';
 import { Loader, Search, FileX, Calendar } from 'lucide-vue-next';
 import { authFetch } from '@/utils/authFetch';
 import ApprovalStatus from './ApprovalStatus.vue';
 
 // 상태 관리
+const selectedCompany = ref('');
 const loading = ref(false);
 const searchResults = ref([]);
 
@@ -227,9 +231,11 @@ const emit = defineEmits(['view-detail']);
 // 전자결재 목록 조회 (검색 포함)
 const loadApprovals = async (isSearch = false) => {
   loading.value = true;
+  searchResults.value = [];
   
   try {
     const params = new URLSearchParams();
+    if (selectedCompany.value) params.set('company', selectedCompany.value);
     
     // 검색 조건이 있는 경우에만 추가
     if (isSearch) {
@@ -294,6 +300,7 @@ const setDateRange = (range) => {
 
 // 필터 초기화 및 전체 목록 다시 로드
 const resetFilters = () => {
+  selectedCompany.value = '';
   searchFilters.query = '';
   searchFilters.status = '';
   searchFilters.startDate = '';
